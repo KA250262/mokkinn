@@ -1,88 +1,201 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>木琴ゲーム</title>
+<meta charset="UTF-8">
+<title>木琴ゲーム</title>
 
-  <style>
-    body{
-      background:#222;
-      color:white;
-      text-align:center;
-      font-family:sans-serif;
-    }
+<style>
 
-    .key{
-      width:80px;
-      height:200px;
-      background:orange;
-      display:inline-block;
-      margin:5px;
-      border-radius:10px;
-      line-height:200px;
-      font-size:30px;
-      cursor:pointer;
-    }
+body {
+  background: #222;
+  color: white;
+  text-align: center;
+  font-family: sans-serif;
+}
 
-    .active{
-      background:yellow;
-    }
-  </style>
+/* 外枠 */
+.keyboard-wrapper {
+  width: 100%;
+}
+
+/* 白鍵エリア */
+#keyboard {
+  display: flex;
+  width: 100%;
+}
+
+/* 鍵盤 */
+.key {
+  flex: 1;
+  height: 160px;
+  background: white;
+  border: 1px solid black;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+
+  font-size: 14px;
+  padding-bottom: 10px;
+
+  user-select: none;
+  cursor: pointer;
+}
+
+/* 状態 */
+.active {
+  background: yellow;
+}
+
+.correct {
+  background: lightgreen;
+}
+
+.wrong {
+  background: salmon;
+}
+#gameArea {
+  position: relative;
+  height: 300px;
+  background: #111;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.note {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  background: red;
+  border-radius: 50%;
+}
+.key:active {
+  transform: scale(0.98);
+}
+
+</style>
 </head>
 
 <body>
 
 <h1>木琴ゲーム</h1>
 
-<div id="c4" class="key">ド</div>
-<div id="d4" class="key">レ</div>
-<div id="e4" class="key">ミ</div>
+<h2>ノーツエリア</h2>
+<div id="gameArea"></div>
 
+<div class="keyboard-wrapper">
+
+  <div id="keyboard">
+
+    <div class="key" data-note="C4">C</div>
+    <div class="key" data-note="D4">D</div>
+    <div class="key" data-note="E4">E</div>
+    <div class="key" data-note="F4">F</div>
+    <div class="key" data-note="G4">G</div>
+    <div class="key" data-note="A4">A</div>
+    <div class="key" data-note="B4">B</div>
+
+    <div class="key" data-note="C5">C</div>
+    <div class="key" data-note="D5">D</div>
+    <div class="key" data-note="E5">E</div>
+    <div class="key" data-note="F5">F</div>
+    <div class="key" data-note="G5">G</div>
+    <div class="key" data-note="A5">A</div>
+    <div class="key" data-note="B5">B</div>
+
+  </div>
+
+</div>
 
 <script src="https://unpkg.com/tone"></script>
 
 <script>
 
 const synth = new Tone.Synth().toDestination();
-const sequence = ["c4","d4","e4"];
+
+const sequence = ["C4", "D4", "E4"];
 let current = 0;
 
-function lightNext(){
+function lightNext() {
 
   document.querySelectorAll(".key")
-    .forEach(k=>k.classList.remove("active"));
+    .forEach(k => {
+      k.classList.remove("active");
+      k.classList.remove("correct");
+      k.classList.remove("wrong");
+    });
 
-  document
-    .getElementById(sequence[current])
-    .classList.add("active");
+  const target = document.querySelector(
+    `.key[data-note="${sequence[current]}"]`
+  );
+
+  if (target) {
+    target.classList.add("active");
+  }
 }
 
 lightNext();
 
-document.querySelectorAll(".key")
-.forEach(key=>{
+document.querySelectorAll(".key").forEach(key => {
 
-key.addEventListener("click",()=>{
+  key.addEventListener("click", async () => {
 
-  synth.triggerAttackRelease(
-    key.id.toUpperCase(),
-    "8n"
-  );
-    if(key.id === sequence[current]){
+    await Tone.start();
+
+    const note = key.dataset.note;
+
+    synth.triggerAttackRelease(note, "8n");
+
+    if (note === sequence[current]) {
+
+      key.classList.add("correct");
 
       current++;
 
-      if(current >= sequence.length){
+      if (current >= sequence.length) {
         alert("クリア！");
         current = 0;
       }
 
       lightNext();
+
+    } else {
+
+      key.classList.add("wrong");
+
+      setTimeout(() => {
+        key.classList.remove("wrong");
+      }, 300);
     }
 
   });
 
 });
+  function createNote() {
+  const note = document.createElement("div");
+  note.classList.add("note");
+
+  document.getElementById("gameArea").appendChild(note);
+
+  let y = 0;
+
+  const fall = setInterval(() => {
+
+    y += 5;
+    note.style.top = y + "px";
+
+    if (y > 280) {
+      note.remove();
+      clearInterval(fall);
+    }
+
+  }, 30);
+}
+
+setInterval(createNote, 1000);
 
 </script>
 
