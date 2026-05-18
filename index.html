@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>木琴ゲーム</title>
+
+  <style>
+    body{
+      background:#222;
+      color:white;
+      text-align:center;
+      font-family:sans-serif;
+    }
+
+    .key{
+      width:80px;
+      height:200px;
+      background:orange;
+      display:inline-block;
+      margin:5px;
+      border-radius:10px;
+      line-height:200px;
+      font-size:30px;
+      cursor:pointer;
+    }
+
+    .active{
+      background:yellow;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>木琴ゲーム</h1>
+
+<div id="c4" class="key">ド</div>
+<div id="d4" class="key">レ</div>
+<div id="e4" class="key">ミ</div>
+
+
+<script src="https://unpkg.com/tone"></script>
+
+<script>
+
+const synth = new Tone.Synth().toDestination();
+const sequence = ["c4","d4","e4"];
+let current = 0;
+
+function lightNext(){
+
+  document.querySelectorAll(".key")
+    .forEach(k=>k.classList.remove("active"));
+
+  document
+    .getElementById(sequence[current])
+    .classList.add("active");
+}
+
+lightNext();
+
+document.querySelectorAll(".key")
+.forEach(key=>{
+
+key.addEventListener("click",()=>{
+
+  synth.triggerAttackRelease(
+    key.id.toUpperCase(),
+    "8n"
+  );
+    if(key.id === sequence[current]){
+
+      current++;
+
+      if(current >= sequence.length){
+        alert("クリア！");
+        current = 0;
+      }
+
+      lightNext();
+    }
+
+  });
+
+});
+
+</script>
+
+</body>
+</html>
