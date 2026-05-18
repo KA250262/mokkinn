@@ -149,6 +149,16 @@ document.querySelectorAll(".key").forEach(key => {
 
     synth.triggerAttackRelease(note, "8n");
 
+      const activeNotes = document.querySelectorAll(".note");
+
+  activeNotes.forEach(n => {
+    if (n.dataset.note === note) {
+      n.remove(); // 成功したら消す
+    }
+  });
+
+});
+
     if (note === sequence[current]) {
 
       key.classList.add("correct");
@@ -175,8 +185,14 @@ document.querySelectorAll(".key").forEach(key => {
 
 });
   function createNote() {
+
+  const noteName = notes[Math.floor(Math.random() * notes.length)];
+  
   const note = document.createElement("div");
   note.classList.add("note");
+
+  note.dataset.note = noteName;
+  note.textContent = noteName;
 
   document.getElementById("gameArea").appendChild(note);
 
