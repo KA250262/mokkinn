@@ -119,26 +119,26 @@ const synth = new Tone.Synth().toDestination();
 const sequence = ["C4", "D4", "E4"];
 let current = 0;
 
+// ノーツ候補（追加）
+const notes = ["C4","D4","E4","F4","G4","A4","B4"];
+
 function lightNext() {
 
   document.querySelectorAll(".key")
     .forEach(k => {
-      k.classList.remove("active");
-      k.classList.remove("correct");
-      k.classList.remove("wrong");
+      k.classList.remove("active","correct","wrong");
     });
 
   const target = document.querySelector(
     `.key[data-note="${sequence[current]}"]`
   );
 
-  if (target) {
-    target.classList.add("active");
-  }
+  if (target) target.classList.add("active");
 }
 
 lightNext();
 
+// 鍵盤クリック
 document.querySelectorAll(".key").forEach(key => {
 
   key.addEventListener("click", async () => {
@@ -149,16 +149,16 @@ document.querySelectorAll(".key").forEach(key => {
 
     synth.triggerAttackRelease(note, "8n");
 
-      const activeNotes = document.querySelectorAll(".note");
+    // ノーツ削除（ヒット処理）
+    const activeNotes = document.querySelectorAll(".note");
 
-  activeNotes.forEach(n => {
-    if (n.dataset.note === note) {
-      n.remove(); // 成功したら消す
-    }
-  });
+    activeNotes.forEach(n => {
+      if (n.dataset.note === note) {
+        n.remove();
+      }
+    });
 
-});
-
+    // 🎯 正解チェック
     if (note === sequence[current]) {
 
       key.classList.add("correct");
@@ -184,10 +184,12 @@ document.querySelectorAll(".key").forEach(key => {
   });
 
 });
-  function createNote() {
+
+// ノーツ生成
+function createNote() {
 
   const noteName = notes[Math.floor(Math.random() * notes.length)];
-  
+
   const note = document.createElement("div");
   note.classList.add("note");
 
@@ -214,6 +216,7 @@ document.querySelectorAll(".key").forEach(key => {
 setInterval(createNote, 1000);
 
 </script>
+
 
 </body>
 </html>
