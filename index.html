@@ -2,10 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>メロころ♪ CYTUS ENGINE</title>
+<title>メロころ♪ Stable Edition</title>
 
-<script src="https://unpkg.com/tone"></script>
-<script src="https://unpkg.com/@tonejs/midi"></script>
+<!-- ✅ 安定CDN（ここ重要） -->
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
 <style>
 
@@ -16,26 +17,20 @@ body{
   font-family:sans-serif;
 }
 
-/* ===== UI ===== */
-
 #ui{ margin:10px; font-size:18px; }
 #score{ color:gold; }
 #combo{ color:lime; }
-
-/* ===== GAME ===== */
 
 #gameArea{
   position:relative;
   width:840px;
   height:420px;
   margin:auto;
-
   background:#1b1b1b;
   border:2px solid #444;
   overflow:hidden;
 }
 
-/* 判定ライン（Cytus風横ライン） */
 #line{
   position:absolute;
   top:320px;
@@ -44,22 +39,19 @@ body{
   background:yellow;
 }
 
-/* ノーツ（時間→位置変換） */
 .note{
   position:absolute;
   width:28px;
   height:28px;
   border-radius:50%;
   background:linear-gradient(135deg,#ff9bd5,#ff5aa5);
-  box-shadow:0 0 10px #ff5aa5;
   transform:translateX(-50%);
 }
 
-/* キー */
 #keyboard{
   position:relative;
   width:840px;
-  height:180px;
+  height:160px;
   margin:auto;
 }
 
@@ -67,8 +59,8 @@ body{
   position:absolute;
   width:60px;
   height:160px;
-  border:1px solid #333;
   background:white;
+  border:1px solid #333;
 }
 
 .black{
@@ -78,16 +70,14 @@ body{
   border:2px solid white;
 }
 
-.hit{
-  background:#7CFF6B !important;
-}
+.hit{ background:#7CFF6B !important; }
 
 </style>
 </head>
 
 <body>
 
-<h1>メロころ♪ CYTUS ENGINE</h1>
+<h1>メロころ♪ Stable</h1>
 
 <div id="ui">
 <input type="file" id="midiFile">
@@ -107,76 +97,93 @@ body{
 
 <script>
 
+/* ================= SAFETY CHECK ================= */
+
+if(typeof Tone === "undefined"){
+  alert("Tone.js 読み込み失敗");
+}
+
+if(typeof Midi === "undefined"){
+  alert("@tonejs/midi 読み込み失敗");
+}
+
 /* ================= AUDIO ================= */
 
 const synth = new Tone.Synth().toDestination();
 
 /* ================= STATE ================= */
 
-let notes = [];          // MIDI
-let activeNotes = [];    // 表示中ノーツ
+let notes = [];
+let active = [];
 
 let score = 0;
 let combo = 0;
 
 /* ================= SETTINGS ================= */
 
-const travelTime = 2.0;      // 何秒で判定ラインへ行くか
+const travelTime = 2.2;
 const hitY = 320;
-const spawnY = -50;
-
-/* ================= TIME ================= */
+const spawnY = -60;
 
 let startTime = 0;
+let index = 0;
 
 /* ================= KEYBOARD ================= */
 
-const keyboardNotes = [
+const keys = [
 "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
 "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
 ];
 
-const keyboard = document.getElementById("keyboard");
+const kb = document.getElementById("keyboard");
 let x = 0;
 
-keyboardNotes.forEach(n => {
-
-  const key = document.createElement("div");
-  key.dataset.note = n;
-  key.className = n.includes("#") ? "key black" : "key";
+keys.forEach(n=>{
+  const k = document.createElement("div");
+  k.dataset.note = n;
+  k.className = n.includes("#") ? "key black" : "key";
 
   if(!n.includes("#")){
-    key.style.left = x + "px";
+    k.style.left = x + "px";
     x += 60;
-  } else {
-    key.style.left = (x - 20) + "px";
+  }else{
+    k.style.left = (x - 20) + "px";
   }
 
-  keyboard.appendChild(key);
-
+  kb.appendChild(k);
 });
 
-/* ================= MIDI LOAD ================= */
+/* ================= MIDI ================= */
 
 document.getElementById("midiFile")
 .addEventListener("change", async (e)=>{
 
-  const file = e.target.files[0];
-  const buf = await file.arrayBuffer();
-  const midi = new Midi(buf);
+  try{
 
-  notes = [];
+    const file = e.target.files[0];
+    const buf = await file.arrayBuffer();
 
-  midi.tracks.forEach(t=>{
-    t.notes.forEach(n=>{
-      notes.push({
-        time: n.time,
-        note: n.name
+    const midi = new Midi(buf);
+
+    notes = [];
+
+    midi.tracks.forEach(t=>{
+      t.notes.forEach(n=>{
+        notes.push({
+          time: n.time,
+          note: n.name
+        });
       });
     });
-  });
 
-  notes.sort((a,b)=>a.time-b.time);
+    notes.sort((a,b)=>a.time-b.time);
+
+    console.log("MIDI OK:", notes.length);
+
+  }catch(err){
+    console.error(err);
+    alert("MIDI読み込み失敗");
+  }
 
 });
 
@@ -184,46 +191,43 @@ document.getElementById("midiFile")
 
 function startGame(){
 
-  if(notes.length === 0){
-    alert("MIDI読み込んでね");
+  if(!notes.length){
+    alert("MIDIを読み込んでね");
     return;
   }
 
   startTime = performance.now();
+  index = 0;
 
   requestAnimationFrame(loop);
 }
 
-/* ================= MAIN LOOP ================= */
+/* ================= GAME LOOP ================= */
 
 function loop(){
 
   const now = performance.now();
-  const t = (now - startTime) / 1000;
+  const t = (now - startTime)/1000;
 
-  // ノーツ生成（未来予測）
-  while(notes.length && notes[0].time <= t + travelTime){
+  while(index < notes.length &&
+        notes[index].time <= t + travelTime){
 
-    const n = notes.shift();
-    spawnNote(n);
+    spawn(notes[index]);
+    index++;
   }
 
-  // ノーツ移動更新
-  activeNotes.forEach(n => {
+  active.forEach(n=>{
 
-    const timeToHit = n.hitTime - t;
-    const progress = 1 - (timeToHit / travelTime);
-
-    const y = spawnY + progress * (hitY - spawnY);
+    const p = 1 - ((n.hit - t)/travelTime);
+    const y = spawnY + p*(hitY - spawnY);
 
     n.el.style.top = y + "px";
 
-    // 消失
-    if(progress > 1.2){
+    if(p > 1.2){
       n.el.remove();
-      activeNotes = activeNotes.filter(x => x !== n);
+      active = active.filter(x=>x!==n);
       combo = 0;
-      updateUI();
+      update();
     }
 
   });
@@ -233,26 +237,26 @@ function loop(){
 
 /* ================= SPAWN ================= */
 
-function spawnNote(n){
+function spawn(n){
 
   const key = document.querySelector(`[data-note="${n.note}"]`);
   if(!key) return;
 
-  const rect = key.getBoundingClientRect();
-  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+  const g = document.getElementById("gameArea").getBoundingClientRect();
+  const k = key.getBoundingClientRect();
 
   const el = document.createElement("div");
   el.className = "note";
 
   el.style.left =
-    (rect.left - gameRect.left + rect.width/2) + "px";
+    (k.left - g.left + k.width/2) + "px";
 
   document.getElementById("gameArea").appendChild(el);
 
-  activeNotes.push({
-    el: el,
+  active.push({
+    el,
     note: n.note,
-    hitTime: n.time
+    hit: n.time
   });
 }
 
@@ -260,19 +264,19 @@ function spawnNote(n){
 
 function hit(note){
 
-  const now = (performance.now() - startTime) / 1000;
+  const now = (performance.now()-startTime)/1000;
 
   let best = null;
   let bestDiff = 999;
 
-  activeNotes.forEach(n => {
+  active.forEach(n=>{
 
     if(n.note !== note) return;
 
-    const diff = Math.abs(n.hitTime - now);
+    const d = Math.abs(n.hit - now);
 
-    if(diff < bestDiff){
-      bestDiff = diff;
+    if(d < bestDiff){
+      bestDiff = d;
       best = n;
     }
 
@@ -281,39 +285,38 @@ function hit(note){
   if(best && bestDiff < 0.15){
 
     best.el.remove();
-    activeNotes = activeNotes.filter(n => n !== best);
+    active = active.filter(n=>n!==best);
 
     score += 100;
     combo++;
 
-    synth.triggerAttackRelease(note, "8n");
+    synth.triggerAttackRelease(note,"8n");
 
   }else{
     combo = 0;
   }
 
-  updateUI();
+  update();
 }
 
 /* ================= INPUT ================= */
 
 document.addEventListener("click", async (e)=>{
 
-  const key = e.target.closest("[data-note]");
-  if(!key) return;
+  const k = e.target.closest("[data-note]");
+  if(!k) return;
 
   await Tone.start();
 
-  hit(key.dataset.note);
+  hit(k.dataset.note);
 
-  key.classList.add("hit");
-  setTimeout(()=>key.classList.remove("hit"),100);
-
+  k.classList.add("hit");
+  setTimeout(()=>k.classList.remove("hit"),100);
 });
 
 /* ================= UI ================= */
 
-function updateUI(){
+function update(){
   document.getElementById("score").textContent = score;
   document.getElementById("combo").textContent = combo;
 }
@@ -321,4 +324,4 @@ function updateUI(){
 </script>
 
 </body>
-</html>
+</html>0
