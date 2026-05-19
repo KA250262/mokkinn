@@ -191,6 +191,7 @@ const synth = new Tone.Synth().toDestination();
 
 let scoreData = [];
 let currentIndex = 0;
+let activeNotes = [];
 
 /* ================= SCORE ================= */
 
@@ -259,6 +260,7 @@ function spawnNote(noteName){
   note.className = "note";
 
   note.dataset.note = noteName;
+  activeNotes.push(note);
 
   note.style.left =
     (keyRect.left - gameRect.left + keyRect.width/2)
@@ -276,18 +278,26 @@ lightNextKey();
     y += 3;
 
     note.style.top = y + "px";
+    lightNextKey();
 
-    if(y > 320){
+  if(y > 320){
 
-      note.remove();
+  note.remove();
 
-      clearInterval(fall);
+  // activeNotesから削除
+  activeNotes =
+    activeNotes.filter(n => n !== note);
 
-      combo = 0;
+  clearInterval(fall);
 
-      updateUI();
+  combo = 0;
 
-    }
+  // 次の鍵盤を更新
+  lightNextKey();
+
+  updateUI();
+
+}
 
   },16);
 
@@ -297,6 +307,7 @@ lightNextKey();
 
 function lightNextKey(){
 
+  // 全鍵盤の光を消す
   document.querySelectorAll("[data-note]")
   .forEach(k=>{
 
@@ -304,24 +315,44 @@ function lightNextKey(){
 
   });
 
-  const activeNotes =
-    document.querySelectorAll(".note");
+  // 一番下に近いノーツを探す
+  const notes =
+    [...document.querySelectorAll(".note")];
 
-  if(activeNotes.length > 0){
+  if(notes.length === 0) return;
 
-    const target =
-      activeNotes[0].dataset.note;
+  let closestNote = null;
+  let closestY = -9999;
 
-    const key =
-      document.querySelector(
-        `[data-note="${target}"]`
-      );
+  notes.forEach(n=>{
 
-    if(key){
+    const top =
+      parseFloat(n.style.top) || 0;
 
-      key.classList.add("next");
+    // 一番下に近いノーツ
+    if(top > closestY){
+
+      closestY = top;
+      closestNote = n;
 
     }
+
+  });
+
+  if(!closestNote) return;
+
+  // そのノーツの鍵盤を光らせる
+  const target =
+    closestNote.dataset.note;
+
+  const key =
+    document.querySelector(
+      `[data-note="${target}"]`
+    );
+
+  if(key){
+
+    key.classList.add("next");
 
   }
 
@@ -393,16 +424,13 @@ function isCloseNote(input,target){
 
 function checkHit(noteName){
 
-  const notes =
-    document.querySelectorAll(".note");
-
   const line =
     document.getElementById("hitLine")
     .getBoundingClientRect();
 
   let hit = false;
 
-  notes.forEach(n=>{
+  activeNotes.forEach((n,index)=>{
 
     if(!isCloseNote(
       n.dataset.note,
@@ -417,15 +445,20 @@ function checkHit(noteName){
 
     if(diff < 25){
 
-     n.remove();
+      // ノーツ削除
+      n.remove();
 
-     score += 100;
+      // activeNotesからも削除
+      activeNotes.splice(index,1);
 
-     combo++;
+      score += 100;
 
-     hit = true;
+      combo++;
 
-     lightNextKey();
+      hit = true;
+
+      // 次ノーツ予測更新
+      lightNextKey();
 
     }
 
