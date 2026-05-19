@@ -132,14 +132,32 @@ let combo = 0;
 let running = false;
 
 /* ================= SETTINGS ================= */
-
 const travelTime = 2.2;
-const hitY = document.getElementById("line").offsetTop;
 const spawnY = -60;
 
+let hitY = 0;
 let startTime = 0;
 let index = 0;
 
+function updateLayout() {
+  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+  const line = document.getElementById("line").getBoundingClientRect();
+
+  hitY = line.top - gameRect.top;
+}
+
+function init() {
+  updateLayout();
+}
+
+window.addEventListener("load", init);
+
+let resizeTimer;
+
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(updateLayout, 100);
+});
 /* ================= KEYBOARD ================= */
 
 const keys = [
