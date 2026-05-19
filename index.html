@@ -6,7 +6,6 @@
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
-<script src="https://cdn.jsdelivr.net/npm/pitchy/dist/pitchy.min.js"></script>
 
 <style>
 
@@ -24,23 +23,12 @@ body{
   font-size:20px;
 }
 
-button{
-  font-size:18px;
-  padding:8px 16px;
-  margin:5px;
+#score{
+  color:gold;
 }
 
-#judge{
-  height:40px;
-  font-size:32px;
-  font-weight:bold;
-  margin:10px;
-}
-
-#detected{
-  color:cyan;
-  font-size:24px;
-  margin:10px;
+#combo{
+  color:lime;
 }
 
 /* ================= GAME ================= */
@@ -48,17 +36,18 @@ button{
 #gameArea{
   position:relative;
   width:840px;
-  height:300px;
+  height:320px;
   margin:auto;
   background:#111;
   overflow:hidden;
+  border:2px solid #444;
 }
 
 #hitLine{
   position:absolute;
   bottom:60px;
   width:100%;
-  height:4px;
+  height:3px;
   background:yellow;
 }
 
@@ -71,7 +60,7 @@ button{
   transform:translateX(-50%);
 }
 
-/* ================= 鍵盤 ================= */
+/* ================= KEYBOARD ================= */
 
 #keyboard{
   position:relative;
@@ -79,6 +68,8 @@ button{
   height:180px;
   margin:20px auto;
 }
+
+/* 白鍵 */
 
 .white{
   position:absolute;
@@ -97,6 +88,8 @@ button{
   user-select:none;
 }
 
+/* 黒鍵 */
+
 .black{
   position:absolute;
   width:40px;
@@ -105,12 +98,18 @@ button{
   z-index:10;
 }
 
+/* 光 */
+
+.next{
+  background:yellow !important;
+}
+
 .correct{
   background:lime !important;
 }
 
-.guide{
-  background:yellow !important;
+.wrong{
+  background:red !important;
 }
 
 </style>
@@ -123,37 +122,24 @@ button{
 <div id="ui">
 
 <input type="file" id="midiFile">
-
 <button onclick="playScore()">再生</button>
 
-<button onclick="startMic()">
-マイク開始
-</button>
+<br><br>
 
-<div>
 スコア:
 <span id="score">0</span>
 
-｜
+　
 
 コンボ:
 <span id="combo">0</span>
-</div>
 
-</div>
-
-<div id="judge"></div>
-
-<div id="detected">
-検出音: ---
 </div>
 
 <!-- ================= GAME ================= -->
 
 <div id="gameArea">
-
-<div id="hitLine"></div>
-
+  <div id="hitLine"></div>
 </div>
 
 <!-- ================= KEYBOARD ================= -->
@@ -162,7 +148,7 @@ button{
 
 <!-- 白鍵 -->
 
-<div class="white" style="left:0" data-note="C4">ド</div>
+<div class="white" style="left:0px" data-note="C4">ド</div>
 <div class="white" style="left:60px" data-note="D4">レ</div>
 <div class="white" style="left:120px" data-note="E4">ミ</div>
 <div class="white" style="left:180px" data-note="F4">ファ</div>
@@ -196,17 +182,28 @@ button{
 
 <script>
 
+/* ================= SYNTH ================= */
+
 const synth = new Tone.Synth().toDestination();
 
+/* ================= MIDI ================= */
+
 let scoreData = [];
+let currentIndex = 0;
+
+/* ================= SCORE ================= */
 
 let score = 0;
 let combo = 0;
 
-let lastDetected = "";
-let lastTime = 0;
+function updateUI(){
 
-/* ================= MIDI ================= */
+  document.getElementById("score").textContent = score;
+  document.getElementById("combo").textContent = combo;
+
+}
+
+/* ================= MIDI LOAD ================= */
 
 document.getElementById("midiFile")
 .addEventListener("change", async (e)=>{
@@ -224,95 +221,28 @@ document.getElementById("midiFile")
     track.notes.forEach(note=>{
 
       scoreData.push({
-        time: note.time * 1000,
-        note: note.name
+
+        time:note.time * 1000,
+        note:note.name
+
       });
 
     });
 
   });
 
+  scoreData.sort((a,b)=>a.time-b.time);
+
+  console.log(scoreData);
+
 });
 
-/* ================= UI ================= */
-
-function updateUI(){
-
-  document.getElementById("score").textContent = score;
-  document.getElementById("combo").textContent = combo;
-
-}
-
-function showJudge(text){
-
-  const judge =
-    document.getElementById("judge");
-
-  judge.textContent = text;
-
-  setTimeout(()=>{
-    judge.textContent = "";
-  },300);
-
-}
-
-/* ================= GUIDE ================= */
-
-function updateGuide(){
-
-  document.querySelectorAll("[data-note]")
-  .forEach(k=>{
-    k.classList.remove("guide");
-  });
-
-  const notes =
-    document.querySelectorAll(".note");
-
-  if(notes.length === 0) return;
-
-  let nearest = null;
-  let nearestY = -9999;
-
-  notes.forEach(n=>{
-
-    const y =
-      parseFloat(n.style.top || 0);
-
-    if(y > nearestY){
-
-      nearestY = y;
-      nearest = n;
-
-    }
-
-  });
-
-  if(!nearest) return;
-
-  const noteName =
-    nearest.dataset.note;
-
-  const key =
-    document.querySelector(
-      `[data-note="${noteName}"]`
-    );
-
-  if(key){
-
-    key.classList.add("guide");
-
-  }
-
-}
-
-/* ================= ノーツ ================= */
+/* ================= NOTE SPAWN ================= */
 
 function spawnNote(noteName){
 
   const key =
-    document.querySelector(
-      `[data-note="${noteName}"]`
-    );
+    document.querySelector(`[data-note="${noteName}"]`);
 
   if(!key) return;
 
@@ -323,21 +253,18 @@ function spawnNote(noteName){
   const keyRect =
     key.getBoundingClientRect();
 
-  const note =
-    document.createElement("div");
+  const note = document.createElement("div");
 
   note.className = "note";
 
   note.dataset.note = noteName;
 
   note.style.left =
-    (keyRect.left - gameRect.left
-    + keyRect.width / 2) + "px";
+    (keyRect.left - gameRect.left + keyRect.width/2)
+    + "px";
 
   document.getElementById("gameArea")
     .appendChild(note);
-
-  updateGuide();
 
   let y = 0;
 
@@ -357,21 +284,50 @@ function spawnNote(noteName){
 
       updateUI();
 
-      updateGuide();
-
-      showJudge("MISS");
-
     }
 
   },16);
 
 }
 
-/* ================= 再生 ================= */
+/* ================= NEXT KEY LIGHT ================= */
+
+function lightNextKey(){
+
+  document.querySelectorAll("[data-note]")
+  .forEach(k=>{
+
+    k.classList.remove("next");
+
+  });
+
+  if(currentIndex >= scoreData.length) return;
+
+  const target =
+    scoreData[currentIndex].note;
+
+  const key =
+    document.querySelector(
+      `[data-note="${target}"]`
+    );
+
+  if(key){
+
+    key.classList.add("next");
+
+  }
+
+}
+
+/* ================= PLAY ================= */
 
 async function playScore(){
 
   await Tone.start();
+
+  currentIndex = 0;
+
+  lightNextKey();
 
   scoreData.forEach(item=>{
 
@@ -379,13 +335,53 @@ async function playScore(){
 
       spawnNote(item.note);
 
-    }, item.time);
+    },item.time);
 
   });
 
 }
 
-/* ================= 判定 ================= */
+/* ================= 判定改善 ================= */
+
+function isCloseNote(input,target){
+
+  const noteMap = {
+
+    "C4":60,
+    "C#4":61,
+    "D4":62,
+    "D#4":63,
+    "E4":64,
+    "F4":65,
+    "F#4":66,
+    "G4":67,
+    "G#4":68,
+    "A4":69,
+    "A#4":70,
+    "B4":71,
+
+    "C5":72,
+    "C#5":73,
+    "D5":74,
+    "D#5":75,
+    "E5":76,
+    "F5":77,
+    "F#5":78,
+    "G5":79,
+    "G#5":80,
+    "A5":81,
+    "A#5":82,
+    "B5":83
+
+  };
+
+  return Math.abs(
+    noteMap[input] - noteMap[target]
+  ) <= 1;
+
+}
+
+/* ================= HIT ================= */
 
 function checkHit(noteName){
 
@@ -400,8 +396,10 @@ function checkHit(noteName){
 
   notes.forEach(n=>{
 
-    if(n.dataset.note !== noteName)
-      return;
+    if(!isCloseNote(
+      n.dataset.note,
+      noteName
+    )) return;
 
     const rect =
       n.getBoundingClientRect();
@@ -417,15 +415,11 @@ function checkHit(noteName){
 
       combo++;
 
-      updateUI();
-
-      updateGuide();
-
-      showJudge("HIT");
-
-      flashKey(noteName);
-
       hit = true;
+
+      currentIndex++;
+
+      lightNextKey();
 
     }
 
@@ -435,142 +429,150 @@ function checkHit(noteName){
 
     combo = 0;
 
-    updateUI();
-
   }
 
+  updateUI();
+
 }
 
-/* ================= 光る ================= */
+/* ================= KEYBOARD ================= */
 
-function flashKey(noteName){
+document.querySelectorAll("[data-note]")
+.forEach(key=>{
 
-  const key =
-    document.querySelector(
-      `[data-note="${noteName}"]`
+  key.addEventListener("click",
+  async ()=>{
+
+    await Tone.start();
+
+    const note =
+      key.dataset.note;
+
+    synth.triggerAttackRelease(
+      note,
+      "8n"
     );
 
-  if(!key) return;
+    checkHit(note);
 
-  key.classList.add("correct");
+    key.classList.add("correct");
 
-  setTimeout(()=>{
-    key.classList.remove("correct");
-  },150);
+    setTimeout(()=>{
 
-}
+      key.classList.remove("correct");
 
-/* ================= 周波数→音名 ================= */
+    },150);
 
-function frequencyToNote(freq){
+  });
 
-  const noteNames = [
-    "C","C#","D","D#","E","F",
-    "F#","G","G#","A","A#","B"
-  ];
+});
 
-  const midi =
-    Math.round(
-      12 * Math.log2(freq / 440)
-      + 69
-    );
+/* ================= MIC ================= */
 
-  const name =
-    noteNames[midi % 12];
+let analyser;
+let mic;
 
-  const octave =
-    Math.floor(midi / 12) - 1;
-
-  return name + octave;
-
-}
-
-/* ================= マイク ================= */
+/* ================= START MIC ================= */
 
 async function startMic(){
 
-  const stream =
-    await navigator.mediaDevices.getUserMedia({
-      audio:{
-        echoCancellation:false,
-        noiseSuppression:false,
-        autoGainControl:true
-      }
-    });
+  mic = new Tone.UserMedia();
 
-  const audioContext =
-    new AudioContext();
+  await mic.open();
 
-  const source =
-    audioContext
-    .createMediaStreamSource(stream);
+  analyser =
+    new Tone.Analyser("fft",2048);
 
-  const analyser =
-    audioContext.createAnalyser();
+  mic.connect(analyser);
 
-  source.connect(analyser);
+  detectPitch();
 
-  analyser.fftSize = 2048;
+}
 
-  const input =
-    new Float32Array(analyser.fftSize);
+startMic();
 
-  const detector =
-    Pitchy.PitchDetector
-    .forFloat32Array(analyser.fftSize);
+/* ================= PITCH ================= */
 
-  function updatePitch(){
+let lastDetected = "";
+let stableCount = 0;
 
-    analyser.getFloatTimeDomainData(input);
+function detectPitch(){
 
-    const [pitch, clarity] =
-      detector.findPitch(
-        input,
-        audioContext.sampleRate
-      );
+  setInterval(()=>{
 
-    /* ===== 木琴向け改善 ===== */
+    const values = analyser.getValue();
 
-    if(
-      clarity > 0.80 &&
-      pitch > 100 &&
-      pitch < 2000
-    ){
+    let max = -Infinity;
+    let index = 0;
 
-      const noteName =
-        frequencyToNote(pitch);
+    for(let i=0;i<values.length;i++){
 
-      const now = Date.now();
+      if(values[i] > max){
 
-      /* 同音連打防止 */
-
-      if(
-        noteName !== lastDetected ||
-        now - lastTime > 200
-      ){
-
-        lastDetected = noteName;
-        lastTime = now;
-
-        document.getElementById("detected")
-        .textContent =
-          "検出音: " +
-          noteName +
-          " (" +
-          Math.round(pitch) +
-          "Hz)";
-
-        checkHit(noteName);
+        max = values[i];
+        index = i;
 
       }
 
     }
 
-    requestAnimationFrame(updatePitch);
+    const freq =
+      index * (Tone.context.sampleRate/2)
+      / values.length;
 
-  }
+    const note =
+      frequencyToNote(freq);
 
-  updatePitch();
+    if(note){
+
+      if(note === lastDetected){
+
+        stableCount++;
+
+      }else{
+
+        stableCount = 0;
+
+      }
+
+      lastDetected = note;
+
+      if(stableCount >= 2){
+
+        checkHit(note);
+
+      }
+
+    }
+
+  },100);
+
+}
+
+/* ================= FREQ TO NOTE ================= */
+
+function frequencyToNote(freq){
+
+  if(freq <= 0) return null;
+
+  const noteNum =
+    12 * (Math.log2(freq/440)) + 69;
+
+  const rounded =
+    Math.round(noteNum);
+
+  const names = [
+    "C","C#","D","D#","E","F",
+    "F#","G","G#","A","A#","B"
+  ];
+
+  const octave =
+    Math.floor(rounded/12)-1;
+
+  const name =
+    names[rounded % 12];
+
+  return name + octave;
 
 }
 
