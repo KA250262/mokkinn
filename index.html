@@ -68,6 +68,13 @@ body {
   background: black;
   z-index: 10;
 }
+.correct {
+  background: lime !important;
+}
+
+.wrong {
+  background: red !important;
+}
 </style>
 </head>
 
@@ -180,10 +187,24 @@ async function playScore() {
   console.log(scoreData);
 
   scoreData.forEach(item => {
-    setTimeout(() => {
-      spawnNote(item.note);
-      synth.triggerAttackRelease(item.note, "8n");
-    }, item.time);
+   setTimeout(() => {
+
+  // 先にノーツ生成
+  spawnNote(item.note);
+
+}, item.time);
+
+setTimeout(() => {
+
+  // 後で音を鳴らす
+  synth.triggerAttackRelease(item.note, "8n");
+  key.classList.add("correct");
+
+setTimeout(() => {
+  key.classList.remove("correct");
+}, 200);
+
+}, item.time + 1500);
   });
 
 }
