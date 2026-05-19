@@ -10,21 +10,22 @@
 <style>
 
 body{
-  background:#222;
+  background: linear-gradient(#2b2b2b,#1a1a1a);
   color:white;
   text-align:center;
   font-family:sans-serif;
 }
 
-/* ================= UI ================= */
+/* ================= UI（サンリオ風） ================= */
 
 #ui{
   margin:10px;
   font-size:20px;
+  color:#ffd6f5;
 }
 
-#score{ color:gold; }
-#combo{ color:lime; }
+#score{ color:#ffd36e; }
+#combo{ color:#7df9ff; }
 
 /* ================= GAME ================= */
 
@@ -37,10 +38,10 @@ body{
   background-image: url("melokoro.png");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
-
   overflow:hidden;
-  border:2px solid #444;
+
+  border-radius:20px;
+  border:3px solid #ffb6d9;
 }
 
 #hitLine{
@@ -48,15 +49,18 @@ body{
   bottom:60px;
   width:100%;
   height:3px;
-  background:yellow;
+  background:#fff;
+  opacity:0.7;
 }
 
+/* 🌸 サンリオ風ノーツ */
 .note{
   position:absolute;
-  width:24px;
-  height:24px;
-  background:orange;
+  width:26px;
+  height:26px;
   border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #ff8fd1);
+  box-shadow:0 0 10px #ff8fd1;
   transform:translateX(-50%);
 }
 
@@ -69,39 +73,46 @@ body{
   margin:20px auto;
 }
 
+/* 白鍵 */
 .white{
   position:absolute;
   width:60px;
   height:160px;
   background:white;
-  border:1px solid black;
+  border:1px solid #ddd;
+  border-radius:0 0 8px 8px;
+
   display:flex;
   justify-content:center;
   align-items:flex-end;
-  color:black;
+  color:#444;
   font-size:14px;
-  user-select:none;
 }
 
+/* 黒鍵（自動生成対応） */
 .black{
   position:absolute;
   width:40px;
   height:100px;
-  background:black;
+  background:#222;
+  border:2px solid #ffb6d9;
+  border-radius:0 0 8px 8px;
   z-index:10;
 }
 
-.correct{ background:lime !important; }
+/* キー演出 */
+.correct{
+  background:#7CFF6B !important;
+}
 
 </style>
 </head>
 
 <body>
 
-<h1>メロころ♪</h1>
+<h1>🌸 メロころ♪</h1>
 
 <div id="ui">
-
 <input type="file" id="midiFile">
 <button onclick="playScore()">再生</button>
 
@@ -109,40 +120,17 @@ body{
 
 スコア: <span id="score">0</span>
 　コンボ: <span id="combo">0</span>
-
 </div>
 
 <div id="gameArea">
   <div id="hitLine"></div>
 </div>
 
-<div id="keyboard">
-
-<div class="white" style="left:0px" data-note="C4">ド</div>
-<div class="white" style="left:60px" data-note="D4">レ</div>
-<div class="white" style="left:120px" data-note="E4">ミ</div>
-<div class="white" style="left:180px" data-note="F4">ファ</div>
-<div class="white" style="left:240px" data-note="G4">ソ</div>
-<div class="white" style="left:300px" data-note="A4">ラ</div>
-<div class="white" style="left:360px" data-note="B4">シ</div>
-
-<div class="white" style="left:420px" data-note="C5">ド</div>
-<div class="white" style="left:480px" data-note="D5">レ</div>
-<div class="white" style="left:540px" data-note="E5">ミ</div>
-<div class="white" style="left:600px" data-note="F5">ファ</div>
-<div class="white" style="left:660px" data-note="G5">ソ</div>
-<div class="white" style="left:720px" data-note="A5">ラ</div>
-<div class="white" style="left:780px" data-note="B5">シ</div>
-
-</div>
+<div id="keyboard"></div>
 
 <script>
 
-/* ================= AUDIO ================= */
-
 const synth = new Tone.Synth().toDestination();
-
-/* ================= DATA ================= */
 
 let scoreData = [];
 let currentIndex = 0;
@@ -151,10 +139,46 @@ let activeNotes = [];
 let score = 0;
 let combo = 0;
 
+/* ================= UI ================= */
+
 function updateUI(){
   document.getElementById("score").textContent = score;
   document.getElementById("combo").textContent = combo;
 }
+
+/* ================= ① ピアノ自動生成（黒鍵付き） ================= */
+
+const notes = [
+  "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
+  "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
+];
+
+const whiteKeys = [];
+const keyboard = document.getElementById("keyboard");
+
+let x = 0;
+
+notes.forEach(n=>{
+
+  const isBlack = n.includes("#");
+
+  const key = document.createElement("div");
+  key.dataset.note = n;
+  key.textContent = isBlack ? "" : n.replace(/[0-9]/g,"");
+
+  if(isBlack){
+    key.className = "black";
+    key.style.left = (x - 20) + "px";
+  }else{
+    key.className = "white";
+    key.style.left = x + "px";
+    whiteKeys.push(x);
+    x += 60;
+  }
+
+  keyboard.appendChild(key);
+
+});
 
 /* ================= MIDI LOAD ================= */
 
@@ -167,21 +191,20 @@ document.getElementById("midiFile")
 
   scoreData = [];
 
-  midi.tracks.forEach(track=>{
-    track.notes.forEach(note=>{
+  midi.tracks.forEach(t=>{
+    t.notes.forEach(n=>{
       scoreData.push({
-        time: note.time * 1000,
-        note: note.name
+        time:n.time,
+        note:n.name
       });
     });
   });
 
   scoreData.sort((a,b)=>a.time-b.time);
 
-  console.log("MIDI loaded", scoreData);
 });
 
-/* ================= GAME START ================= */
+/* ================= ② 音ゲー（BPM同期風） ================= */
 
 function playScore(){
 
@@ -192,32 +215,37 @@ function playScore(){
 
   currentIndex = 0;
 
+  const startTime = Tone.now();
+
   function loop(){
 
     if(currentIndex >= scoreData.length) return;
 
-    spawnNote(scoreData[currentIndex].note);
+    const n = scoreData[currentIndex];
+
+    const delay = (n.time - (scoreData[0].time || 0));
+
+    setTimeout(()=>{
+
+      spawnNote(n.note);
+
+    }, delay * 1000);
 
     currentIndex++;
-
-    setTimeout(loop, 200); // 仮テンポ
+    loop();
   }
 
   loop();
 }
 
-/* ================= NOTE SPAWN ================= */
+/* ================= NOTE ================= */
 
 function spawnNote(noteName){
 
-  const key =
-    document.querySelector(`[data-note="${noteName}"]`);
-
+  const key = document.querySelector(`[data-note="${noteName}"]`);
   if(!key) return;
 
-  const gameRect =
-    document.getElementById("gameArea").getBoundingClientRect();
-
+  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
   const keyRect = key.getBoundingClientRect();
 
   const note = document.createElement("div");
@@ -233,31 +261,30 @@ function spawnNote(noteName){
 
   let y = 0;
 
+  const speed = 2 + Math.random()*2; // ゆる音ゲー
+
   const fall = setInterval(()=>{
 
-    y += 3;
+    y += speed;
     note.style.top = y + "px";
 
     if(y > 320){
-
       note.remove();
       activeNotes = activeNotes.filter(n => n !== note);
-
       combo = 0;
       updateUI();
-
       clearInterval(fall);
     }
 
   },16);
+
 }
 
 /* ================= HIT ================= */
 
 function checkHit(noteName){
 
-  const line =
-    document.getElementById("hitLine").getBoundingClientRect();
+  const line = document.getElementById("hitLine").getBoundingClientRect();
 
   let hit = false;
 
@@ -266,10 +293,9 @@ function checkHit(noteName){
     if(n.dataset.note !== noteName) return;
 
     const rect = n.getBoundingClientRect();
-
     const diff = Math.abs(rect.top - line.top);
 
-    if(diff < 25){
+    if(diff < 30){
 
       n.remove();
       activeNotes = activeNotes.filter(x => x !== n);
@@ -287,25 +313,23 @@ function checkHit(noteName){
   updateUI();
 }
 
-/* ================= KEYBOARD ================= */
+/* ================= KEY INPUT ================= */
 
-document.querySelectorAll("[data-note]")
-.forEach(key=>{
+document.addEventListener("click", async (e)=>{
 
-  key.addEventListener("click", async ()=>{
+  const key = e.target.closest("[data-note]");
+  if(!key) return;
 
-    await Tone.start();
+  await Tone.start();
 
-    const note = key.dataset.note;
+  const note = key.dataset.note;
 
-    synth.triggerAttackRelease(note, "8n");
+  synth.triggerAttackRelease(note,"8n");
 
-    checkHit(note);
+  checkHit(note);
 
-    key.classList.add("correct");
-    setTimeout(()=>key.classList.remove("correct"),150);
-
-  });
+  key.classList.add("correct");
+  setTimeout(()=>key.classList.remove("correct"),120);
 
 });
 
