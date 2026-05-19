@@ -234,26 +234,22 @@ document.getElementById("midiFile")
 
 /* ================= START ================= */
 
-function startGame(){
+function startGame() {
 
-  if(!notes.length){
+  if (!notes.length) {
     alert("MIDIを読み込んでね");
     return;
   }
 
   startTime = performance.now() / 1000;
   index = 0;
+  active = [];
+  running = true;
+
+  console.log("game start");
 
   requestAnimationFrame(loop);
 }
-
-function stopGame(){
-  running = false;
-
-  active.forEach(n => n.el.remove());
-  active = [];
-}
-
 
 /* ================= LOOP ================= */
 
