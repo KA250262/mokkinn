@@ -10,24 +10,19 @@
 <style>
 
 body{
-  background: linear-gradient(#2b2b2b,#1a1a1a);
+  background:#222;
   color:white;
   text-align:center;
   font-family:sans-serif;
 }
 
-/* ================= UI（サンリオ風） ================= */
-
 #ui{
   margin:10px;
   font-size:20px;
-  color:#ffd6f5;
 }
 
-#score{ color:#ffd36e; }
-#combo{ color:#7df9ff; }
-
-/* ================= GAME ================= */
+#score{ color:gold; }
+#combo{ color:lime; }
 
 #gameArea{
   position:relative;
@@ -37,11 +32,10 @@ body{
 
   background-image: url("melokoro.png");
   background-size: cover;
-  background-position: center;
-  overflow:hidden;
+  background-position:center;
 
-  border-radius:20px;
-  border:3px solid #ffb6d9;
+  overflow:hidden;
+  border:2px solid #444;
 }
 
 #hitLine{
@@ -49,22 +43,17 @@ body{
   bottom:60px;
   width:100%;
   height:3px;
-  background:#fff;
-  opacity:0.7;
+  background:yellow;
 }
 
-/* 🌸 サンリオ風ノーツ */
 .note{
   position:absolute;
-  width:26px;
-  height:26px;
+  width:24px;
+  height:24px;
+  background:orange;
   border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, #fff, #ff8fd1);
-  box-shadow:0 0 10px #ff8fd1;
   transform:translateX(-50%);
 }
-
-/* ================= KEYBOARD ================= */
 
 #keyboard{
   position:relative;
@@ -73,36 +62,29 @@ body{
   margin:20px auto;
 }
 
-/* 白鍵 */
 .white{
   position:absolute;
   width:60px;
   height:160px;
   background:white;
-  border:1px solid #ddd;
-  border-radius:0 0 8px 8px;
-
+  border:1px solid black;
   display:flex;
   justify-content:center;
   align-items:flex-end;
-  color:#444;
-  font-size:14px;
+  font-size:12px;
 }
 
-/* 黒鍵（自動生成対応） */
 .black{
   position:absolute;
   width:40px;
   height:100px;
   background:#222;
-  border:2px solid #ffb6d9;
-  border-radius:0 0 8px 8px;
+  border:2px solid white;
   z-index:10;
 }
 
-/* キー演出 */
 .correct{
-  background:#7CFF6B !important;
+  background:lime !important;
 }
 
 </style>
@@ -110,7 +92,7 @@ body{
 
 <body>
 
-<h1>🌸 メロころ♪</h1>
+<h1>メロころ♪</h1>
 
 <div id="ui">
 <input type="file" id="midiFile">
@@ -132,53 +114,18 @@ body{
 
 const synth = new Tone.Synth().toDestination();
 
+/* ================= DATA ================= */
+
 let scoreData = [];
-let currentIndex = 0;
 let activeNotes = [];
 
 let score = 0;
 let combo = 0;
 
-/* ================= UI ================= */
-
 function updateUI(){
   document.getElementById("score").textContent = score;
   document.getElementById("combo").textContent = combo;
 }
-
-/* ================= ① ピアノ自動生成（黒鍵付き） ================= */
-
-const notes = [
-  "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
-  "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
-];
-
-const whiteKeys = [];
-const keyboard = document.getElementById("keyboard");
-
-let x = 0;
-
-notes.forEach(n=>{
-
-  const isBlack = n.includes("#");
-
-  const key = document.createElement("div");
-  key.dataset.note = n;
-  key.textContent = isBlack ? "" : n.replace(/[0-9]/g,"");
-
-  if(isBlack){
-    key.className = "black";
-    key.style.left = (x - 20) + "px";
-  }else{
-    key.className = "white";
-    key.style.left = x + "px";
-    whiteKeys.push(x);
-    x += 60;
-  }
-
-  keyboard.appendChild(key);
-
-});
 
 /* ================= MIDI LOAD ================= */
 
@@ -194,8 +141,8 @@ document.getElementById("midiFile")
   midi.tracks.forEach(t=>{
     t.notes.forEach(n=>{
       scoreData.push({
-        time:n.time,
-        note:n.name
+        time: n.time,   // 秒
+        note: n.name
       });
     });
   });
@@ -204,7 +151,12 @@ document.getElementById("midiFile")
 
 });
 
-/* ================= ② 音ゲー（BPM同期風） ================= */
+/* ================= GAME SETTINGS ================= */
+
+const travelTime = 2.5; // ★これが全ノーツ共通の落下時間
+const endY = 260;
+
+/* ================= PLAY ================= */
 
 function playScore(){
 
@@ -213,34 +165,25 @@ function playScore(){
     return;
   }
 
-  currentIndex = 0;
-
   const startTime = Tone.now();
 
-  function loop(){
+  scoreData.forEach(n => {
 
-    if(currentIndex >= scoreData.length) return;
+    const spawnTime = n.time - travelTime;
 
-    const n = scoreData[currentIndex];
-
-    const delay = (n.time - (scoreData[0].time || 0));
+    if(spawnTime < 0) return;
 
     setTimeout(()=>{
+      spawnNote(n.note, n.time);
+    }, spawnTime * 1000);
 
-      spawnNote(n.note);
+  });
 
-    }, delay * 1000);
-
-    currentIndex++;
-    loop();
-  }
-
-  loop();
 }
 
 /* ================= NOTE ================= */
 
-function spawnNote(noteName){
+function spawnNote(noteName, hitTime){
 
   const key = document.querySelector(`[data-note="${noteName}"]`);
   if(!key) return;
@@ -251,6 +194,7 @@ function spawnNote(noteName){
   const note = document.createElement("div");
   note.className = "note";
   note.dataset.note = noteName;
+  note.dataset.hitTime = hitTime;
 
   activeNotes.push(note);
 
@@ -261,22 +205,23 @@ function spawnNote(noteName){
 
   let y = 0;
 
-  const speed = 2 + Math.random()*2; // ゆる音ゲー
+  const speed = endY / (travelTime * 60);
 
   const fall = setInterval(()=>{
 
-  y += speed;
-  note.style.top = y + "px";
+    y += speed;
+    note.style.top = y + "px";
 
-  if(y >= endY){
-    note.remove();
-    activeNotes = activeNotes.filter(n => n !== note);
-    combo = 0;
-    updateUI();
-    clearInterval(fall);
-  }
+    if(y >= endY){
 
-}, 16);
+      note.remove();
+      activeNotes = activeNotes.filter(n => n !== note);
+      combo = 0;
+      updateUI();
+      clearInterval(fall);
+    }
+
+  },16);
 
 }
 
@@ -322,9 +267,9 @@ document.addEventListener("click", async (e)=>{
 
   await Tone.start();
 
-  const note = key.dataset.note;0
+  const note = key.dataset.note;
 
-  synth.triggerAttackRelease(note,"8n");
+  synth.triggerAttackRelease(note, "8n");
 
   checkHit(note);
 
@@ -334,6 +279,9 @@ document.addEventListener("click", async (e)=>{
 });
 
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
