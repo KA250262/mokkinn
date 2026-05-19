@@ -27,14 +27,15 @@ body{
 /* ================= GAME AREA ================= */
 
 #gameArea{
+  position:relative;
   width:840px;
   height:420px;
   margin:auto;
   overflow:hidden;
 
   background-image: url("melokoro.png");
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: top center;
   background-repeat: no-repeat;
 }
 
@@ -71,13 +72,17 @@ body{
   height:160px;
   background:white;
   border:1px solid #333;
+  z-index:1;
 }
 
 .black{
+  top:0;
+  transform: translateY(-10px);
   width:40px;
   height:100px;
   background:#222;
   border:2px solid white;
+  z-index:3;
 }
 
 .hit{ background:#7CFF6B !important; }
@@ -129,7 +134,7 @@ let running = false;
 /* ================= SETTINGS ================= */
 
 const travelTime = 2.2;
-const hitY = 320;
+const hitY = document.getElementById("line").offsetTop;
 const spawnY = -60;
 
 let startTime = 0;
