@@ -2,236 +2,427 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>木琴MIDIゲーム</title>
+<title>木琴 MIDIゲーム 完成版</title>
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
 
 <style>
-body {
-  background: #222;
-  color: white;
-  text-align: center;
-  font-family: sans-serif;
+
+body{
+  background:#222;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
 }
 
 /* ================= UI ================= */
-#ui {
-  margin: 10px;
+
+#ui{
+  margin:10px;
+  font-size:20px;
+}
+
+button{
+  font-size:18px;
+  padding:8px 16px;
+  margin:5px;
+}
+
+#judge{
+  height:40px;
+  font-size:32px;
+  margin:10px;
+  font-weight:bold;
 }
 
 /* ================= ゲーム ================= */
-#gameArea {
-  position: relative;
-  height: 300px;
-  background: #111;
-  overflow: hidden;
-  margin-bottom: 20px;
+
+#gameArea{
+  position:relative;
+  width:840px;
+  height:300px;
+  margin:auto;
+  background:#111;
+  overflow:hidden;
 }
 
-.note {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  background: orange;
-  border-radius: 50%;
-  transform: translateX(-50%);
+/* 判定ライン */
+#hitLine{
+  position:absolute;
+  bottom:60px;
+  width:100%;
+  height:4px;
+  background:yellow;
 }
 
-/* ================= 鍵盤全体 ================= */
-#keyboard {
-  position: relative;
-  width: 840px;
-  margin: auto;
-  height: 180px;
+/* ノーツ */
+.note{
+  position:absolute;
+  width:24px;
+  height:24px;
+  background:orange;
+  border-radius:50%;
+  transform:translateX(-50%);
+}
+
+/* ================= 鍵盤 ================= */
+
+#keyboard{
+  position:relative;
+  width:840px;
+  height:180px;
+  margin:20px auto;
 }
 
 /* 白鍵 */
-.white {
-  position: absolute;
-  width: 60px;
-  height: 160px;
-  background: white;
-  border: 1px solid black;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  color: black;
-  font-size: 14px;
+.white{
+  position:absolute;
+  width:60px;
+  height:160px;
+  background:white;
+  border:1px solid black;
+
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+
+  color:black;
+  font-size:14px;
+
+  user-select:none;
+  cursor:pointer;
 }
 
 /* 黒鍵 */
-.black {
-  position: absolute;
-  width: 40px;
-  height: 100px;
-  background: black;
-  z-index: 10;
-}
-.correct {
-  background: lime !important;
+.black{
+  position:absolute;
+  width:40px;
+  height:100px;
+  background:black;
+  z-index:10;
+
+  cursor:pointer;
 }
 
-.wrong {
-  background: red !important;
+/* 光る */
+.correct{
+  background:lime !important;
 }
+
+.wrong{
+  background:red !important;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>木琴 MIDIゲーム</h1>
+<h1>木琴 MIDIゲーム 完成版</h1>
 
 <div id="ui">
-<input type="file" id="midiFile">
-<button onclick="playScore()">再生</button>
+
+  <input type="file" id="midiFile">
+
+  <button onclick="playScore()">再生</button>
+
+  <button onclick="changeSpeed(0.5)">0.5倍</button>
+  <button onclick="changeSpeed(0.75)">0.75倍</button>
+  <button onclick="changeSpeed(1)">1倍</button>
+
+  <div>
+    スコア:
+    <span id="score">0</span>
+
+    ｜
+
+    コンボ:
+    <span id="combo">0</span>
+  </div>
+
 </div>
 
-<div id="gameArea"></div>
+<div id="judge"></div>
+
+<!-- ================= ゲーム ================= -->
+
+<div id="gameArea">
+  <div id="hitLine"></div>
+</div>
 
 <!-- ================= 鍵盤 ================= -->
+
 <div id="keyboard">
 
-  <!-- 白鍵 2オクターブ -->
-  <div class="white" style="left:0" data-note="C4">ド</div>
-  <div class="white" style="left:60px" data-note="D4">レ</div>
-  <div class="white" style="left:120px" data-note="E4">ミ</div>
-  <div class="white" style="left:180px" data-note="F4">ファ</div>
-  <div class="white" style="left:240px" data-note="G4">ソ</div>
-  <div class="white" style="left:300px" data-note="A4">ラ</div>
-  <div class="white" style="left:360px" data-note="B4">シ</div>
+<!-- 白鍵 -->
 
-  <div class="white" style="left:420px" data-note="C5">ド</div>
-  <div class="white" style="left:480px" data-note="D5">レ</div>
-  <div class="white" style="left:540px" data-note="E5">ミ</div>
-  <div class="white" style="left:600px" data-note="F5">ファ</div>
-  <div class="white" style="left:660px" data-note="G5">ソ</div>
-  <div class="white" style="left:720px" data-note="A5">ラ</div>
-  <div class="white" style="left:780px" data-note="B5">シ</div>
+<div class="white" style="left:0" data-note="C4">ド</div>
+<div class="white" style="left:60px" data-note="D4">レ</div>
+<div class="white" style="left:120px" data-note="E4">ミ</div>
+<div class="white" style="left:180px" data-note="F4">ファ</div>
+<div class="white" style="left:240px" data-note="G4">ソ</div>
+<div class="white" style="left:300px" data-note="A4">ラ</div>
+<div class="white" style="left:360px" data-note="B4">シ</div>
 
-  <!-- 黒鍵 -->
-  <div class="black" style="left:40px" data-note="C#4"></div>
-  <div class="black" style="left:100px" data-note="D#4"></div>
-  <div class="black" style="left:220px" data-note="F#4"></div>
-  <div class="black" style="left:280px" data-note="G#4"></div>
-  <div class="black" style="left:340px" data-note="A#4"></div>
+<div class="white" style="left:420px" data-note="C5">ド</div>
+<div class="white" style="left:480px" data-note="D5">レ</div>
+<div class="white" style="left:540px" data-note="E5">ミ</div>
+<div class="white" style="left:600px" data-note="F5">ファ</div>
+<div class="white" style="left:660px" data-note="G5">ソ</div>
+<div class="white" style="left:720px" data-note="A5">ラ</div>
+<div class="white" style="left:780px" data-note="B5">シ</div>
 
-  <div class="black" style="left:460px" data-note="C#5"></div>
-  <div class="black" style="left:520px" data-note="D#5"></div>
-  <div class="black" style="left:640px" data-note="F#5"></div>
-  <div class="black" style="left:700px" data-note="G#5"></div>
-  <div class="black" style="left:760px" data-note="A#5"></div>
+<!-- 黒鍵 -->
+
+<div class="black" style="left:40px" data-note="C#4"></div>
+<div class="black" style="left:100px" data-note="D#4"></div>
+<div class="black" style="left:220px" data-note="F#4"></div>
+<div class="black" style="left:280px" data-note="G#4"></div>
+<div class="black" style="left:340px" data-note="A#4"></div>
+
+<div class="black" style="left:460px" data-note="C#5"></div>
+<div class="black" style="left:520px" data-note="D#5"></div>
+<div class="black" style="left:640px" data-note="F#5"></div>
+<div class="black" style="left:700px" data-note="G#5"></div>
+<div class="black" style="left:760px" data-note="A#5"></div>
 
 </div>
 
 <script>
+
 const synth = new Tone.Synth().toDestination();
 
 let scoreData = [];
 
+let score = 0;
+let combo = 0;
+
+let speed = 1;
+
 /* ================= MIDI読み込み ================= */
-document.getElementById("midiFile").addEventListener("change", async (e) => {
+
+document.getElementById("midiFile")
+.addEventListener("change", async (e)=>{
 
   const file = e.target.files[0];
+
   const buffer = await file.arrayBuffer();
 
   const midi = new Midi(buffer);
 
   scoreData = [];
 
-  midi.tracks.forEach(track => {
-    track.notes.forEach(note => {
+  midi.tracks.forEach(track=>{
+
+    track.notes.forEach(note=>{
+
       scoreData.push({
         time: note.time * 1000,
         note: note.name
       });
+
     });
+
   });
 
 });
 
-/* ================= ノーツ ================= */
-function spawnNote(noteName) {
+/* ================= 速度変更 ================= */
 
-  const key = document.querySelector(`[data-note="${noteName}"]`);
-  if (!key) return;
+function changeSpeed(v){
 
-  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-  const keyRect = key.getBoundingClientRect();
+  speed = v;
+
+}
+
+/* ================= UI更新 ================= */
+
+function updateUI(){
+
+  document.getElementById("score").textContent = score;
+  document.getElementById("combo").textContent = combo;
+
+}
+
+/* ================= 判定表示 ================= */
+
+function showJudge(text){
+
+  const judge = document.getElementById("judge");
+
+  judge.textContent = text;
+
+  setTimeout(()=>{
+    judge.textContent = "";
+  },300);
+
+}
+
+/* ================= ノーツ生成 ================= */
+
+function spawnNote(noteName){
+
+  const key =
+    document.querySelector(`[data-note="${noteName}"]`);
+
+  if(!key) return;
+
+  const gameRect =
+    document.getElementById("gameArea")
+    .getBoundingClientRect();
+
+  const keyRect =
+    key.getBoundingClientRect();
 
   const note = document.createElement("div");
+
   note.className = "note";
+
   note.dataset.note = noteName;
 
   note.style.left =
-    (keyRect.left - gameRect.left + keyRect.width / 2) + "px";
+    (keyRect.left - gameRect.left + keyRect.width/2) + "px";
 
-  document.getElementById("gameArea").appendChild(note);
+  document.getElementById("gameArea")
+    .appendChild(note);
 
   let y = 0;
 
-  const fall = setInterval(() => {
-    y += 5;
+  const fall = setInterval(()=>{
+
+    y += 3 * speed;
+
     note.style.top = y + "px";
 
-    if (y > 280) {
+    if(y > 320){
+
       note.remove();
+
       clearInterval(fall);
+
+      combo = 0;
+
+      updateUI();
+
+      showJudge("MISS");
+
     }
-  }, 30);
+
+  },16);
+
 }
 
 /* ================= 再生 ================= */
-async function playScore() {
+
+async function playScore(){
 
   await Tone.start();
 
-  scoreData.forEach(item => {
+  scoreData.forEach(item=>{
 
-    setTimeout(() => {
+    setTimeout(()=>{
 
-      // ノーツだけ出す
       spawnNote(item.note);
 
-    }, item.time);
+    }, item.time / speed);
 
   });
 
 }
 
-/* ================= 鍵盤 ================= */
-document.querySelectorAll("[data-note]").forEach(key => {
+/* ================= 判定 ================= */
 
-  key.addEventListener("click", async () => {
+function checkHit(noteName){
+
+  const notes =
+    document.querySelectorAll(".note");
+
+  const line =
+    document.getElementById("hitLine")
+    .getBoundingClientRect();
+
+  let hit = false;
+
+  notes.forEach(n=>{
+
+    if(n.dataset.note !== noteName) return;
+
+    const rect = n.getBoundingClientRect();
+
+    const diff =
+      Math.abs(rect.top - line.top);
+
+    if(diff < 15){
+
+      n.remove();
+
+      score += 300;
+
+      combo++;
+
+      updateUI();
+
+      showJudge("PERFECT");
+
+      hit = true;
+
+    }
+    else if(diff < 35){
+
+      n.remove();
+
+      score += 100;
+
+      combo++;
+
+      updateUI();
+
+      showJudge("GOOD");
+
+      hit = true;
+
+    }
+
+  });
+
+  if(!hit){
+
+    combo = 0;
+
+    updateUI();
+
+    showJudge("MISS");
+
+  }
+
+}
+
+/* ================= 鍵盤 ================= */
+
+document.querySelectorAll("[data-note]")
+.forEach(key=>{
+
+  key.addEventListener("click", async ()=>{
 
     await Tone.start();
 
     const note = key.dataset.note;
 
-    // 自分で押した時だけ音
-    synth.triggerAttackRelease(note, "8n");
+    synth.triggerAttackRelease(note,"8n");
 
-    // 光る
+    checkHit(note);
+
     key.classList.add("correct");
 
-    setTimeout(() => {
+    setTimeout(()=>{
       key.classList.remove("correct");
-    }, 200);
-
-    // ノーツ消去
-    const notes = document.querySelectorAll(".note");
-
-    notes.forEach(n => {
-
-      if (n.dataset.note === note) {
-        n.remove();
-      }
-
-    });
+    },150);
 
   });
 
 });
+
 </script>
 
 </body>
