@@ -2,9 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>メロころ♪ Stable Edition</title>
+<title>メロころ♪ Stable</title>
 
-<!-- ✅ 安定CDN（ここ重要） -->
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
@@ -17,20 +16,33 @@ body{
   font-family:sans-serif;
 }
 
-#ui{ margin:10px; font-size:18px; }
+#ui{
+  margin:10px;
+  font-size:18px;
+}
+
 #score{ color:gold; }
 #combo{ color:lime; }
+
+/* ================= GAME AREA ================= */
 
 #gameArea{
   position:relative;
   width:840px;
   height:420px;
   margin:auto;
-  background:#1b1b1b;
+
+  /* ★①ここが修正済み（背景画像） */
+  background-image: url("melokoro.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   border:2px solid #444;
   overflow:hidden;
 }
 
+/* 判定ライン */
 #line{
   position:absolute;
   top:320px;
@@ -39,6 +51,7 @@ body{
   background:yellow;
 }
 
+/* ノーツ */
 .note{
   position:absolute;
   width:28px;
@@ -48,6 +61,7 @@ body{
   transform:translateX(-50%);
 }
 
+/* キーボード */
 #keyboard{
   position:relative;
   width:840px;
@@ -97,15 +111,10 @@ body{
 
 <script>
 
-/* ================= SAFETY CHECK ================= */
+/* ================= SAFETY ================= */
 
-if(typeof Tone === "undefined"){
-  alert("Tone.js 読み込み失敗");
-}
-
-if(typeof Midi === "undefined"){
-  alert("@tonejs/midi 読み込み失敗");
-}
+if(typeof Tone === "undefined") alert("Tone.js読み込み失敗");
+if(typeof Midi === "undefined") alert("MIDIライブラリ読み込み失敗");
 
 /* ================= AUDIO ================= */
 
@@ -153,7 +162,7 @@ keys.forEach(n=>{
   kb.appendChild(k);
 });
 
-/* ================= MIDI ================= */
+/* ================= MIDI LOAD ================= */
 
 document.getElementById("midiFile")
 .addEventListener("change", async (e)=>{
@@ -162,7 +171,6 @@ document.getElementById("midiFile")
 
     const file = e.target.files[0];
     const buf = await file.arrayBuffer();
-
     const midi = new Midi(buf);
 
     notes = [];
@@ -202,7 +210,7 @@ function startGame(){
   requestAnimationFrame(loop);
 }
 
-/* ================= GAME LOOP ================= */
+/* ================= LOOP ================= */
 
 function loop(){
 
@@ -324,4 +332,4 @@ function update(){
 </script>
 
 </body>
-</html>0
+</html>
