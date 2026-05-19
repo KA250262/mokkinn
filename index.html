@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>木琴 MIDIゲーム マイク対応版</title>
+<title>木琴 MIDIゲーム 改良版</title>
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
@@ -16,6 +16,8 @@ body{
   text-align:center;
   font-family:sans-serif;
 }
+
+/* ================= UI ================= */
 
 #ui{
   margin:10px;
@@ -31,17 +33,17 @@ button{
 #judge{
   height:40px;
   font-size:32px;
-  margin:10px;
   font-weight:bold;
+  margin:10px;
 }
 
 #detected{
-  font-size:24px;
   color:cyan;
+  font-size:24px;
   margin:10px;
 }
 
-/* ================= ゲーム ================= */
+/* ================= GAME ================= */
 
 #gameArea{
   position:relative;
@@ -93,7 +95,6 @@ button{
   font-size:14px;
 
   user-select:none;
-  cursor:pointer;
 }
 
 .black{
@@ -102,11 +103,14 @@ button{
   height:100px;
   background:black;
   z-index:10;
-  cursor:pointer;
 }
 
 .correct{
   background:lime !important;
+}
+
+.guide{
+  background:yellow !important;
 }
 
 </style>
@@ -114,25 +118,27 @@ button{
 
 <body>
 
-<h1>木琴 MIDIゲーム マイク対応版</h1>
+<h1>木琴 MIDIゲーム 改良版</h1>
 
 <div id="ui">
 
-  <input type="file" id="midiFile">
+<input type="file" id="midiFile">
 
-  <button onclick="playScore()">再生</button>
+<button onclick="playScore()">再生</button>
 
-  <button onclick="startMic()">マイク開始</button>
+<button onclick="startMic()">
+マイク開始
+</button>
 
-  <div>
-    スコア:
-    <span id="score">0</span>
+<div>
+スコア:
+<span id="score">0</span>
 
-    ｜
+｜
 
-    コンボ:
-    <span id="combo">0</span>
-  </div>
+コンボ:
+<span id="combo">0</span>
+</div>
 
 </div>
 
@@ -142,13 +148,15 @@ button{
 検出音: ---
 </div>
 
-<!-- ================= ゲーム ================= -->
+<!-- ================= GAME ================= -->
 
 <div id="gameArea">
-  <div id="hitLine"></div>
+
+<div id="hitLine"></div>
+
 </div>
 
-<!-- ================= 鍵盤 ================= -->
+<!-- ================= KEYBOARD ================= -->
 
 <div id="keyboard">
 
@@ -195,7 +203,10 @@ let scoreData = [];
 let score = 0;
 let combo = 0;
 
-/* ================= MIDI読み込み ================= */
+let lastDetected = "";
+let lastTime = 0;
+
+/* ================= MIDI ================= */
 
 document.getElementById("midiFile")
 .addEventListener("change", async (e)=>{
@@ -234,7 +245,8 @@ function updateUI(){
 
 function showJudge(text){
 
-  const judge = document.getElementById("judge");
+  const judge =
+    document.getElementById("judge");
 
   judge.textContent = text;
 
@@ -244,12 +256,63 @@ function showJudge(text){
 
 }
 
-/* ================= ノーツ生成 ================= */
+/* ================= GUIDE ================= */
+
+function updateGuide(){
+
+  document.querySelectorAll("[data-note]")
+  .forEach(k=>{
+    k.classList.remove("guide");
+  });
+
+  const notes =
+    document.querySelectorAll(".note");
+
+  if(notes.length === 0) return;
+
+  let nearest = null;
+  let nearestY = -9999;
+
+  notes.forEach(n=>{
+
+    const y =
+      parseFloat(n.style.top || 0);
+
+    if(y > nearestY){
+
+      nearestY = y;
+      nearest = n;
+
+    }
+
+  });
+
+  if(!nearest) return;
+
+  const noteName =
+    nearest.dataset.note;
+
+  const key =
+    document.querySelector(
+      `[data-note="${noteName}"]`
+    );
+
+  if(key){
+
+    key.classList.add("guide");
+
+  }
+
+}
+
+/* ================= ノーツ ================= */
 
 function spawnNote(noteName){
 
   const key =
-    document.querySelector(`[data-note="${noteName}"]`);
+    document.querySelector(
+      `[data-note="${noteName}"]`
+    );
 
   if(!key) return;
 
@@ -260,17 +323,21 @@ function spawnNote(noteName){
   const keyRect =
     key.getBoundingClientRect();
 
-  const note = document.createElement("div");
+  const note =
+    document.createElement("div");
 
   note.className = "note";
 
   note.dataset.note = noteName;
 
   note.style.left =
-    (keyRect.left - gameRect.left + keyRect.width/2) + "px";
+    (keyRect.left - gameRect.left
+    + keyRect.width / 2) + "px";
 
   document.getElementById("gameArea")
     .appendChild(note);
+
+  updateGuide();
 
   let y = 0;
 
@@ -289,6 +356,8 @@ function spawnNote(noteName){
       combo = 0;
 
       updateUI();
+
+      updateGuide();
 
       showJudge("MISS");
 
@@ -331,14 +400,16 @@ function checkHit(noteName){
 
   notes.forEach(n=>{
 
-    if(n.dataset.note !== noteName) return;
+    if(n.dataset.note !== noteName)
+      return;
 
-    const rect = n.getBoundingClientRect();
+    const rect =
+      n.getBoundingClientRect();
 
     const diff =
       Math.abs(rect.top - line.top);
 
-    if(diff < 20){
+    if(diff < 25){
 
       n.remove();
 
@@ -347,6 +418,8 @@ function checkHit(noteName){
       combo++;
 
       updateUI();
+
+      updateGuide();
 
       showJudge("HIT");
 
@@ -368,12 +441,14 @@ function checkHit(noteName){
 
 }
 
-/* ================= 鍵盤光る ================= */
+/* ================= 光る ================= */
 
 function flashKey(noteName){
 
   const key =
-    document.querySelector(`[data-note="${noteName}"]`);
+    document.querySelector(
+      `[data-note="${noteName}"]`
+    );
 
   if(!key) return;
 
@@ -389,9 +464,10 @@ function flashKey(noteName){
 
 function frequencyToNote(freq){
 
-  const noteNames =
-  ["C","C#","D","D#","E","F",
-   "F#","G","G#","A","A#","B"];
+  const noteNames = [
+    "C","C#","D","D#","E","F",
+    "F#","G","G#","A","A#","B"
+  ];
 
   const midi =
     Math.round(
@@ -415,14 +491,19 @@ async function startMic(){
 
   const stream =
     await navigator.mediaDevices.getUserMedia({
-      audio:true
+      audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:true
+      }
     });
 
   const audioContext =
     new AudioContext();
 
   const source =
-    audioContext.createMediaStreamSource(stream);
+    audioContext
+    .createMediaStreamSource(stream);
 
   const analyser =
     audioContext.createAnalyser();
@@ -435,9 +516,8 @@ async function startMic(){
     new Float32Array(analyser.fftSize);
 
   const detector =
-    Pitchy.PitchDetector.forFloat32Array(
-      analyser.fftSize
-    );
+    Pitchy.PitchDetector
+    .forFloat32Array(analyser.fftSize);
 
   function updatePitch(){
 
@@ -449,16 +529,40 @@ async function startMic(){
         audioContext.sampleRate
       );
 
-    if(clarity > 0.92){
+    /* ===== 木琴向け改善 ===== */
+
+    if(
+      clarity > 0.80 &&
+      pitch > 100 &&
+      pitch < 2000
+    ){
 
       const noteName =
         frequencyToNote(pitch);
 
-      document.getElementById("detected")
-        .textContent =
-        "検出音: " + noteName;
+      const now = Date.now();
 
-      checkHit(noteName);
+      /* 同音連打防止 */
+
+      if(
+        noteName !== lastDetected ||
+        now - lastTime > 200
+      ){
+
+        lastDetected = noteName;
+        lastTime = now;
+
+        document.getElementById("detected")
+        .textContent =
+          "検出音: " +
+          noteName +
+          " (" +
+          Math.round(pitch) +
+          "Hz)";
+
+        checkHit(noteName);
+
+      }
 
     }
 
