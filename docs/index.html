@@ -2,13 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>メロころ♪ Stable</title>
+<title>メロころ♪ COMPLETE</title>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
 <style>
-
 body{
   background:#111;
   color:white;
@@ -16,30 +15,15 @@ body{
   font-family:sans-serif;
 }
 
-#ui{
-  margin:10px;
-  font-size:18px;
-}
-
-#score{ color:gold; }
-#combo{ color:lime; }
-
-/* ================= GAME AREA ================= */
-
 #gameArea{
   position:relative;
   width:840px;
   height:420px;
   margin:auto;
   overflow:hidden;
-
-  background-image: url("melokoro.png");
-  background-size: contain;
-  background-position: top center;
-  background-repeat: no-repeat;
+  background:#222;
 }
 
-/* 判定ライン */
 #line{
   position:absolute;
   top:320px;
@@ -48,7 +32,6 @@ body{
   background:yellow;
 }
 
-/* ノーツ */
 .note{
   position:absolute;
   width:28px;
@@ -58,7 +41,7 @@ body{
   transform:translateX(-50%);
 }
 
-/* キーボード */
+/* ===== keyboard ===== */
 #keyboard{
   position:relative;
   width:840px;
@@ -73,36 +56,28 @@ body{
   background:white;
   border:1px solid #333;
   z-index:1;
+  cursor:pointer;
 }
 
 .black{
-  top:0;
-  transform: translateY(-10px);
   width:40px;
   height:100px;
   background:#222;
-  border:2px solid white;
   z-index:3;
 }
 
-.hit{ background:#7CFF6B !important; }
-
+.hitKey{
+  background:#7CFF6B !important;
+}
 </style>
 </head>
 
 <body>
 
-<h1>メロころ♪ Stable</h1>
+<h1>メロころ♪ COMPLETE</h1>
 
-<div id="ui">
 <input type="file" id="midiFile">
 <button onclick="startGame()">再生</button>
-
-<br><br>
-
-スコア: <span id="score">0</span>
-　コンボ: <span id="combo">0</span>
-</div>
 
 <div id="gameArea">
   <div id="line"></div>
@@ -112,196 +87,138 @@ body{
 
 <script>
 
-/* ================= SAFETY ================= */
-
-if(typeof Tone === "undefined") alert("Tone.js読み込み失敗");
-if(typeof Midi === "undefined") alert("MIDIライブラリ読み込み失敗");
-
 /* ================= AUDIO ================= */
-
 const synth = new Tone.Synth().toDestination();
 
 /* ================= STATE ================= */
-
 let notes = [];
 let active = [];
+
+let startTime = 0;
+let index = 0;
+let running = false;
 
 let score = 0;
 let combo = 0;
 
-let running = false;
-
 /* ================= SETTINGS ================= */
 const travelTime = 2.2;
 const spawnY = -60;
+const hitY = 320;
 
-let hitY = 0;
-let startTime = 0;
-let index = 0;
-
-function updateLayout() {
-  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-  const line = document.getElementById("line").getBoundingClientRect();
-
-  hitY = line.top - gameRect.top;
-}
-
-function init() {
-  updateLayout();
-}
-
-window.addEventListener("load", init);
-
-let resizeTimer;
-
-window.addEventListener("resize", () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(updateLayout, 100);
-});
 /* ================= KEYBOARD ================= */
-
 const keys = [
 "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
 "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
 ];
 
-const whiteKeyWidth = 60;
-
-const blackKeyOffsets = {
-  "C#4": 40,
-  "D#4": 100,
-  "F#4": 220,
-  "G#4": 280,
-  "A#4": 340,
-  "C#5": 460,
-  "D#5": 520,
-  "F#5": 640,
-  "G#5": 700,
-  "A#5": 760
-};
-
 const kb = document.getElementById("keyboard");
+const whiteW = 60;
+
+const blackPos = {
+"C#4":40,"D#4":100,"F#4":220,"G#4":280,"A#4":340,
+"C#5":460,"D#5":520,"F#5":640,"G#5":700,"A#5":760
+};
 
 let x = 0;
 
-keys.forEach(n => {
+keys.forEach(n=>{
   const k = document.createElement("div");
   k.dataset.note = n;
+  k.textContent = "";
   k.className = n.includes("#") ? "key black" : "key";
 
-  if (n.includes("#")) {
-    k.style.left = blackKeyOffsets[n] + "px";
-  } else {
+  if(n.includes("#")){
+    k.style.left = blackPos[n] + "px";
+  }else{
     k.style.left = x + "px";
-    x += whiteKeyWidth;
+    x += whiteW;
   }
 
   kb.appendChild(k);
 });
 
-/* ================= MIDI LOAD ================= */
+/* ================= MIDI ================= */
+document.getElementById("midiFile").addEventListener("change", async (e)=>{
 
-document.getElementById("midiFile")
-.addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  const buf = await file.arrayBuffer();
+  const midi = new Midi(buf);
 
-  try{
+  notes = [];
 
-    const file = e.target.files[0];
-    const buf = await file.arrayBuffer();
-    const midi = new Midi(buf);
-
-    notes = [];
-
-    midi.tracks.forEach(t=>{
-      t.notes.forEach(n=>{
-        notes.push({
-          time: n.time,
-          note: n.name
-        });
+  midi.tracks.forEach(t=>{
+    t.notes.forEach(n=>{
+      notes.push({
+        time:n.time,
+        note:n.name
       });
     });
+  });
 
-    notes.sort((a,b)=>a.time-b.time);
+  notes.sort((a,b)=>a.time-b.time);
 
-    console.log("MIDI OK:", notes.length);
-
-  }catch(err){
-    console.error(err);
-    alert("MIDI読み込み失敗");
-  }
-
+  console.log("MIDI loaded", notes.length);
 });
 
 /* ================= START ================= */
+async function startGame(){
 
-function startGame() {
-
-  if (!notes.length) {
-    alert("MIDIを読み込んでね");
+  if(!notes.length){
+    alert("MIDI入れてね");
     return;
   }
 
-  startTime = performance.now() / 1000;
+  await Tone.start();
+
+  startTime = performance.now()/1000 + 1.5;
   index = 0;
   active = [];
   running = true;
 
-  console.log("game start");
+  score = 0;
+  combo = 0;
 
   requestAnimationFrame(loop);
 }
 
 /* ================= LOOP ================= */
+function loop(){
 
-function loop() {
-  const now = performance.now() / 1000;
+  if(!running) return;
+
+  const now = performance.now()/1000;
   const t = now - startTime;
 
-  // -------------------------
-  // ① ノーツ生成（未来先読み）
-  // -------------------------
-  while (
-    index < notes.length &&
-    notes[index].time <= t + travelTime
-  ) {
+  // spawn
+  while(index < notes.length && notes[index].time <= t + travelTime){
     spawn(notes[index]);
     index++;
   }
 
-  // -------------------------
-  // ② ノーツ更新
-  // -------------------------
-  active.forEach(n => {
+  // update notes
+  active.forEach(n=>{
 
-    // 進行度（0 → 1）
-    let p = (t - n.hit + travelTime) / travelTime;
-
-    // 画面外〜判定ラインの間に収める
-    const y = spawnY + (hitY - spawnY) * p;
+    const p = (t - n.hit + travelTime)/travelTime;
+    const y = spawnY + (hitY - spawnY)*p;
 
     n.el.style.top = y + "px";
 
-    // -------------------------
-    // ③ 画面外処理（削除）
-    // -------------------------
-    if (p > 1.2) {
+    if(p > 1.2){
       n.el.remove();
-      active = active.filter(x => x !== n);
+      active = active.filter(x=>x!==n);
       combo = 0;
-      update();
     }
-
   });
 
-  // -------------------------
-  // ④ 次フレームへ
-  // -------------------------
   requestAnimationFrame(loop);
 }
 
 /* ================= SPAWN ================= */
-
 function spawn(n){
+
+  const el = document.createElement("div");
+  el.className = "note";
 
   const key = document.querySelector(`[data-note="${n.note}"]`);
   if(!key) return;
@@ -309,26 +226,21 @@ function spawn(n){
   const g = document.getElementById("gameArea").getBoundingClientRect();
   const k = key.getBoundingClientRect();
 
-  const el = document.createElement("div");
-  el.className = "note";
-
-  el.style.left =
-    (k.left - g.left + k.width/2) + "px";
+  el.style.left = (k.left - g.left + k.width/2) + "px";
 
   document.getElementById("gameArea").appendChild(el);
 
   active.push({
     el,
-    note: n.note,
-    hit: n.time
+    note:n.note,
+    hit:n.time
   });
 }
 
 /* ================= HIT ================= */
-
 function hit(note){
 
-  const now = (performance.now()-startTime)/1000;
+  const now = performance.now()/1000 - startTime;
 
   let best = null;
   let bestDiff = 999;
@@ -343,47 +255,36 @@ function hit(note){
       bestDiff = d;
       best = n;
     }
-
   });
 
   if(best && bestDiff < 0.15){
 
     best.el.remove();
-    active = active.filter(n=>n!==best);
+    active = active.filter(x=>x!==best);
+
+    synth.triggerAttackRelease(note,"8n");
 
     score += 100;
     combo++;
 
-    synth.triggerAttackRelease(note,"8n");
-
   }else{
     combo = 0;
   }
-
-  update();
 }
 
 /* ================= INPUT ================= */
-
 document.addEventListener("click", async (e)=>{
 
-  const k = e.target.closest("[data-note]");
-  if(!k) return;
+  const key = e.target.closest("[data-note]");
+  if(!key) return;
 
   await Tone.start();
 
-  hit(k.dataset.note);
+  key.classList.add("hitKey");
+  setTimeout(()=>key.classList.remove("hitKey"),100);
 
-  k.classList.add("hit");
-  setTimeout(()=>k.classList.remove("hit"),100);
+  hit(key.dataset.note);
 });
-
-/* ================= UI ================= */
-
-function update(){
-  document.getElementById("score").textContent = score;
-  document.getElementById("combo").textContent = combo;
-}
 
 </script>
 
