@@ -27,19 +27,15 @@ body{
 /* ================= GAME AREA ================= */
 
 #gameArea{
-  position:relative;
   width:840px;
   height:420px;
   margin:auto;
+  overflow:hidden;
 
-  /* ★①ここが修正済み（背景画像） */
   background-image: url("melokoro.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
-  border:2px solid #444;
-  overflow:hidden;
 }
 
 /* 判定ライン */
@@ -128,6 +124,8 @@ let active = [];
 let score = 0;
 let combo = 0;
 
+let running = false;
+
 /* ================= SETTINGS ================= */
 
 const travelTime = 2.2;
@@ -144,19 +142,35 @@ const keys = [
 "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
 ];
 
+const whiteKeyWidth = 60;
+
+const blackKeyOffsets = {
+  "C#4": 40,
+  "D#4": 100,
+  "F#4": 220,
+  "G#4": 280,
+  "A#4": 340,
+  "C#5": 460,
+  "D#5": 520,
+  "F#5": 640,
+  "G#5": 700,
+  "A#5": 760
+};
+
 const kb = document.getElementById("keyboard");
+
 let x = 0;
 
-keys.forEach(n=>{
+keys.forEach(n => {
   const k = document.createElement("div");
   k.dataset.note = n;
   k.className = n.includes("#") ? "key black" : "key";
 
-  if(!n.includes("#")){
+  if (n.includes("#")) {
+    k.style.left = blackKeyOffsets[n] + "px";
+  } else {
     k.style.left = x + "px";
-    x += 60;
-  }else{
-    k.style.left = (x - 20) + "px";
+    x += whiteKeyWidth;
   }
 
   kb.appendChild(k);
@@ -209,6 +223,14 @@ function startGame(){
 
   requestAnimationFrame(loop);
 }
+
+function stopGame(){
+  running = false;
+
+  active.forEach(n => n.el.remove());
+  active = [];
+}
+
 
 /* ================= LOOP ================= */
 
