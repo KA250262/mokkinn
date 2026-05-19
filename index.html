@@ -2,10 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>木琴 MIDIゲーム 完成版</title>
+<title>木琴 MIDIゲーム マイク対応版</title>
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
+<script src="https://cdn.jsdelivr.net/npm/pitchy/dist/pitchy.min.js"></script>
 
 <style>
 
@@ -15,8 +16,6 @@ body{
   text-align:center;
   font-family:sans-serif;
 }
-
-/* ================= UI ================= */
 
 #ui{
   margin:10px;
@@ -36,6 +35,12 @@ button{
   font-weight:bold;
 }
 
+#detected{
+  font-size:24px;
+  color:cyan;
+  margin:10px;
+}
+
 /* ================= ゲーム ================= */
 
 #gameArea{
@@ -47,7 +52,6 @@ button{
   overflow:hidden;
 }
 
-/* 判定ライン */
 #hitLine{
   position:absolute;
   bottom:60px;
@@ -56,7 +60,6 @@ button{
   background:yellow;
 }
 
-/* ノーツ */
 .note{
   position:absolute;
   width:24px;
@@ -75,7 +78,6 @@ button{
   margin:20px auto;
 }
 
-/* 白鍵 */
 .white{
   position:absolute;
   width:60px;
@@ -94,24 +96,17 @@ button{
   cursor:pointer;
 }
 
-/* 黒鍵 */
 .black{
   position:absolute;
   width:40px;
   height:100px;
   background:black;
   z-index:10;
-
   cursor:pointer;
 }
 
-/* 光る */
 .correct{
   background:lime !important;
-}
-
-.wrong{
-  background:red !important;
 }
 
 </style>
@@ -119,7 +114,7 @@ button{
 
 <body>
 
-<h1>木琴 MIDIゲーム 完成版</h1>
+<h1>木琴 MIDIゲーム マイク対応版</h1>
 
 <div id="ui">
 
@@ -127,9 +122,7 @@ button{
 
   <button onclick="playScore()">再生</button>
 
-  <button onclick="changeSpeed(0.5)">0.5倍</button>
-  <button onclick="changeSpeed(0.75)">0.75倍</button>
-  <button onclick="changeSpeed(1)">1倍</button>
+  <button onclick="startMic()">マイク開始</button>
 
   <div>
     スコア:
@@ -144,6 +137,10 @@ button{
 </div>
 
 <div id="judge"></div>
+
+<div id="detected">
+検出音: ---
+</div>
 
 <!-- ================= ゲーム ================= -->
 
@@ -198,8 +195,6 @@ let scoreData = [];
 let score = 0;
 let combo = 0;
 
-let speed = 1;
-
 /* ================= MIDI読み込み ================= */
 
 document.getElementById("midiFile")
@@ -228,15 +223,7 @@ document.getElementById("midiFile")
 
 });
 
-/* ================= 速度変更 ================= */
-
-function changeSpeed(v){
-
-  speed = v;
-
-}
-
-/* ================= UI更新 ================= */
+/* ================= UI ================= */
 
 function updateUI(){
 
@@ -244,8 +231,6 @@ function updateUI(){
   document.getElementById("combo").textContent = combo;
 
 }
-
-/* ================= 判定表示 ================= */
 
 function showJudge(text){
 
@@ -291,7 +276,7 @@ function spawnNote(noteName){
 
   const fall = setInterval(()=>{
 
-    y += 3 * speed;
+    y += 3;
 
     note.style.top = y + "px";
 
@@ -325,7 +310,7 @@ async function playScore(){
 
       spawnNote(item.note);
 
-    }, item.time / speed);
+    }, item.time);
 
   });
 
@@ -353,22 +338,7 @@ function checkHit(noteName){
     const diff =
       Math.abs(rect.top - line.top);
 
-    if(diff < 15){
-
-      n.remove();
-
-      score += 300;
-
-      combo++;
-
-      updateUI();
-
-      showJudge("PERFECT");
-
-      hit = true;
-
-    }
-    else if(diff < 35){
+    if(diff < 20){
 
       n.remove();
 
@@ -378,7 +348,9 @@ function checkHit(noteName){
 
       updateUI();
 
-      showJudge("GOOD");
+      showJudge("HIT");
+
+      flashKey(noteName);
 
       hit = true;
 
@@ -392,36 +364,111 @@ function checkHit(noteName){
 
     updateUI();
 
-    showJudge("MISS");
-
   }
 
 }
 
-/* ================= 鍵盤 ================= */
+/* ================= 鍵盤光る ================= */
 
-document.querySelectorAll("[data-note]")
-.forEach(key=>{
+function flashKey(noteName){
 
-  key.addEventListener("click", async ()=>{
+  const key =
+    document.querySelector(`[data-note="${noteName}"]`);
 
-    await Tone.start();
+  if(!key) return;
 
-    const note = key.dataset.note;
+  key.classList.add("correct");
 
-    synth.triggerAttackRelease(note,"8n");
+  setTimeout(()=>{
+    key.classList.remove("correct");
+  },150);
 
-    checkHit(note);
+}
 
-    key.classList.add("correct");
+/* ================= 周波数→音名 ================= */
 
-    setTimeout(()=>{
-      key.classList.remove("correct");
-    },150);
+function frequencyToNote(freq){
 
-  });
+  const noteNames =
+  ["C","C#","D","D#","E","F",
+   "F#","G","G#","A","A#","B"];
 
-});
+  const midi =
+    Math.round(
+      12 * Math.log2(freq / 440)
+      + 69
+    );
+
+  const name =
+    noteNames[midi % 12];
+
+  const octave =
+    Math.floor(midi / 12) - 1;
+
+  return name + octave;
+
+}
+
+/* ================= マイク ================= */
+
+async function startMic(){
+
+  const stream =
+    await navigator.mediaDevices.getUserMedia({
+      audio:true
+    });
+
+  const audioContext =
+    new AudioContext();
+
+  const source =
+    audioContext.createMediaStreamSource(stream);
+
+  const analyser =
+    audioContext.createAnalyser();
+
+  source.connect(analyser);
+
+  analyser.fftSize = 2048;
+
+  const input =
+    new Float32Array(analyser.fftSize);
+
+  const detector =
+    Pitchy.PitchDetector.forFloat32Array(
+      analyser.fftSize
+    );
+
+  function updatePitch(){
+
+    analyser.getFloatTimeDomainData(input);
+
+    const [pitch, clarity] =
+      detector.findPitch(
+        input,
+        audioContext.sampleRate
+      );
+
+    if(clarity > 0.92){
+
+      const noteName =
+        frequencyToNote(pitch);
+
+      document.getElementById("detected")
+        .textContent =
+        "検出音: " + noteName;
+
+      checkHit(noteName);
+
+    }
+
+    requestAnimationFrame(updatePitch);
+
+  }
+
+  updatePitch();
+
+}
 
 </script>
 
