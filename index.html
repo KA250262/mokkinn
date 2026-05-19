@@ -183,28 +183,18 @@ function spawnNote(noteName) {
 
 /* ================= 再生 ================= */
 async function playScore() {
+
   await Tone.start();
-  console.log(scoreData);
 
   scoreData.forEach(item => {
-   setTimeout(() => {
 
-  // 先にノーツ生成
-  spawnNote(item.note);
+    setTimeout(() => {
 
-}, item.time);
+      // ノーツだけ出す
+      spawnNote(item.note);
 
-setTimeout(() => {
+    }, item.time);
 
-  // 後で音を鳴らす
-  synth.triggerAttackRelease(item.note, "8n");
-  key.classList.add("correct");
-
-setTimeout(() => {
-  key.classList.remove("correct");
-}, 200);
-
-}, item.time + 1500);
   });
 
 }
@@ -217,14 +207,26 @@ document.querySelectorAll("[data-note]").forEach(key => {
     await Tone.start();
 
     const note = key.dataset.note;
+
+    // 自分で押した時だけ音
     synth.triggerAttackRelease(note, "8n");
 
+    // 光る
+    key.classList.add("correct");
+
+    setTimeout(() => {
+      key.classList.remove("correct");
+    }, 200);
+
+    // ノーツ消去
     const notes = document.querySelectorAll(".note");
 
     notes.forEach(n => {
+
       if (n.dataset.note === note) {
         n.remove();
       }
+
     });
 
   });
