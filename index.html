@@ -175,11 +175,14 @@ function spawnNote(noteName) {
 }
 
 /* ================= 再生 ================= */
-function playScore() {
+async function playScore() {
+  await Tone.start();
+  console.log(scoreData);
 
   scoreData.forEach(item => {
     setTimeout(() => {
       spawnNote(item.note);
+      synth.triggerAttackRelease(item.note, "8n");
     }, item.time);
   });
 
