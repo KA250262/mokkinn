@@ -265,18 +265,18 @@ function spawnNote(noteName){
 
   const fall = setInterval(()=>{
 
-    y += speed;
-    note.style.top = y + "px";
+  y += speed;
+  note.style.top = y + "px";
 
-    if(y > 320){
-      note.remove();
-      activeNotes = activeNotes.filter(n => n !== note);
-      combo = 0;
-      updateUI();
-      clearInterval(fall);
-    }
+  if(y >= endY){
+    note.remove();
+    activeNotes = activeNotes.filter(n => n !== note);
+    combo = 0;
+    updateUI();
+    clearInterval(fall);
+  }
 
-  },16);
+}, 16);
 
 }
 
@@ -322,7 +322,7 @@ document.addEventListener("click", async (e)=>{
 
   await Tone.start();
 
-  const note = key.dataset.note;
+  const note = key.dataset.note;0
 
   synth.triggerAttackRelease(note,"8n");
 
