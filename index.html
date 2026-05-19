@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>木琴 MIDIゲーム 改良版</title>
+<title>木琴 MIDIゲーム 完成版</title>
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
@@ -19,8 +19,14 @@ body{
 /* ================= UI ================= */
 
 #ui{
-  margin:10px;
+  margin:15px;
   font-size:20px;
+}
+
+button, select{
+  font-size:18px;
+  padding:6px 10px;
+  margin:5px;
 }
 
 #score{
@@ -31,7 +37,7 @@ body{
   color:lime;
 }
 
-/* ================= GAME ================= */
+/* ================= GAME AREA ================= */
 
 #gameArea{
   position:relative;
@@ -43,13 +49,26 @@ body{
   border:2px solid #444;
 }
 
+/* 判定ライン */
+
 #hitLine{
   position:absolute;
   bottom:60px;
   width:100%;
-  height:3px;
-  background:yellow;
+  height:16px;
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(255,255,0,0.2),
+      rgba(255,255,0,0.95),
+      rgba(255,255,0,0.2)
+    );
+
+  box-shadow:0 0 15px yellow;
 }
+
+/* ノーツ */
 
 .note{
   position:absolute;
@@ -98,15 +117,32 @@ body{
   z-index:10;
 }
 
-/* 光 */
+/* 次に叩く鍵盤 */
 
 .next{
-  background:yellow !important;
+  background:deepskyblue !important;
+  box-shadow:0 0 20px cyan;
 }
+
+/* 黒鍵のnext */
+
+.black.next{
+  background:#00ccff !important;
+}
+
+/* 正解 */
 
 .correct{
   background:lime !important;
 }
+
+/* 黒鍵correct */
+
+.black.correct{
+  background:lime !important;
+}
+
+/* ミス */
 
 .wrong{
   background:red !important;
@@ -117,12 +153,19 @@ body{
 
 <body>
 
-<h1>木琴 MIDIゲーム 改良版</h1>
+<h1>木琴 MIDIゲーム 完成版</h1>
 
 <div id="ui">
 
 <input type="file" id="midiFile">
+
 <button onclick="playScore()">再生</button>
+
+<select id="speedSelect">
+  <option value="1">速度 1.0</option>
+  <option value="0.75">速度 0.75</option>
+  <option value="0.5">速度 0.5</option>
+</select>
 
 <br><br>
 
@@ -186,15 +229,15 @@ body{
 
 const synth = new Tone.Synth().toDestination();
 
-/* ================= MIDI ================= */
+/* ================= DATA ================= */
 
 let scoreData = [];
 let currentIndex = 0;
 
-/* ================= SCORE ================= */
-
 let score = 0;
 let combo = 0;
+
+/* ================= UI ================= */
 
 function updateUI(){
 
@@ -290,7 +333,7 @@ function spawnNote(noteName){
 
 }
 
-/* ================= NEXT KEY LIGHT ================= */
+/* ================= NEXT KEY ================= */
 
 function lightNextKey(){
 
@@ -327,7 +370,17 @@ async function playScore(){
 
   currentIndex = 0;
 
+  score = 0;
+  combo = 0;
+
+  updateUI();
+
   lightNextKey();
+
+  const speed =
+    parseFloat(
+      document.getElementById("speedSelect").value
+    );
 
   scoreData.forEach(item=>{
 
@@ -335,13 +388,13 @@ async function playScore(){
 
       spawnNote(item.note);
 
-    },item.time);
+    },item.time / speed);
 
   });
 
 }
 
-/* ================= 判定改善 ================= */
+/* ================= NOTE CHECK ================= */
 
 function isCloseNote(input,target){
 
@@ -407,7 +460,7 @@ function checkHit(noteName){
     const diff =
       Math.abs(rect.top - line.top);
 
-    if(diff < 25){
+    if(diff < 30){
 
       n.remove();
 
@@ -453,15 +506,15 @@ document.querySelectorAll("[data-note]")
       "8n"
     );
 
-    checkHit(note);
-
     key.classList.add("correct");
 
     setTimeout(()=>{
 
       key.classList.remove("correct");
 
-    },150);
+    },80);
+
+    checkHit(note);
 
   });
 
@@ -471,8 +524,6 @@ document.querySelectorAll("[data-note]")
 
 let analyser;
 let mic;
-
-/* ================= START MIC ================= */
 
 async function startMic(){
 
@@ -517,7 +568,8 @@ function detectPitch(){
     }
 
     const freq =
-      index * (Tone.context.sampleRate/2)
+      index *
+      (Tone.context.sampleRate/2)
       / values.length;
 
     const note =
