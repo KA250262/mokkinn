@@ -14,7 +14,6 @@ body{
   color:white;
   text-align:center;
   font-family:sans-serif;
-  
 }
 
 /* ================= UI ================= */
@@ -24,13 +23,8 @@ body{
   font-size:20px;
 }
 
-#score{
-  color:gold;
-}
-
-#combo{
-  color:lime;
-}
+#score{ color:gold; }
+#combo{ color:lime; }
 
 /* ================= GAME ================= */
 
@@ -40,7 +34,7 @@ body{
   height:320px;
   margin:auto;
 
-  background-image: url("image(9).png");
+  background-image: url("melokoro.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -75,26 +69,19 @@ body{
   margin:20px auto;
 }
 
-/* 白鍵 */
-
 .white{
   position:absolute;
   width:60px;
   height:160px;
   background:white;
   border:1px solid black;
-
   display:flex;
   justify-content:center;
   align-items:flex-end;
-
   color:black;
   font-size:14px;
-
   user-select:none;
 }
-
-/* 黒鍵 */
 
 .black{
   position:absolute;
@@ -104,20 +91,7 @@ body{
   z-index:10;
 }
 
-/* 光 */
-
-.next{
-  background:deepskyblue !important;
-  box-shadow:0 0 20px cyan;
-}
-
-.correct{
-  background:lime !important;
-}
-
-.wrong{
-  background:red !important;
-}
+.correct{ background:lime !important; }
 
 </style>
 </head>
@@ -133,27 +107,16 @@ body{
 
 <br><br>
 
-スコア:
-<span id="score">0</span>
-
-　
-
-コンボ:
-<span id="combo">0</span>
+スコア: <span id="score">0</span>
+　コンボ: <span id="combo">0</span>
 
 </div>
-
-<!-- ================= GAME ================= -->
 
 <div id="gameArea">
   <div id="hitLine"></div>
 </div>
 
-<!-- ================= KEYBOARD ================= -->
-
 <div id="keyboard">
-
-<!-- 白鍵 -->
 
 <div class="white" style="left:0px" data-note="C4">ド</div>
 <div class="white" style="left:60px" data-note="D4">レ</div>
@@ -171,44 +134,26 @@ body{
 <div class="white" style="left:720px" data-note="A5">ラ</div>
 <div class="white" style="left:780px" data-note="B5">シ</div>
 
-<!-- 黒鍵 -->
-
-<div class="black" style="left:40px" data-note="C#4"></div>
-<div class="black" style="left:100px" data-note="D#4"></div>
-<div class="black" style="left:220px" data-note="F#4"></div>
-<div class="black" style="left:280px" data-note="G#4"></div>
-<div class="black" style="left:340px" data-note="A#4"></div>
-
-<div class="black" style="left:460px" data-note="C#5"></div>
-<div class="black" style="left:520px" data-note="D#5"></div>
-<div class="black" style="left:640px" data-note="F#5"></div>
-<div class="black" style="left:700px" data-note="G#5"></div>
-<div class="black" style="left:760px" data-note="A#5"></div>
-
 </div>
 
 <script>
 
-/* ================= SYNTH ================= */
+/* ================= AUDIO ================= */
 
 const synth = new Tone.Synth().toDestination();
 
-/* ================= MIDI ================= */
+/* ================= DATA ================= */
 
 let scoreData = [];
 let currentIndex = 0;
 let activeNotes = [];
 
-/* ================= SCORE ================= */
-
 let score = 0;
 let combo = 0;
 
 function updateUI(){
-
   document.getElementById("score").textContent = score;
   document.getElementById("combo").textContent = combo;
-
 }
 
 /* ================= MIDI LOAD ================= */
@@ -217,33 +162,49 @@ document.getElementById("midiFile")
 .addEventListener("change", async (e)=>{
 
   const file = e.target.files[0];
-
   const buffer = await file.arrayBuffer();
-
   const midi = new Midi(buffer);
 
   scoreData = [];
 
   midi.tracks.forEach(track=>{
-
     track.notes.forEach(note=>{
-
       scoreData.push({
-
-        time:note.time * 1000,
-        note:note.name
-
+        time: note.time * 1000,
+        note: note.name
       });
-
     });
-
   });
 
   scoreData.sort((a,b)=>a.time-b.time);
 
-  console.log(scoreData);
-
+  console.log("MIDI loaded", scoreData);
 });
+
+/* ================= GAME START ================= */
+
+function playScore(){
+
+  if(scoreData.length === 0){
+    alert("MIDIを読み込んでね");
+    return;
+  }
+
+  currentIndex = 0;
+
+  function loop(){
+
+    if(currentIndex >= scoreData.length) return;
+
+    spawnNote(scoreData[currentIndex].note);
+
+    currentIndex++;
+
+    setTimeout(loop, 200); // 仮テンポ
+  }
+
+  loop();
+}
 
 /* ================= NOTE SPAWN ================= */
 
@@ -255,152 +216,40 @@ function spawnNote(noteName){
   if(!key) return;
 
   const gameRect =
-    document.getElementById("gameArea")
-    .getBoundingClientRect();
+    document.getElementById("gameArea").getBoundingClientRect();
 
-  const keyRect =
-    key.getBoundingClientRect();
+  const keyRect = key.getBoundingClientRect();
 
   const note = document.createElement("div");
-
   note.className = "note";
-
   note.dataset.note = noteName;
+
   activeNotes.push(note);
 
   note.style.left =
-    (keyRect.left - gameRect.left + keyRect.width/2)
-    + "px";
+    (keyRect.left - gameRect.left + keyRect.width/2) + "px";
 
-  document.getElementById("gameArea")
-  .appendChild(note);
-
-lightNextKey();
+  document.getElementById("gameArea").appendChild(note);
 
   let y = 0;
 
   const fall = setInterval(()=>{
 
     y += 3;
-
     note.style.top = y + "px";
-    lightNextKey();
 
-  if(y > 320){
+    if(y > 320){
 
-  note.remove();
+      note.remove();
+      activeNotes = activeNotes.filter(n => n !== note);
 
-  // activeNotesから削除
-  activeNotes =
-    activeNotes.filter(n => n !== note);
+      combo = 0;
+      updateUI();
 
-  clearInterval(fall);
-
-  combo = 0;
-
-  // 次の鍵盤を更新
-  lightNextKey();
-
-  updateUI();
-
-}
-
-  },16);
-
-}
-
-/* ================= NEXT KEY LIGHT ================= */
-
-function lightNextKey(){
-
-
-  // 全鍵盤の光を消す
-  document.querySelectorAll("[data-note]")
-  .forEach(k=>{
-
-    k.classList.remove("next");
-
-  });
-
-  // activeNotesを使う
-  const notes = activeNotes;
-
-  if(notes.length === 0) return;
-
-  let closestNote = null;
-  let closestY = -9999;
-
-  notes.forEach(n=>{
-
-    const top =
-      parseFloat(n.style.top) || 0;
-
-    // 一番下に近いノーツ
-    if(top > closestY){
-
-      closestY = top;
-      closestNote = n;
-
+      clearInterval(fall);
     }
 
-  });
-
-  if(!closestNote) return;
-
-  const target =
-    closestNote.dataset.note;
-
-  const key =
-    document.querySelector(
-      `[data-note="${target}"]`
-    );
-
-  if(key){
-
-    key.classList.add("next");
-
-  }
-
-}
-
-/* ================= 判定改善 ================= */
-
-function isCloseNote(input,target){
-
-  const noteMap = {
-
-    "C4":60,
-    "C#4":61,
-    "D4":62,
-    "D#4":63,
-    "E4":64,
-    "F4":65,
-    "F#4":66,
-    "G4":67,
-    "G#4":68,
-    "A4":69,
-    "A#4":70,
-    "B4":71,
-
-    "C5":72,
-    "C#5":73,
-    "D5":74,
-    "D#5":75,
-    "E5":76,
-    "F5":77,
-    "F#5":78,
-    "G5":79,
-    "G#5":80,
-    "A5":81,
-    "A#5":82,
-    "B5":83
-
-  };
-
-  return Math.abs(
-    noteMap[input] - noteMap[target]
-  ) <= 1;
-
+  },16);
 }
 
 /* ================= HIT ================= */
@@ -408,53 +257,34 @@ function isCloseNote(input,target){
 function checkHit(noteName){
 
   const line =
-    document.getElementById("hitLine")
-    .getBoundingClientRect();
+    document.getElementById("hitLine").getBoundingClientRect();
 
   let hit = false;
 
-  activeNotes.forEach((n,index)=>{
+  activeNotes.forEach(n=>{
 
-    if(!isCloseNote(
-      n.dataset.note,
-      noteName
-    )) return;
+    if(n.dataset.note !== noteName) return;
 
-    const rect =
-      n.getBoundingClientRect();
+    const rect = n.getBoundingClientRect();
 
-    const diff =
-      Math.abs(rect.top - line.top);
+    const diff = Math.abs(rect.top - line.top);
 
     if(diff < 25){
 
-      // ノーツ削除
       n.remove();
-
-      // activeNotesからも削除
-      activeNotes = activeNotes.filter(n => n !== nTarget);
+      activeNotes = activeNotes.filter(x => x !== n);
 
       score += 100;
-
       combo++;
 
       hit = true;
-
-      // 次ノーツ予測更新
-      lightNextKey();
-
     }
 
   });
 
-  if(!hit){
-
-    combo = 0;
-
-  }
+  if(!hit) combo = 0;
 
   updateUI();
-
 }
 
 /* ================= KEYBOARD ================= */
@@ -462,141 +292,22 @@ function checkHit(noteName){
 document.querySelectorAll("[data-note]")
 .forEach(key=>{
 
-  key.addEventListener("click",
-  async ()=>{
+  key.addEventListener("click", async ()=>{
 
     await Tone.start();
 
-    const note =
-      key.dataset.note;
+    const note = key.dataset.note;
 
-    synth.triggerAttackRelease(
-      note,
-      "8n"
-    );
+    synth.triggerAttackRelease(note, "8n");
 
     checkHit(note);
 
     key.classList.add("correct");
-
-    setTimeout(()=>{
-
-      key.classList.remove("correct");
-
-    },150);
+    setTimeout(()=>key.classList.remove("correct"),150);
 
   });
 
 });
-
-/* ================= MIC ================= */
-
-let analyser;
-let mic;
-
-/* ================= START MIC ================= */
-
-async function startMic(){
-
-  mic = new Tone.UserMedia();
-
-  await mic.open();
-
-  analyser =
-    new Tone.Analyser("fft",2048);
-
-  mic.connect(analyser);
-
-  detectPitch();
-
-}
-
-startMic();
-
-/* ================= PITCH ================= */
-
-let lastDetected = "";
-let stableCount = 0;
-
-function detectPitch(){
-
-  setInterval(()=>{
-
-    const values = analyser.getValue();
-
-    let max = -Infinity;
-    let index = 0;
-
-    for(let i=0;i<values.length;i++){
-
-      if(values[i] > max){
-
-        max = values[i];
-        index = i;
-
-      }
-
-    }
-
-    const freq =
-      index * (Tone.context.sampleRate/2)
-      / values.length;
-
-    const note =
-      frequencyToNote(freq);
-
-    if(note){
-
-      if(note === lastDetected){
-
-        stableCount++;
-
-      }else{
-
-        stableCount = 0;
-
-      }
-
-      lastDetected = note;
-
-      if(stableCount >= 2){
-
-        checkHit(note);
-
-      }
-
-    }
-
-  },100);
-
-}
-
-/* ================= FREQ TO NOTE ================= */
-
-function frequencyToNote(freq){
-
-  if(freq <= 0) return null;
-
-  const noteNum =
-    12 * (Math.log2(freq/440)) + 69;
-
-  const rounded =
-    Math.round(noteNum);
-
-  const names = [
-    "C","C#","D","D#","E","F",
-    "F#","G","G#","A","A#","B"
-  ];
-
-  const octave =
-    Math.floor(rounded/12)-1;
-
-  const name =
-    names[rounded % 12];
-
-  return name + octave;
-
-}
 
 </script>
 
