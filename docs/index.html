@@ -234,14 +234,16 @@ document.getElementById("midiFile")
 
 /* ================= START ================= */
 
-function startGame() {
+async function startGame() {
 
   if (!notes.length) {
     alert("MIDIを読み込んでね");
     return;
   }
 
-  startTime = performance.now() / 1000;
+  await Tone.start(); 
+
+  startTime = performance.now() / 1000 + 1.5; 
   index = 0;
   active = [];
   running = true;
