@@ -241,7 +241,7 @@ function startGame(){
     return;
   }
 
-  startTime = performance.now();
+  startTime = performance.now() / 1000;
   index = 0;
 
   requestAnimationFrame(loop);
@@ -257,34 +257,49 @@ function stopGame(){
 
 /* ================= LOOP ================= */
 
-function loop(){
+function loop() {
+  const now = performance.now() / 1000;
+  const t = now - startTime;
 
-  const now = performance.now();
-  const t = (now - startTime)/1000;
-
-  while(index < notes.length &&
-        notes[index].time <= t + travelTime){
-
+  // -------------------------
+  // ① ノーツ生成（未来先読み）
+  // -------------------------
+  while (
+    index < notes.length &&
+    notes[index].time <= t + travelTime
+  ) {
     spawn(notes[index]);
     index++;
   }
 
-  active.forEach(n=>{
+  // -------------------------
+  // ② ノーツ更新
+  // -------------------------
+  active.forEach(n => {
 
-    const p = 1 - ((n.hit - t)/travelTime);
-    const y = spawnY + p*(hitY - spawnY);
+    // 進行度（0 → 1）
+    let p = (t - n.hit + travelTime) / travelTime;
+
+    // 画面外〜判定ラインの間に収める
+    const y = spawnY + (hitY - spawnY) * p;
 
     n.el.style.top = y + "px";
 
-    if(p > 1.2){
+    // -------------------------
+    // ③ 画面外処理（削除）
+    // -------------------------
+    if (p > 1.2) {
       n.el.remove();
-      active = active.filter(x=>x!==n);
+      active = active.filter(x => x !== n);
       combo = 0;
       update();
     }
 
   });
 
+  // -------------------------
+  // ④ 次フレームへ
+  // -------------------------
   requestAnimationFrame(loop);
 }
 
