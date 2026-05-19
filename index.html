@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>木琴 MIDIゲーム 改良版</title>
+<title>メロころ♪</title>
 
 <script src="https://unpkg.com/tone"></script>
 <script src="https://unpkg.com/@tonejs/midi"></script>
@@ -14,6 +14,7 @@ body{
   color:white;
   text-align:center;
   font-family:sans-serif;
+  
 }
 
 /* ================= UI ================= */
@@ -38,7 +39,12 @@ body{
   width:840px;
   height:320px;
   margin:auto;
-  background:#111;
+
+  background-image: url("image(9).png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   overflow:hidden;
   border:2px solid #444;
 }
@@ -118,7 +124,7 @@ body{
 
 <body>
 
-<h1>木琴 MIDIゲーム 改良版</h1>
+<h1>メロころ♪</h1>
 
 <div id="ui">
 
@@ -307,6 +313,7 @@ lightNextKey();
 
 function lightNextKey(){
 
+
   // 全鍵盤の光を消す
   document.querySelectorAll("[data-note]")
   .forEach(k=>{
@@ -315,9 +322,8 @@ function lightNextKey(){
 
   });
 
-  // 一番下に近いノーツを探す
-  const notes =
-    [...document.querySelectorAll(".note")];
+  // activeNotesを使う
+  const notes = activeNotes;
 
   if(notes.length === 0) return;
 
@@ -341,7 +347,6 @@ function lightNextKey(){
 
   if(!closestNote) return;
 
-  // そのノーツの鍵盤を光らせる
   const target =
     closestNote.dataset.note;
 
@@ -355,28 +360,6 @@ function lightNextKey(){
     key.classList.add("next");
 
   }
-
-}
-
-/* ================= PLAY ================= */
-
-async function playScore(){
-
-  await Tone.start();
-
-  currentIndex = 0;
-
-  lightNextKey();
-
-  scoreData.forEach(item=>{
-
-    setTimeout(()=>{
-
-      spawnNote(item.note);
-
-    },item.time);
-
-  });
 
 }
 
@@ -449,7 +432,7 @@ function checkHit(noteName){
       n.remove();
 
       // activeNotesからも削除
-      activeNotes.splice(index,1);
+      activeNotes = activeNotes.filter(n => n !== nTarget);
 
       score += 100;
 
