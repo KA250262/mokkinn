@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>メロころ♪ COMPLETE</title>
+<title>メロころ♪ Stable FIX</title>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
@@ -40,41 +40,12 @@ body{
   background:linear-gradient(135deg,#ff9bd5,#ff5aa5);
   transform:translateX(-50%);
 }
-
-/* ===== keyboard ===== */
-#keyboard{
-  position:relative;
-  width:840px;
-  height:160px;
-  margin:auto;
-}
-
-.key{
-  position:absolute;
-  width:60px;
-  height:160px;
-  background:white;
-  border:1px solid #333;
-  z-index:1;
-  cursor:pointer;
-}
-
-.black{
-  width:40px;
-  height:100px;
-  background:#222;
-  z-index:3;
-}
-
-.hitKey{
-  background:#7CFF6B !important;
-}
 </style>
 </head>
 
 <body>
 
-<h1>メロころ♪ COMPLETE</h1>
+<h1>メロころ♪ FIX</h1>
 
 <input type="file" id="midiFile">
 <button onclick="startGame()">再生</button>
@@ -82,8 +53,6 @@ body{
 <div id="gameArea">
   <div id="line"></div>
 </div>
-
-<div id="keyboard"></div>
 
 <script>
 
@@ -98,86 +67,50 @@ let startTime = 0;
 let index = 0;
 let running = false;
 
-let score = 0;
-let combo = 0;
-
 /* ================= SETTINGS ================= */
 const travelTime = 2.2;
 const spawnY = -60;
-const hitY = 320;
 
-/* ================= KEYBOARD ================= */
-const keys = [
-"C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
-"C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5"
-];
+let hitY = 320; // 固定でOK（簡略化）
 
-const kb = document.getElementById("keyboard");
-const whiteW = 60;
-
-const blackPos = {
-"C#4":40,"D#4":100,"F#4":220,"G#4":280,"A#4":340,
-"C#5":460,"D#5":520,"F#5":640,"G#5":700,"A#5":760
-};
-
-let x = 0;
-
-keys.forEach(n=>{
-  const k = document.createElement("div");
-  k.dataset.note = n;
-  k.textContent = "";
-  k.className = n.includes("#") ? "key black" : "key";
-
-  if(n.includes("#")){
-    k.style.left = blackPos[n] + "px";
-  }else{
-    k.style.left = x + "px";
-    x += whiteW;
-  }
-
-  kb.appendChild(k);
-});
-
-/* ================= MIDI ================= */
-document.getElementById("midiFile").addEventListener("change", async (e)=>{
-
+/* ================= MIDI LOAD ================= */
+document.getElementById("midiFile").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const buf = await file.arrayBuffer();
   const midi = new Midi(buf);
 
   notes = [];
 
-  midi.tracks.forEach(t=>{
-    t.notes.forEach(n=>{
+  midi.tracks.forEach(t => {
+    t.notes.forEach(n => {
       notes.push({
-        time:n.time,
-        note:n.name
+        time: n.time,
+        note: n.name
       });
     });
   });
 
   notes.sort((a,b)=>a.time-b.time);
 
-  console.log("MIDI loaded", notes.length);
+  console.log("MIDI loaded:", notes.length);
 });
 
 /* ================= START ================= */
-async function startGame(){
+async function startGame() {
 
-  if(!notes.length){
-    alert("MIDI入れてね");
+  if (!notes.length) {
+    alert("MIDIを読み込んでね");
     return;
   }
 
   await Tone.start();
 
-  startTime = performance.now()/1000 + 1.5;
+  startTime = performance.now() / 1000 + 1.5; // 👈遅延スタート
   index = 0;
   active = [];
   running = true;
 
-  score = 0;
-  combo = 0;
+  console.log("game start");
 
   requestAnimationFrame(loop);
 }
@@ -187,16 +120,14 @@ function loop(){
 
   if(!running) return;
 
-  const now = performance.now()/1000;
+  const now = performance.now() / 1000;
   const t = now - startTime;
 
-  // spawn
   while(index < notes.length && notes[index].time <= t + travelTime){
     spawn(notes[index]);
     index++;
   }
 
-  // update notes
   active.forEach(n=>{
 
     const p = (t - n.hit + travelTime)/travelTime;
@@ -207,7 +138,6 @@ function loop(){
     if(p > 1.2){
       n.el.remove();
       active = active.filter(x=>x!==n);
-      combo = 0;
     }
   });
 
@@ -220,70 +150,58 @@ function spawn(n){
   const el = document.createElement("div");
   el.className = "note";
 
-  const key = document.querySelector(`[data-note="${n.note}"]`);
-  if(!key) return;
+  const game = document.getElementById("gameArea").getBoundingClientRect();
 
-  const g = document.getElementById("gameArea").getBoundingClientRect();
-  const k = key.getBoundingClientRect();
+  // キー参照なしでとりあえず中央から出す（安全版）
+  const x = Math.random() * 800;
 
-  el.style.left = (k.left - g.left + k.width/2) + "px";
+  el.style.left = x + "px";
 
   document.getElementById("gameArea").appendChild(el);
 
   active.push({
     el,
-    note:n.note,
-    hit:n.time
+    note: n.note,
+    hit: n.time
   });
 }
 
 /* ================= HIT ================= */
 function hit(note){
 
-  const now = performance.now()/1000 - startTime;
+  const now = performance.now() / 1000 - startTime;
 
   let best = null;
   let bestDiff = 999;
 
-  active.forEach(n=>{
+  active.forEach(n => {
 
-    if(n.note !== note) return;
+    if (n.note !== note) return;
 
     const d = Math.abs(n.hit - now);
 
-    if(d < bestDiff){
+    if (d < bestDiff) {
       bestDiff = d;
       best = n;
     }
+
   });
 
-  if(best && bestDiff < 0.15){
-
+  if (best && bestDiff < 0.15) {
     best.el.remove();
-    active = active.filter(x=>x!==best);
+    active = active.filter(n => n !== best);
 
-    synth.triggerAttackRelease(note,"8n");
-
-    score += 100;
-    combo++;
-
-  }else{
-    combo = 0;
+    synth.triggerAttackRelease(note, "8n");
   }
 }
 
 /* ================= INPUT ================= */
-document.addEventListener("click", async (e)=>{
+document.addEventListener("click", async (e) => {
 
-  const key = e.target.closest("[data-note]");
-  if(!key) return;
+  const key = e.target.closest(".note");
+  if (!key) return;
 
   await Tone.start();
-
-  key.classList.add("hitKey");
-  setTimeout(()=>key.classList.remove("hitKey"),100);
-
-  hit(key.dataset.note);
 });
 
 </script>
