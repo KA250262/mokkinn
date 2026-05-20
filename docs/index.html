@@ -452,7 +452,7 @@ let nearestDiff = 999;
 
 active.forEach(n=>{
 
-  const diff = Math.abs(n.hit - t);
+  const diff = Math.abs((n.hit - 0.5) - t);
 
   if(diff < nearestDiff){
 
@@ -594,28 +594,28 @@ function hit(note){
     (performance.now()-startTime)/1000 - 3;
 
   let best = null;
-
   let bestDiff = 999;
 
   active.forEach(n=>{
 
     if(n.note !== note) return;
 
-    const d =
-      Math.abs(n.hit - now);
+    const diff = Math.abs(n.hit - now);
 
-    if(d < bestDiff){
+    if(diff < bestDiff){
 
-      bestDiff = d;
-
+      bestDiff = diff;
       best = n;
     }
 
   });
 
+  /* 音は必ず鳴らす */
+  synth.triggerAttackRelease(note,"8n");
+
   /* PERFECT */
 
-  if(best && bestDiff < 0.12){
+  if(best && bestDiff < 0.25){
 
     success(best,note);
 
@@ -628,7 +628,7 @@ function hit(note){
 
   /* GOOD */
 
-  else if(best && bestDiff < 0.28){
+  else if(best && bestDiff < 0.35){
 
     success(best,note);
 
