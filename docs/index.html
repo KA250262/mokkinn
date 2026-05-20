@@ -285,8 +285,9 @@ function spawn(n){
 /* ================= HIT ================= */
 
 function hit(note){
-
-  const now = (performance.now()-startTime)/1000;
+  
+  console.log("hit!", note);
+  const now = (performance.now()-startTime)/1000 - 3;
 
   let best = null;
   let bestDiff = 999;
@@ -320,13 +321,15 @@ function hit(note){
 
   update();
 }
-console.log("hit!", note);
+
 
 /* ================= INPUT ================= */
 
 document.addEventListener("click", async (e)=>{
+  console.log("CLICK", e.target);
 
   const k = e.target.closest("[data-note]");
+  console.log("closest:", k);
   if(!k) return;
 
   await Tone.start();
