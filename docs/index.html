@@ -7,10 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
-<button onclick="stopGame()">停止</button>
-
 <style>
-
 body{
   background:#111;
   color:white;
@@ -34,7 +31,6 @@ body{
   height:420px;
   margin:auto;
 
-  /* ★①ここが修正済み（背景画像） */
   background-image: url("melokoro.png");
   background-size: cover;
   background-position: center;
@@ -44,7 +40,6 @@ body{
   overflow:hidden;
 }
 
-/* 判定ライン */
 #line{
   position:absolute;
   top:400px;
@@ -53,7 +48,6 @@ body{
   background:yellow;
 }
 
-/* ノーツ */
 .note{
   position:absolute;
   width:28px;
@@ -63,7 +57,6 @@ body{
   transform:translateX(-50%);
 }
 
-/* キーボード */
 #keyboard{
   position:relative;
   width:840px;
@@ -89,11 +82,11 @@ body{
 }
 
 .hit{ background:#7CFF6B !important; }
-
 </style>
 </head>
 
 <body>
+
 
 <h1>メロころ♪ Stable</h1>
 
