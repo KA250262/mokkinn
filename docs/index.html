@@ -292,7 +292,8 @@ function spawn(n){
 
 function hit(note){
 
-  const now = (performance.now()-startTime)/1000;
+  const now = (performance.now()-startTime)/1000 - 3;
+
 
   let best = null;
   let bestDiff = 999;
