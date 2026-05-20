@@ -84,6 +84,8 @@
   height:100px;
   background:#222;
   border:2px solid white;
+  position:absolute;
+  z-index:10;
 }
 
 .hit{ background:#7CFF6B !important; }
@@ -201,7 +203,9 @@ document.getElementById("midiFile")
 
 /* ================= START ================= */
 
-function startGame(){
+async function startGame(){
+
+  await Tone.start();
 
   if(!notes.length){
     alert("MIDIを読み込んでね");
@@ -209,12 +213,12 @@ function startGame(){
   }
 
   running = true;
-
   startTime = performance.now();
   index = 0;
 
   requestAnimationFrame(loop);
 }
+
 
 function stopGame(){
   running = false;
