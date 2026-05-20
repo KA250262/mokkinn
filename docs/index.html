@@ -42,16 +42,28 @@ body{
 
 #line{
   position:absolute;
-  top:400px;
+  top:340px;
   width:100%;
-  height:3px;
-  background:yellow;
+  height:12px;
+
+  background:linear-gradient(
+    to bottom,
+    #fff176,
+    #ffd600
+  );
+
+  border-radius:10px;
+
+  box-shadow:
+    0 0 10px yellow,
+    0 0 20px orange;
 }
+
 
 .note{
   position:absolute;
-  width:28px;
-  height:28px;
+  width:40px;
+  height:40px;
   border-radius:50%;
   background:linear-gradient(135deg,#ff9bd5,#ff5aa5);
   transform:translateX(-50%);
@@ -129,8 +141,8 @@ let running = false;
 
 /* ================= SETTINGS ================= */
 
-const travelTime = 2.2;
-const hitY = 400;
+const travelTime = 5;
+const hitY = 340;
 const spawnY = -60;
 
 let startTime = 0;
