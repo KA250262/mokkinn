@@ -156,7 +156,8 @@ let x = 0;
 keys.forEach(n=>{
   const k = document.createElement("div");
   k.dataset.note = n;
-  k.className = n.includes("#") ? "key black" : "key";
+  k.className = n.includes("#") ? "black" : "key";
+
 
   if(!n.includes("#")){
     k.style.left = x + "px";
@@ -292,8 +293,7 @@ function spawn(n){
 
 function hit(note){
 
-  const now = (performance.now()-startTime)/1000 - 3;
-
+  const now = (performance.now()-startTime)/1000;
 
   let best = null;
   let bestDiff = 999;
@@ -327,6 +327,7 @@ function hit(note){
 
   update();
 }
+console.log("hit!", note);
 
 /* ================= INPUT ================= */
 
