@@ -27,6 +27,7 @@ h1{
   font-size:20px;
 }
 
+
 button{
   font-size:18px;
   padding:8px 18px;
@@ -180,7 +181,9 @@ button:hover{
 <button onclick="startGame()">再生</button>
 
 <button onclick="stopGame()">停止</button>
-
+<button onclick="setSpeed(0.5)">0.5x</button>
+<button onclick="setSpeed(0.75)">0.75x</button>
+<button onclick="setSpeed(1)">1.0x</button>
 <br><br>
 
 スコア:
@@ -223,6 +226,7 @@ let running = false;
 
 let startTime = 0;
 let index = 0;
+let speed = 1;
 
 /* ================= SETTINGS ================= */
 
@@ -428,7 +432,7 @@ function loop(){
   const now = performance.now();
 
   const t =
-    (now - startTime)/1000 - 5;
+  ((now - startTime)/1000 - 5) * speed;
 
   /* ノーツ生成 */
 
@@ -591,7 +595,7 @@ function spawn(n){
 function hit(note){
 
   const now =
-    (performance.now()-startTime)/1000 - 3;
+  ((performance.now()-startTime)/1000 - 3) * speed;
 
   let best = null;
   let bestDiff = 999;
@@ -699,8 +703,12 @@ function update(){
 
   document.getElementById("combo")
     .textContent = combo;
-
 }
+
+function setSpeed(s){
+  speed = s;
+}
+
 
 /* ================= JUDGE ================= */
 
