@@ -60,10 +60,7 @@ button:hover{
   height:520px;
   margin:auto;
 
-  background-image:url("melokoro.png");
   background-size:contain;
-  background-position:center;
-  background-repeat:no-repeat;
 
   background-color:#222;
 
@@ -73,13 +70,32 @@ button:hover{
   overflow:hidden;
 }
 
+.combo-bounce{
+  animation: comboBounce 0.5s ease;
+}
+
+#mascot{
+  position:absolute;
+
+  width:100%;
+  height:100%;
+
+  object-fit:contain;
+
+  left:0;
+  top:0;
+
+  pointer-events:none;
+}
+
 /* 判定ライン */
 
 #line{
   position:absolute;
-  top:400px;
+  top:420px;
   width:100%;
   height:14px;
+  opacity: 0.9;
 
   background:linear-gradient(
     to bottom,
@@ -130,6 +146,47 @@ button:hover{
   pointer-events:none;
 }
 
+@keyframes bubblePop {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+    opacity: 0.8;
+    filter: blur(1px);
+  }
+  100% {
+    transform: translateX(-50%) scale(2.2);
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+
+@keyframes comboBounce {
+
+  0%{
+    transform:scale(1);
+  }
+
+  30%{
+    transform:scale(1.03) rotate(-1deg);
+  }
+
+  60%{
+    transform:scale(1.03) rotate(1deg);
+  }
+
+  100%{
+    transform:scale(1);
+  }
+
+}
+.bubble-out {
+  animation: bubblePop 0.25s ease-out forwards;
+}
+
 /* ================= KEYBOARD ================= */
 
 #keyboard{
@@ -137,6 +194,7 @@ button:hover{
   width:1000px;
   height:180px;
   margin:auto;
+  margin-top: -5px;
   left:8px;
 }
 
@@ -187,16 +245,19 @@ button:hover{
 <h1>メロころ♪</h1>
 
 <div id="ui">
+<button onclick="setSpeed(0.25)">ゆっくり</button>
+<button onclick="setSpeed(0.5)">ふつう</button>
+<button onclick="setSpeed(0.75)">はやい</button>
 
 <input type="file" id="midiFile">
 
 <button onclick="startGame()">再生</button>
 
 <button onclick="stopGame()">停止</button>
-<button onclick="setSpeed(0.5)">0.5x</button>
-<button onclick="setSpeed(0.75)">0.75x</button>
-<button onclick="setSpeed(1)">1.0x</button>
+
 <br><br>
+
+<span id="speedLabel"></span>
 
 スコア:
 <span id="score">0</span>
@@ -211,7 +272,11 @@ button:hover{
 <div id="judge"></div>
 
 <div id="gameArea">
+
+  <img id="mascot" src="melokoro.png">
+
   <div id="line"></div>
+
 </div>
 
 <div id="keyboard"></div>
@@ -221,9 +286,11 @@ button:hover{
 /* ================= AUDIO ================= */
 
 const synth = new Tone.Synth({
+  
   oscillator:{
     type:"triangle"
   }
+  
 }).toDestination();
 
 /* ================= STATE ================= */
@@ -241,13 +308,13 @@ let index = 0;
 let speed = 1;
 
 const noteMap = {
-  "C":"ド",
-  "D":"レ",
-  "E":"ミ",
-  "F":"ファ",
-  "G":"ソ",
-  "A":"ラ",
-  "B":"シ"
+  "C":"ど",
+  "D":"れ",
+  "E":"み",
+  "F":"ふぁ",
+  "G":"そ",
+  "A":"ら",
+  "B":"し"
 };
 
 /* ================= SETTINGS ================= */
@@ -453,8 +520,8 @@ function loop(){
 
   const now = performance.now();
 
-  const t =
-  ((now - startTime)/1000 - 5) * speed;
+const t =
+((now - startTime)/1000 - 5) * speed;
 
   /* ノーツ生成 */
 
@@ -478,7 +545,7 @@ let nearestDiff = 999;
 
 active.forEach(n=>{
 
-  const diff = Math.abs((n.hit - 0.5) - t);
+  const diff = Math.abs((n.hit - 0.15) - t);
 
   if(diff < nearestDiff){
 
@@ -620,8 +687,11 @@ function spawn(n){
 
 function hit(note){
 
-  const now =
-  ((performance.now()-startTime)/1000 - 3) * speed;
+  const t =
+((performance.now()-startTime)/1000 - 5)
+* speed;
+
+  const JUDGE_WINDOW = 0.25;
 
   let best = null;
   let bestDiff = 999;
@@ -630,72 +700,74 @@ function hit(note){
 
     if(n.note !== note) return;
 
-    const diff = Math.abs(n.hit - now);
+    const diff = n.hit - t;
 
-    if(diff < bestDiff){
+    if(diff > JUDGE_WINDOW) return;
+    if(diff < -JUDGE_WINDOW) return;
 
-      bestDiff = diff;
+    const absDiff = Math.abs(diff);
+
+    if(absDiff < bestDiff){
+      bestDiff = absDiff;
       best = n;
     }
 
   });
 
-  /* 音は必ず鳴らす */
   synth.triggerAttackRelease(note,"8n");
-
-  /* PERFECT */
 
   if(best && bestDiff < 0.15){
 
-    success(best,note);
+  success(best,note);
 
-    score += 300;
+  score += 300;
+  addScoreEffect(300);
 
-    combo++;
+  combo++;
 
-    showJudge("PERFECT");
-  }
+comboEffect();
 
-  /* GOOD */
+showJudge("PERFECT");
 
-  else if(best && bestDiff < 0.22){
+  } else if(best && bestDiff < 0.22){
 
     success(best,note);
 
     score += 100;
+    addScoreEffect(100);
 
     combo++;
 
     showJudge("GOOD");
-  }
 
-  else{
+  } else {
 
     combo = 0;
-
     showJudge("MISS");
   }
 
   update();
-
 }
 
 /* ================= SUCCESS ================= */
 
-function success(best,note){
-  best.locked = true;
+function success(best, note){
 
-  best.el.remove();
+  best.el.style.transform =
+    "translateX(-50%) scale(1.8)";
+
+  best.el.style.filter =
+    "brightness(3)";
+
+  best.el.classList.add("bubble-out");
+
+  setTimeout(()=>{
+    best.el.remove();
+  },250);
 
   active =
     active.filter(n=>n!==best);
-
-  synth.triggerAttackRelease(
-    note,
-    "8n"
-  );
 }
-
 /* ================= INPUT ================= */
 
 document.addEventListener("click",
@@ -720,21 +792,43 @@ async (e)=>{
 
 });
 
+
+
+
 /* ================= UI ================= */
 
 function update(){
-
-  document.getElementById("score")
-    .textContent = score;
-
-  document.getElementById("combo")
-    .textContent = combo;
+  document.getElementById("score").textContent = score;
+  document.getElementById("combo").textContent = combo;
 }
 
-function setSpeed(s){
-  speed = s;
+
+function addScoreEffect(value){
+
+  const el = document.getElementById("score");
+
+  el.style.transform = "scale(1.3)";
+  el.style.color = "yellow";
+
+  setTimeout(()=>{
+    el.style.transform = "scale(1)";
+    el.style.color = "gold";
+  },100);
+
 }
 
+function setSpeed(v){
+
+  speed = v;
+
+  const label =
+    v === 0.25 ? "ゆっくり" :
+    v === 0.5 ? "ふつう" :
+    "はやい";
+
+}
+  document.getElementById("speedLabel")
+    .textContent = label;
 
 /* ================= JUDGE ================= */
 
@@ -745,16 +839,43 @@ function showJudge(text){
 
   j.textContent = text;
 
+  /* ★追加 */
+  j.style.transform = "scale(1.4)";
+  j.style.opacity = "1";
+
+  if(text === "PERFECT"){
+    j.style.color = "gold";
+  }else if(text === "GOOD"){
+    j.style.color = "cyan";
+  }else{
+    j.style.color = "red";
+  }
+
   clearTimeout(j.timer);
 
   j.timer = setTimeout(()=>{
 
     j.textContent = "";
+    j.style.transform = "scale(1)";
+    j.style.opacity = "0.7";
 
   },500);
-
 }
 
+function comboEffect(){
+
+  if(combo < 5) return;
+
+  const mascot =
+    document.getElementById("mascot");
+
+  mascot.classList.remove("combo-bounce");
+
+  void mascot.offsetWidth;
+
+  mascot.classList.add("combo-bounce");
+
+}
 </script>
 
 </body>
