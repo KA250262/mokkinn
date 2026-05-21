@@ -118,6 +118,18 @@ button:hover{
     filter 0.05s;
 }
 
+.note-text{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  font-size:18px;
+  font-weight:bold;
+  color:white;
+  text-shadow:0 0 5px black;
+  pointer-events:none;
+}
+
 /* ================= KEYBOARD ================= */
 
 #keyboard{
@@ -227,6 +239,16 @@ let running = false;
 let startTime = 0;
 let index = 0;
 let speed = 1;
+
+const noteMap = {
+  "C":"ド",
+  "D":"レ",
+  "E":"ミ",
+  "F":"ファ",
+  "G":"ソ",
+  "A":"ラ",
+  "B":"シ"
+};
 
 /* ================= SETTINGS ================= */
 
@@ -576,16 +598,20 @@ function spawn(n){
     (k.left - g.left + k.width/2)
     + "px";
 
+  const text = document.createElement("div");
+  text.className = "note-text";
+  text.textContent = noteMap[n.note[0]];
+
+  el.appendChild(text);
+
   document
     .getElementById("gameArea")
     .appendChild(el);
 
   active.push({
-
     el,
     note:n.note,
     hit:n.time
-
   });
 
 }
@@ -619,7 +645,7 @@ function hit(note){
 
   /* PERFECT */
 
-  if(best && bestDiff < 0.25){
+  if(best && bestDiff < 0.15){
 
     success(best,note);
 
@@ -632,7 +658,7 @@ function hit(note){
 
   /* GOOD */
 
-  else if(best && bestDiff < 0.35){
+  else if(best && bestDiff < 0.22){
 
     success(best,note);
 
@@ -657,6 +683,7 @@ function hit(note){
 /* ================= SUCCESS ================= */
 
 function success(best,note){
+  best.locked = true;
 
   best.el.remove();
 
@@ -667,7 +694,6 @@ function success(best,note){
     note,
     "8n"
   );
-
 }
 
 /* ================= INPUT ================= */
