@@ -6,7 +6,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/pitchy@4.1.0/dist/pitchy.min.js"></script>
 <style>
 
 body{
@@ -262,10 +262,21 @@ button:hover{
 スコア:
 <span id="score">0</span>
 
-　
 
 コンボ:
 <span id="combo">0</span>
+<br><br>
+
+マイク音量:
+<span id="micVolume">0</span>
+<br><br>
+
+検出音:
+<span id="detectedNote">---</span>
+<br><br>
+
+精度:
+<span id="clarity">0</span>
 
 </div>
 
@@ -285,15 +296,18 @@ button:hover{
 
 /* ================= AUDIO ================= */
 
-const synth = new Tone.Synth({
-  
-  oscillator:{
-    type:"triangle"
+const synth = new Tone.PolySynth(
+  Tone.Synth,
+  {
+    oscillator:{
+      type:"triangle"
+    }
   }
-  
-}).toDestination();
+).toDestination();
 
 /* ================= STATE ================= */
+let mic;
+let analyser;
 
 let notes = [];
 let active = [];
@@ -404,13 +418,19 @@ window.addEventListener("load", async ()=>{
   const saved =
     localStorage.getItem("savedMidi");
 
-  if(!saved) return;
+  if(saved){
 
-  const array = JSON.parse(saved);
+    const array =
+      JSON.parse(saved);
 
-  const uint = new Uint8Array(array);
+    const uint =
+      new Uint8Array(array);
 
-  loadMidi(uint.buffer);
+    loadMidi(uint.buffer);
+
+  }
+
+  micLoop();
 
 });
 
@@ -441,11 +461,33 @@ function loadMidi(buffer){
 
 }
 
+/* ================= MIC ================= */
+
+async function startMic(){
+
+  if(mic) return; // ←これ超大事（二重防止）
+
+  mic = new Tone.UserMedia();
+
+  await mic.open(); // ★これだけでOK（getUserMedia不要）
+
+  analyser = new Tone.Analyser("waveform", 1024);
+
+  mic.connect(analyser);
+
+  console.log("マイクON");
+}
+
 /* ================= START ================= */
 
 async function startGame(){
 
   await Tone.start();
+  if(!mic){
+
+  await startMic();
+
+}
 
   if(!notes.length){
 
@@ -512,130 +554,144 @@ function stopGame(){
 
 }
 
-/* ================= LOOP ================= */
 
+
+/* ================= PITCH ================= */
+
+function freqToNote(freq){
+
+  const noteNum =
+    12 * Math.log2(freq / 440) + 69;
+
+  const rounded =
+    Math.round(noteNum);
+
+  const names = [
+    "C","C#","D","D#","E","F",
+    "F#","G","G#","A","A#","B"
+  ];
+
+  const octave =
+    Math.floor(rounded / 12) - 1;
+
+  const name =
+    names[rounded % 12];
+
+  return name + octave;
+
+}
+
+/* ================= Mic loop ================= */
+function micLoop(){
+
+  if(!analyser){
+    requestAnimationFrame(micLoop);
+    return;
+  }
+
+  const data = analyser.getValue();
+
+  let volume = 0;
+  for(let i=0;i<data.length;i++){
+    volume += Math.abs(data[i]);
+  }
+  volume /= data.length;
+
+  const [pitch, clarity] =
+    Pitchy.findPitch(data, Tone.context.sampleRate);
+
+  if(clarity > 0.45 && pitch > 50){
+
+    const note = freqToNote(pitch);
+
+    document.getElementById("detectedNote").textContent = note;
+    document.getElementById("clarity").textContent = clarity.toFixed(2);
+  }
+
+  document.getElementById("micVolume").textContent = volume.toFixed(3);
+
+  requestAnimationFrame(micLoop);
+}
+
+/* ================= loop ================= */
 function loop(){
 
   if(!running) return;
 
   const now = performance.now();
 
-const t =
-((now - startTime)/1000 - 5) * speed;
+  const t =
+    ((now - startTime)/1000 - 5) * speed;
 
   /* ノーツ生成 */
-
   while(
     index < notes.length &&
     notes[index].time <= t + travelTime
   ){
-
     spawn(notes[index]);
-
     index++;
   }
 
-  /* 今いちばん近いノーツを光らせる */
+  /* 次ノーツ表示 */
+  document.querySelectorAll(".next")
+    .forEach(x=>x.classList.remove("next"));
 
-document.querySelectorAll(".next")
-  .forEach(x=>x.classList.remove("next"));
+  let nearest = null;
+  let nearestDiff = 999;
 
-let nearest = null;
-let nearestDiff = 999;
+  active.forEach(n=>{
+    const diff = Math.abs((n.hit - 0.15) - t);
+    if(diff < nearestDiff){
+      nearestDiff = diff;
+      nearest = n;
+    }
+  });
 
-active.forEach(n=>{
-
-  const diff = Math.abs((n.hit - 0.15) - t);
-
-  if(diff < nearestDiff){
-
-    nearestDiff = diff;
-    nearest = n;
+  if(nearest){
+    const nextKey =
+      document.querySelector(`[data-note="${nearest.note}"]`);
+    if(nextKey){
+      nextKey.classList.add("next");
+    }
   }
 
-});
-
-if(nearest){
-
-  const nextKey =
-    document.querySelector(
-      `[data-note="${nearest.note}"]`
-    );
-
-  if(nextKey){
-    nextKey.classList.add("next");
-  }
-
-}
-
-  /* 更新 */
-
+  /* ノーツ更新 */
   active.forEach(n=>{
 
     const p =
       1 - ((n.hit - t)/travelTime);
 
     const y =
-      spawnY +
-      p*(hitY - spawnY);
+      spawnY + p*(hitY - spawnY);
 
     n.el.style.top = y + "px";
 
-    /* ライン近くで光る */
-
     if(Math.abs(y - hitY) < 50){
-
-      n.el.style.filter =
-        "brightness(2.2)";
-
-      n.el.style.transform =
-        "translateX(-50%) scale(1.2)";
-
+      n.el.style.filter = "brightness(2.2)";
+      n.el.style.transform = "translateX(-50%) scale(1.2)";
     }else{
-
-      n.el.style.filter =
-        "brightness(1)";
-
-      n.el.style.transform =
-        "translateX(-50%) scale(1)";
+      n.el.style.filter = "brightness(1)";
+      n.el.style.transform = "translateX(-50%) scale(1)";
     }
 
-    /* ミス */
-
+    /* MISS */
     if(p > 1.2){
-
       n.el.remove();
-
-      active =
-        active.filter(x=>x!==n);
-
+      active = active.filter(x=>x!==n);
       combo = 0;
-
       showJudge("MISS");
-
       update();
-
     }
 
   });
 
-  /* 曲終了 */
-
-  if(
-    index >= notes.length &&
-    active.length === 0
-  ){
-
+  if(index >= notes.length && active.length === 0){
     running = false;
-
-    document.getElementById("judge")
-      .textContent = "FINISH!";
-
+    document.getElementById("judge").textContent = "FINISH!";
     return;
   }
 
   requestAnimationFrame(loop);
-
 }
 
 /* ================= SPAWN ================= */
@@ -714,7 +770,7 @@ function hit(note){
 
   });
 
-  synth.triggerAttackRelease(note,"8n");
+  synth.triggerAttackRelease(note,"8n", undefined, 0.9);
 
   if(best && bestDiff < 0.15){
 
@@ -725,28 +781,30 @@ function hit(note){
 
   combo++;
 
-comboEffect();
+  comboEffect();
 
-showJudge("PERFECT");
+  showJudge("PERFECT");
 
-  } else if(best && bestDiff < 0.22){
+} else if(best && bestDiff < 0.3){
 
-    success(best,note);
+  success(best,note);
 
-    score += 100;
-    addScoreEffect(100);
+  score += 100;
+  addScoreEffect(100);
 
-    combo++;
+  combo++;
 
-    showJudge("GOOD");
+  showJudge("GOOD");
 
-  } else {
+} else {
 
-    combo = 0;
-    showJudge("MISS");
-  }
+  combo = 0;
 
-  update();
+  showJudge("MISS");
+}
+
+update();
+
 }
 
 /* ================= SUCCESS ================= */
@@ -770,7 +828,7 @@ function success(best, note){
 }
 /* ================= INPUT ================= */
 
-document.addEventListener("click",
+document.addEventListener("pointerdown",
 async (e)=>{
 
   const k =
@@ -826,9 +884,10 @@ function setSpeed(v){
     v === 0.5 ? "ふつう" :
     "はやい";
 
-}
   document.getElementById("speedLabel")
     .textContent = label;
+
+}
 
 /* ================= JUDGE ================= */
 
@@ -863,7 +922,6 @@ function showJudge(text){
 }
 
 function comboEffect(){
-
   if(combo < 5) return;
 
   const mascot =
