@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
-
 <style>
 
 body{
@@ -309,7 +308,7 @@ button:hover{
 </div>
 
 <div id="keyboard"></div>
-<script src="./pitchy.umd.js"></script>
+
 <script>
 
 /* ================= AUDIO ================= */  
@@ -333,11 +332,13 @@ let active = [];
 let score = 0;
 let combo = 0;
 
+let lastHitTime = 0;
+
 let running = false;
 
 let startTime = 0;
 let index = 0;
-let speed = 1;
+let speed = 0.5;
 
 function getTime(){
   return ((performance.now() - startTime) / 1000 - 5) * speed;
@@ -567,71 +568,48 @@ function stopGame(){
 
 
 
-/* ================= PITCH ================= */
+/* ================= micLoop ================= */
 
-function freqToNote(freq){
-
-  const noteNum =
-    12 * Math.log2(freq / 440) + 69;
-
-  const rounded =
-    Math.round(noteNum);
-
-  const names = [
-    "C","C#","D","D#","E","F",
-    "F#","G","G#","A","A#","B"
-  ];
-
-  const octave =
-    Math.floor(rounded / 12) - 1;
-
-  const name =
-    names[rounded % 12];
-
-  return name + octave;
-
-}
-
-/* ================= micLoop================= */
 function micLoop(){
-    if(!analyser){
-        requestAnimationFrame(micLoop);
-        return;
-    }
 
-    const data = analyser.getValue();
-
-    // Pitchy で pitch と clarity を計算
-    const [pitch, clarity] = Pitchy.findPitch(data, Tone.context.sampleRate);
-
-    // 音量計算
-    let volume = 0;
-    for(let i = 0; i < data.length; i++){
-        volume += Math.abs(data[i]);
-    }
-    volume /= data.length;
-
-    // デバッグ表示
-    document.getElementById("debug").innerHTML =
-        `pitch: ${pitch.toFixed(1)}<br>
-         clarity: ${clarity.toFixed(2)}<br>
-         volume: ${volume.toFixed(3)}`;
-
-    // clarity が低いと誤判定が多いので閾値を設定
-    if (clarity > 0.2 && volume > 0.01) {
-        const note = freqToNote(pitch);
-        hit(note);
-
-        document.getElementById("detectedNote").textContent = note;
-        document.getElementById("clarity").textContent = clarity.toFixed(2);
-    }
-
-    // 音量表示
-    document.getElementById("micVolume").textContent = volume.toFixed(3);
-
+  if(!analyser){
     requestAnimationFrame(micLoop);
-}
+    return;
+  }
 
+  const data = analyser.getValue();
+
+  /* 音量計算 */
+  let volume = 0;
+
+  for(let i=0;i<data.length;i++){
+    volume += Math.abs(data[i]);
+  }
+
+  volume /= data.length;
+
+  /* デバッグ表示 */
+  document.getElementById("debug").innerHTML =
+    `volume: ${volume.toFixed(3)}`;
+
+  /* 音が出た */
+  if(volume > 0.03){
+
+    const nowTime = performance.now();
+
+    if(nowTime - lastHitTime > 120){
+
+      hitNearest();
+
+      lastHitTime = nowTime;
+    }
+  }
+
+  document.getElementById("micVolume")
+    .textContent = volume.toFixed(3);
+
+  requestAnimationFrame(micLoop);
+}
 /* ================= loop ================= */
 function loop(){
 
@@ -745,6 +723,28 @@ function spawn(n){
 
 }
 
+function hitNearest(){
+
+  const t = getTime();
+
+  let best = null;
+  let bestDiff = 999;
+
+  active.forEach(n=>{
+
+    const diff = Math.abs(n.hit - t);
+
+    if(diff < bestDiff){
+      bestDiff = diff;
+      best = n;
+    }
+
+  });
+
+  if(best){
+    hit(best.note);
+  }
+}
 /* ================= HIT ================= */
 
 function hit(note){
@@ -915,6 +915,7 @@ function comboEffect(){
 }
 micLoop();
 </script>
+
 </body>
 </html>
 
