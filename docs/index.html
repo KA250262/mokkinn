@@ -341,7 +341,7 @@ let index = 0;
 let speed = 0.5;
 
 function getTime(){
-  return ((performance.now() - startTime) / 1000 - 5) * speed;
+  return (performance.now() - startTime) / 1000 - 3;
 }
 
 const noteMap = {
@@ -520,9 +520,8 @@ async function startGame(){
 
   running = true;
   index = 0;
-  startTime = performance.now();
 
-  countdown(3);
+countdown(3);
 }
 
 
@@ -536,17 +535,21 @@ function countdown(n){
   judge.textContent = n;
 
   if(n <= 0){
+  
+    startTime = performance.now();
+
+    micLoop();
 
     judge.textContent = "START!";
 
-    setTimeout(()=>{
-      judge.textContent = "";
-    },800);
+   setTimeout(()=>{
+    judge.textContent = "";
+  },800);
 
-    requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
 
-    return;
-  }
+  return;
+}
 
   setTimeout(()=>{
     countdown(n-1);
@@ -567,116 +570,63 @@ function stopGame(){
 }
 
 
-
 /* ================= micLoop ================= */
 
 function micLoop(){
 
+  if(!running) return;
+
   if(!analyser){
+
     requestAnimationFrame(micLoop);
     return;
+
   }
 
   const data = analyser.getValue();
 
-  /* 音量計算 */
+  /* ================= 音量計算 ================= */
+
   let volume = 0;
 
-  for(let i=0;i<data.length;i++){
+  for(let i = 0; i < data.length; i++){
+
     volume += Math.abs(data[i]);
+
   }
 
   volume /= data.length;
 
-  /* デバッグ表示 */
+  /* ================= デバッグ表示 ================= */
+
   document.getElementById("debug").innerHTML =
+
     `volume: ${volume.toFixed(3)}`;
 
-  /* 音が出た */
-  if(volume > 0.03){
+  document.getElementById("micVolume")
+    .textContent = volume.toFixed(3);
+
+  /* ================= 音量判定 ================= */
+
+  if(volume > 0.08){
 
     const nowTime = performance.now();
+
+    /* 連打防止 */
 
     if(nowTime - lastHitTime > 120){
 
       hitNearest();
 
       lastHitTime = nowTime;
-    }
-  }
 
-  document.getElementById("micVolume")
-    .textContent = volume.toFixed(3);
+    }
+
+  }
 
   requestAnimationFrame(micLoop);
+
 }
-/* ================= loop ================= */
-function loop(){
-
-  if(!running) return;
-
-  const now = performance.now();
-  const t = getTime();
-
-  /* ノーツ生成 */
-  while(
-    index < notes.length &&
-    notes[index].time <= t + travelTime
-  ){
-    spawn(notes[index]);
-    index++;
-  }
-
-  /* 次ノーツ表示 */
-  document.querySelectorAll(".next")
-    .forEach(x=>x.classList.remove("next"));
-
-  let nearest = null;
-  let nearestDiff = 999;
-
-  active.forEach(n=>{
-    const diff = Math.abs((n.hit - 0.15) - t);
-    if(diff < nearestDiff){
-      nearestDiff = diff;
-      nearest = n;
-    }
-  });   // ← ★ここで active.forEach の閉じ
-
-  if(nearest){
-    const nextKey =
-      document.querySelector(`[data-note="${nearest.note}"]`);
-    if(nextKey){
-      nextKey.classList.add("next");
-    }
-  }
-
-  /* ノーツ更新 */
-  active.forEach(n=>{
-    const p = 1 - ((n.hit - t)/travelTime);
-    const y = spawnY + p*(hitY - spawnY);
-
-    n.el.style.top = y + "px";
-
-    if(Math.abs(y - hitY) < 50){
-      n.el.style.filter = "brightness(2.2)";
-      n.el.style.transform = "translateX(-50%) scale(1.2)";
-    }else{
-      n.el.style.filter = "brightness(1)";
-      n.el.style.transform = "translateX(-50%) scale(1)";
-    }
-
-    /* MISS */
-    if(n.hit + 0.4 < t){
-      n.el.remove();
-      active = active.filter(x=>x!==n);
-      combo = 0;
-      showJudge("MISS");
-      update();
-    }
-  });  // ← ★ここで active.forEach の閉じ
-
-  requestAnimationFrame(loop);
-}  // ← ★ここで loop() の閉じ
 
 /* ================= SPAWN ================= */
 
@@ -716,12 +666,70 @@ function spawn(n){
     .appendChild(el);
 
   active.push({
-    el,
-    note:n.note,
-    hit:n.time
-  });
+  el,
+  note:n.note,
+  hit:n.time,
+  missed:false
+});
 
 }
+
+
+
+function loop(){
+
+  const t = getTime();
+
+  console.log(t);
+
+  if(!running) return;
+
+  while(
+    index < notes.length &&
+    notes[index].time <= t + travelTime
+  ){
+
+    spawn(notes[index]);
+    index++;
+
+  }
+
+  active.forEach(n=>{
+
+  const p =
+    1 - ((n.hit - t)/travelTime);
+
+  const y =
+    spawnY + p*(hitY - spawnY);
+
+  n.el.style.top = y + "px";
+
+  /* MISS */
+if(!n.missed && n.hit + 0.4 < t){
+
+  n.missed = true;
+
+  const hadCombo = combo > 0;
+
+  n.el.remove();
+
+  active = active.filter(x=>x!==n);
+
+  combo = 0;
+
+  if(hadCombo){
+    showJudge("MISS");
+  }
+
+  update();
+}
+
+});
+
+requestAnimationFrame(loop);
+
+}
+
 
 function hitNearest(){
 
@@ -750,7 +758,6 @@ function hitNearest(){
 function hit(note){
 
   const t = getTime();
-  console.log(note, active.map(n=>n.note));
 
   const JUDGE_WINDOW = 0.25;
 
@@ -774,6 +781,10 @@ function hit(note){
     }
 
   });
+
+
+
+
 
   synth.triggerAttackRelease(note,"8n", undefined, 0.9);
 
@@ -801,12 +812,7 @@ function hit(note){
 
   showJudge("GOOD");
 
-} else {
-
-  combo = 0;
-
-  showJudge("MISS");
-}
+} 
 
 update();
 
@@ -831,8 +837,23 @@ function success(best, note){
   active =
     active.filter(n=>n!==best);
 }
-/* ================= INPUT ================= */
+/* ================= INPUT(関数） ================= */
 
+function addScoreEffect(value){
+
+  const el =
+    document.getElementById("score");
+
+  el.style.transform = "scale(1.3)";
+  el.style.color = "yellow";
+
+  setTimeout(()=>{
+
+    el.style.transform = "scale(1)";
+    el.style.color = "gold";
+
+  },100);
+}
 
 
 /* ================= UI ================= */
