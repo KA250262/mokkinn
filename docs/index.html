@@ -2,19 +2,52 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>メロころ♪</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
 <style>
 
 body{
+  margin:0;
   background:#111;
   color:white;
   text-align:center;
   font-family:sans-serif;
-  overflow-x:hidden;
+  overflow:hidden;
+}
+
+#gameArea{
+  position: relative;
+
+  width: 95vw;
+  max-width: 1000px;
+
+  height: 700px;
+
+  margin:auto;
+
+  background:#222;
+
+  border:3px solid #555;
+  border-radius:20px;
+
+  overflow:hidden;
+}
+
+#keyboard{
+  position:absolute;
+
+  bottom:0px;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  height:180px;
+
+  z-index:10;
 }
 
 h1{
@@ -61,23 +94,14 @@ button:hover{
   margin:5px;
 }
 
-/* ================= GAME AREA ================= */
-
-#gameArea{
-  position:relative;
-  width:1000px;
-  height:520px;
-  margin:auto;
-
-  background-size:contain;
-
-  background-color:#222;
-
-  border:3px solid #555;
-  border-radius:20px;
-
-  overflow:hidden;
+#game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
+
+
 
 .combo-bounce{
   animation: comboBounce 0.5s ease;
@@ -87,72 +111,58 @@ button:hover{
   position:absolute;
 
   width:100%;
-  height:100%;
-
-  object-fit:contain;
+  height:auto;
 
   left:0;
   top:0;
 
   pointer-events:none;
+  z-index:1;
 }
 
 /* 判定ライン */
 
-#line{
-  position:absolute;
-  top:420px;
-  width:100%;
-  height:14px;
-  opacity: 0.9;
-
-  background:linear-gradient(
-    to bottom,
-    #fff176,
-    #ffd600
-  );
-
-  border-radius:20px;
-
-  box-shadow:
-    0 0 10px yellow,
-    0 0 25px orange;
-}
 
 /* ノーツ */
 
 .note{
+  
   position:absolute;
+
   width:46px;
   height:46px;
+
   border-radius:50%;
 
   background:linear-gradient(
-    135deg,
-    #ffb3d9,
-    #ff4fa3
-  );
+  135deg,
+  #7ad8ff,
+  #3aa6ff
+  
+);
 
+  border:2px solid rgba(255,255,255,0.85);
+  opacity:0.92;
   transform:translateX(-50%);
 
-  box-shadow:
-    0 0 10px hotpink;
-
-  transition:
-    transform 0.05s,
-    filter 0.05s;
+  z-index:30;
 }
 
 .note-text{
   position:absolute;
+
   top:50%;
   left:50%;
+
   transform:translate(-50%, -50%);
-  font-size:18px;
-  font-weight:bold;
+
+  font-size:20px;
+  font-weight:900;
+
   color:white;
-  text-shadow:0 0 5px black;
-  pointer-events:none;
+
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.7);
 }
 
 @keyframes comboBounce {
@@ -192,17 +202,6 @@ button:hover{
   animation: bubblePop 0.25s ease-out forwards;
 }
 
-/* ================= KEYBOARD ================= */
-
-#keyboard{
-  position:relative;
-  width:1000px;
-  height:180px;
-  margin:auto;
-  margin-top: -5px;
-  left:8px;
-}
-
 .key{
   position:absolute;
   width:50px;
@@ -234,12 +233,14 @@ button:hover{
 
 .next{
 
-  background:#7cf7ff !important;
+  background:#9ee7ff !important;
 
   box-shadow:
-    0 0 20px cyan,
-    0 0 40px cyan;
+    0 0 8px rgba(120,220,255,0.6);
 
+  transition:
+    background 0.1s,
+    box-shadow 0.1s;
 }
 
 #debug{
@@ -282,32 +283,17 @@ button:hover{
 <span id="combo">0</span>
 <br><br>
 
-マイク音量:
-<span id="micVolume">0</span>
-<div id="debug"></div>
-<br><br>
-
-
-検出音:
-<span id="detectedNote">---</span>
-<br><br>
-
-精度:
-<span id="clarity">0</span>
 
 </div>
-
 <div id="judge"></div>
 
 <div id="gameArea">
 
   <img id="mascot" src="melokoro.png">
 
-  <div id="line"></div>
+  <div id="keyboard"></div>
 
 </div>
-
-<div id="keyboard"></div>
 
 <script>
 
@@ -358,7 +344,7 @@ const noteMap = {
 
 const travelTime = 6;
 
-const hitY = 400;
+const hitY = 520;
 const spawnY = -80;
 
 /* ================= KEYBOARD ================= */
@@ -403,6 +389,7 @@ keys.forEach(n=>{
 
 });
 
+kb.style.width = x + "px";
 /* ================= MIDI LOAD ================= */
 
 document.getElementById("midiFile")
@@ -597,14 +584,6 @@ function micLoop(){
 
   volume /= data.length;
 
-  /* ================= デバッグ表示 ================= */
-
-  document.getElementById("debug").innerHTML =
-
-    `volume: ${volume.toFixed(3)}`;
-
-  document.getElementById("micVolume")
-    .textContent = volume.toFixed(3);
 
   /* ================= 音量判定 ================= */
 
@@ -625,6 +604,26 @@ function micLoop(){
   }
 
   requestAnimationFrame(micLoop);
+
+}
+
+function updateNextKey(){
+
+  document
+    .querySelectorAll(".next")
+    .forEach(k=>k.classList.remove("next"));
+
+  if(active.length === 0) return;
+
+  const next = active[0];
+
+  const key = document.querySelector(
+    `[data-note="${next.note}"]`
+  );
+
+  if(key){
+    key.classList.add("next");
+  }
 
 }
 
@@ -656,7 +655,9 @@ function spawn(n){
     + "px";
 
   const text = document.createElement("div");
+
   text.className = "note-text";
+
   text.textContent = noteMap[n.note[0]];
 
   el.appendChild(text);
@@ -666,11 +667,13 @@ function spawn(n){
     .appendChild(el);
 
   active.push({
-  el,
-  note:n.note,
-  hit:n.time,
-  missed:false
-});
+    el,
+    note:n.note,
+    hit:n.time,
+    missed:false
+  });
+
+  updateNextKey();
 
 }
 
@@ -836,8 +839,12 @@ function success(best, note){
 
   active =
     active.filter(n=>n!==best);
+    updateNextKey();
 }
 /* ================= INPUT(関数） ================= */
+
+
+
 
 function addScoreEffect(value){
 
@@ -855,7 +862,18 @@ function addScoreEffect(value){
   },100);
 }
 
+document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
 
+  const key = document.elementFromPoint(
+    e.touches[0].clientX,
+    e.touches[0].clientY
+  );
+
+  if(key && key.dataset.note){
+    hit(key.dataset.note);
+  }
+
+});
 /* ================= UI ================= */
 
 function update(){
@@ -935,6 +953,7 @@ function comboEffect(){
   mascot.classList.add("combo-bounce");
 }
 micLoop();
+
 </script>
 
 </body>
