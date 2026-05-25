@@ -2,13 +2,19 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>メロころ♪</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
 <style>
+
+html,body{
+  margin:0;
+  padding: 0;
+  height:100%;
+  overflow:hidden;
+}
 
 body{
   margin:0;
@@ -21,16 +27,12 @@ body{
 
 #gameArea{
   position: relative;
-
   width: 95vw;
   max-width: 1000px;
-
-  height: 700px;
-
+  height: 100dvh;
   margin:auto;
 
   background:#222;
-
   border:3px solid #555;
   border-radius:20px;
 
@@ -56,14 +58,11 @@ h1{
 }
 
 #ui{
-  position:absolute;
-  bottom:20px;
-
-  left:50%;
-  transform:translateX(-50%);
-
-  z-index:50;
-  text-align:center;
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
 }
 /* 判定ライン */
 
@@ -113,20 +112,16 @@ button:hover{
 }
 
 #scoreBoard{
-  position:absolute;
-
-  bottom:100px;
-
+  position: fixed;
+  top: 10px;
   left:50%;
   transform:translateX(-50%);
+  z-index:100;
 
   display:flex;
   gap:20px;
-
   font-size:24px;
   color:white;
-
-  z-index:50;
 }
 
 #combo{
@@ -136,10 +131,11 @@ button:hover{
 }
 
 #judge{
-  height:40px;
-  font-size:32px;
-  font-weight:bold;
-  margin:5px;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
 }
 
 #game {
@@ -157,14 +153,9 @@ button:hover{
 
 #mascot{
   position:absolute;
-
-  width:100%;
-  height:auto;
-
-  left:0;
   top:0;
-
-  pointer-events:none;
+  left:0;
+  width:100%;
   z-index:1;
 }
 
@@ -176,6 +167,7 @@ button:hover{
 .note{
   
   position:absolute;
+  z-index:50;
 
   width:46px;
   height:46px;
@@ -192,8 +184,7 @@ button:hover{
   border:2px solid rgba(255,255,255,0.85);
   opacity:0.92;
   transform:translateX(-50%);
-
-  z-index:30;
+ 
 }
 
 .note-text{
@@ -346,34 +337,25 @@ button:hover{
 <body>
 
 <div id="ui">
-<button onclick="setSpeed(0.25)">ゆっくり</button>
-<button onclick="setSpeed(0.5)">ふつう</button>
-<button onclick="setSpeed(0.75)">はやい</button>
+  <button onclick="setSpeed(0.25)">ゆっくり</button>
+  <button onclick="setSpeed(0.5)">ふつう</button>
+  <button onclick="setSpeed(0.75)">はやい</button>
 
-<input type="file" id="midiFile">
+  <input type="file" id="midiFile">
 
-<button onclick="startGame()">再生</button>
+  <button onclick="startGame()">再生</button>
+  <button onclick="stopGame()">停止</button>
 
-<button onclick="stopGame()">停止</button>
+  <br><br>
 
-<br><br>
-
-<span id="speedLabel"></span>
+  <span id="speedLabel"></span>
 </div>
-
-<div id="scoreBoard">
-  <div id="score">0</div>
-  <div id="combo">0</div>
-</div>
-<br><br>
-
-
-</div>
-<div id="judge"></div>
 
 <div id="gameArea">
 
   <img id="mascot" src="melokoro.png">
+
+  <div id="judge"></div>
 
   <div id="judgeLine"></div>
 
@@ -382,7 +364,6 @@ button:hover{
 </div>
 
 <script>
-
 /* ================= AUDIO ================= */  
 
 const synth = new Tone.PolySynth(
@@ -400,9 +381,6 @@ let analyser;
 
 let notes = [];
 let active = [];
-
-let score = 0;
-let combo = 0;
 
 let lastHitTime = 0;
 
@@ -596,7 +574,6 @@ async function startGame(){
   stopGame();
   score = 0;
   combo = 0;
-  update();
 
   running = true;
   index = 0;
@@ -827,11 +804,6 @@ if(!n.missed && n.hit + 0.4 < t){
 
   combo = 0;
 
-  if(hadCombo){
-    showJudge("MISS");
-  }
-
-  update();
 }
 
 });
@@ -888,14 +860,8 @@ function hitNearest(){
 
   hitFlash();
 
-  score += add;
-  combo++;
-
-  addScoreEffect(add);
-
   showJudge(judge);
 
-  update();
 }
 /* ================= HIT ================= */
 
@@ -933,11 +899,6 @@ function hit(note){
 
   success(best,note);
 
-  score += 300;
-  addScoreEffect(300);
-
-  combo++;
-
   hitFlash();
   showJudge("PERFECT");
 
@@ -945,17 +906,11 @@ function hit(note){
 
   success(best,note);
 
-  score += 100;
-  addScoreEffect(100);
-
-  combo++;
-
   hitFlash();
   showJudge("GOOD");
 
-} 
+}
 
-update();
 
 }
 
@@ -1038,25 +993,6 @@ document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
 });
 /* ================= UI ================= */
 
-function update(){
-
-  const scoreEl =
-    document.getElementById("score");
-
-  const comboEl =
-    document.getElementById("combo");
-
-  scoreEl.textContent = score;
-  comboEl.textContent = combo;
-
-  comboEl.style.transform = "scale(1.2)";
-
-  setTimeout(()=>{
-    comboEl.style.transform = "scale(1)";
-  },80);
-
-}
-
 function setSpeed(v){
 
   speed = v;
@@ -1075,31 +1011,33 @@ function setSpeed(v){
 
 function showJudge(text){
 
-  const j =
-    document.getElementById("judge");
+  const j = document.getElementById("judge");
 
-  j.textContent = text;
-
-  /* ★追加 */
-  j.style.transform = "scale(1.4)";
-  j.style.opacity = "1";
+  let label = text;
 
   if(text === "PERFECT"){
+    label = "ばっちり";
     j.style.color = "gold";
   }else if(text === "GOOD"){
+    label = "イイね";
     j.style.color = "cyan";
-  }else{
-    j.style.color = "red";
+  }else if(text === "MISS"){
+    label = ""; // MISSも出さない
   }
+
+  if(!label) return;
+
+  j.textContent = label;
+
+  j.style.transform = "scale(1.4)";
+  j.style.opacity = "1";
 
   clearTimeout(j.timer);
 
   j.timer = setTimeout(()=>{
-
     j.textContent = "";
     j.style.transform = "scale(1)";
     j.style.opacity = "0.7";
-
   },500);
 }
 
