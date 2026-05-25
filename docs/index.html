@@ -39,8 +39,8 @@ body{
 
 #keyboard{
   position:absolute;
+  bottom:160px;
 
-  bottom:50px;
 
   left:50%;
   transform:translateX(-50%);
@@ -56,10 +56,15 @@ h1{
 }
 
 #ui{
-  margin:10px;
-  font-size:20px;
-}
+  position:absolute;
+  bottom:20px;
 
+  left:50%;
+  transform:translateX(-50%);
+
+  z-index:50;
+  text-align:center;
+}
 /* 判定ライン */
 
 #judgeLine{
@@ -105,6 +110,23 @@ button:hover{
   color:gold;
   display:inline-block;
   transition:0.1s;
+}
+
+#scoreBoard{
+  position:absolute;
+
+  bottom:100px;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  display:flex;
+  gap:20px;
+
+  font-size:24px;
+  color:white;
+
+  z-index:50;
 }
 
 #combo{
@@ -323,8 +345,6 @@ button:hover{
 </head>
 <body>
 
-<h1>メロころ♪</h1>
-
 <div id="ui">
 <button onclick="setSpeed(0.25)">ゆっくり</button>
 <button onclick="setSpeed(0.5)">ふつう</button>
@@ -339,13 +359,12 @@ button:hover{
 <br><br>
 
 <span id="speedLabel"></span>
+</div>
 
-スコア:
-<span id="score">0</span>
-
-
-コンボ:
-<span id="combo">0</span>
+<div id="scoreBoard">
+  <div id="score">0</div>
+  <div id="combo">0</div>
+</div>
 <br><br>
 
 
@@ -559,8 +578,11 @@ function loadMidi(buffer){
 /* ================= START ================= */
 
 async function startGame(){
+
   await Tone.start();
-  console.log("音声OK");
+
+  console.log("audio start");
+
 
   if(!mic){
     await startMic();
