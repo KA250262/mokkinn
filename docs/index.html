@@ -60,13 +60,23 @@ h1{
 #ui{
   position: fixed;
   bottom: 40px;
-  left: 50%;
+
+  left: 42%;
+
   transform: translateX(-50%);
   z-index: 100;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
 }
+
+
 /* 判定ライン */
 
 #judgeLine{
+  display: none;
   position:absolute;
 
   left:0;
@@ -91,6 +101,7 @@ h1{
 
   pointer-events:none;
 }
+
 button{
   font-size:18px;
   padding:8px 18px;
@@ -104,6 +115,22 @@ button{
 button:hover{
   transform:scale(1.05);
 }
+
+
+.playButtons{
+  display:flex;
+  gap:10px;
+
+  margin-left:80px;
+}
+.playArea{
+  display:flex;
+  gap:10px;
+
+  position:relative;
+  left:120px;
+}
+
 
 #score{
   color:gold;
@@ -131,11 +158,19 @@ button:hover{
 }
 
 #judge{
-  position: fixed;
-  top: 10px;
+  display:none;
+  top: 35vh;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 200;
+  z-index: 50;
+
+  font-size: 48px;
+  font-weight: 900;
+  color: white;
+
+  text-shadow:
+    0 3px 0 black,
+    0 0 12px rgba(255,255,255,0.6);
 }
 
 #game {
@@ -236,7 +271,19 @@ button:hover{
     opacity:0;
   }
 
+
+
 }
+
+/* ================= ANIMATION ================= */
+
+@keyframes popTalk {
+  0% { transform: translateX(-50%) scale(0.8); opacity:0; }
+  50% { transform: translateX(-50%) scale(1.2); }
+  100% { transform: translateX(-50%) scale(1); opacity:1; }
+}
+
+
 .bubble-out {
   animation: bubblePop 0.25s ease-out forwards;
 }
@@ -332,23 +379,92 @@ button:hover{
   border-radius: 8px;
   color: white;
 }
+
+#ui{
+  position: fixed;
+
+  bottom: 40px;
+
+  left: 46%;
+
+  transform: translateX(-50%);
+
+  z-index: 100;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  gap:12px;
+}
+
+.controls{
+  display:flex;
+  align-items:center;
+
+  gap:10px;
+
+  flex-wrap:nowrap;
+
+  justify-content:flex-start;
+
+  margin-left:-80px;
+}
+
+#judgeMini{
+  width:220px;
+
+  text-align:center;
+
+  font-size:32px;
+  font-weight:900;
+
+  color:white;
+
+  pointer-events:none;
+
+  text-shadow:
+    0 2px 0 black,
+    0 0 10px rgba(255,255,255,0.5);
+}
+
+.fileArea{
+  font-size:14px;
+}
+
+#midiFile{
+  color:white;
+  font-size:14px;
+}
+
 </style>
+
 </head>
 <body>
 
 <div id="ui">
+
+  <div class="controls">
+
   <button onclick="setSpeed(0.25)">ゆっくり</button>
   <button onclick="setSpeed(0.5)">ふつう</button>
   <button onclick="setSpeed(0.75)">はやい</button>
 
-  <input type="file" id="midiFile">
+  <div id="judgeMini"></div>
 
-  <button onclick="startGame()">再生</button>
-  <button onclick="stopGame()">停止</button>
+  <div class="playArea">
+    <button onclick="startGame()">再生</button>
+    <button onclick="stopGame()">停止</button>
+  </div>
 
-  <br><br>
+</div>
 
-  <span id="speedLabel"></span>
+  <div class="fileArea">
+    <input type="file" id="midiFile">
+  </div>
+
+  <div id="speedLabel"></div>
+
 </div>
 
 <div id="gameArea">
@@ -364,6 +480,7 @@ button:hover{
 </div>
 
 <script>
+
 /* ================= AUDIO ================= */  
 
 const synth = new Tone.PolySynth(
@@ -1011,34 +1128,31 @@ function setSpeed(v){
 
 function showJudge(text){
 
-  const j = document.getElementById("judge");
+  const j = document.getElementById("judgeMini");
 
-  let label = text;
+  let msg = "";
 
   if(text === "PERFECT"){
-    label = "ばっちり";
-    j.style.color = "gold";
+    msg = " ばっちり！";
+    j.style.color = "#ffd54a";
   }else if(text === "GOOD"){
-    label = "イイね";
-    j.style.color = "cyan";
-  }else if(text === "MISS"){
-    label = ""; // MISSも出さない
+    msg = " イイね！";
+    j.style.color = "#4dd0e1";
+  }else{
+    return;
   }
 
-  if(!label) return;
+  j.textContent = msg;
 
-  j.textContent = label;
-
-  j.style.transform = "scale(1.4)";
-  j.style.opacity = "1";
+  j.classList.remove("pop");
+  void j.offsetWidth;
+  j.classList.add("pop");
 
   clearTimeout(j.timer);
 
   j.timer = setTimeout(()=>{
     j.textContent = "";
-    j.style.transform = "scale(1)";
-    j.style.opacity = "0.7";
-  },500);
+  },600);
 }
 
 function comboEffect(){
