@@ -181,11 +181,17 @@ button:hover{
 }
 
 #mascot{
-  position:absolute;
-  top:0;
-  left:0;
   width:100%;
-  z-index:1;
+  height:100%;
+  object-fit:cover;
+}
+
+@media (orientation: landscape){
+
+  #gameArea{
+    height:75dvh;
+  }
+
 }
 
 /* 判定ライン */
@@ -412,6 +418,14 @@ button:hover{
 #midiFile{
   color:white;
   font-size:14px;
+}
+
+@media (orientation: landscape){
+
+  #gameArea{
+    height: 75dvh;
+  }
+
 }
 
 </style>
