@@ -29,7 +29,7 @@ body{
   position: relative;
   width: 95vw;
   max-width: 1000px;
-  height: 50dvh;
+  height: 42dvh;
   margin:auto;
   background:#222;
   border:3px solid #555;
@@ -39,14 +39,14 @@ body{
 }
 
 #keyboard{
-  position:absolute;
-  bottom:0px;
+  position:relative;
 
-
-  left:50%;
-  transform:translateX(-50%);
+  margin:auto;
 
   height:180px;
+
+  left:auto;
+  transform:none;
 
   z-index:10;
 }
@@ -419,6 +419,18 @@ button:hover{
 </head>
 <body>
 
+<div id="gameArea">
+
+  <img id="mascot" src="melokoro.png">
+
+  <div id="judge"></div>
+
+  <div id="judgeLine"></div>
+
+</div>
+
+<div id="keyboard"></div>
+
 <div id="ui">
 
   <div class="controls">
@@ -441,18 +453,6 @@ button:hover{
   </div>
 
   <div id="speedLabel"></div>
-
-</div>
-
-<div id="gameArea">
-
-  <img id="mascot" src="melokoro.png">
-
-  <div id="judge"></div>
-
-  <div id="judgeLine"></div>
-
-  <div id="keyboard"></div>
 
 </div>
 
