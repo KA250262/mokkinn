@@ -110,6 +110,12 @@ button:hover{
   transform:scale(1.05);
 }
 
+.selected-speed{
+  background:#ffd54a !important;
+  color:#111 !important;
+  transform:scale(1.05);
+  box-shadow:0 0 10px rgba(255,213,74,0.7);
+}
 
 .playButtons{
   display:flex;
@@ -494,6 +500,7 @@ button:hover{
   <button onclick="setSpeed(0.75)">はやい</button>
 
   <div id="judgeMini"></div>
+  <select id="songSelect"></select>
 
   <div class="playArea">
     <button onclick="startGame()">再生</button>
@@ -501,10 +508,6 @@ button:hover{
   </div>
 
 </div>
-
-  <div class="fileArea">
-    <input type="file" id="midiFile">
-  </div>
 
   <div id="speedLabel"></div>
 
@@ -606,34 +609,6 @@ keys.forEach(n=>{
 kb.style.width = x + "px";
 /* ================= MIDI LOAD ================= */
 
-document.getElementById("midiFile")
-.addEventListener("change", async (e)=>{
-
-  try{
-
-    const file = e.target.files[0];
-
-    const buf = await file.arrayBuffer();
-
-    /* 保存 */
-    const array =
-      Array.from(new Uint8Array(buf));
-
-    localStorage.setItem(
-      "savedMidi",
-      JSON.stringify(array)
-    );
-
-    loadMidi(buf);
-
-  }catch(err){
-
-    console.error(err);
-
-    alert("MIDI読み込み失敗");
-  }
-
-});
 
 /* ================= AUTO LOAD ================= */
 
@@ -1050,7 +1025,9 @@ function hit(note){
   hitFlash();
   showJudge("PERFECT");
 
-} else if(best && bestDiff < 0.6){
+} 
+
+  else if(best && bestDiff < 0.6){
 
   success(best,note);
 
@@ -1145,13 +1122,19 @@ function setSpeed(v){
 
   speed = v;
 
-  const label =
-    v === 0.25 ? "ゆっくり" :
-    v === 0.5 ? "ふつう" :
-    "はやい";
+  const buttons = document.querySelectorAll(".controls button");
 
-  document.getElementById("speedLabel")
-    .textContent = label;
+  buttons.forEach(b => b.classList.remove("selected-speed"));
+
+  if(v === 0.25){
+    buttons[0].classList.add("selected-speed");
+  } 
+  else if(v === 0.5){
+    buttons[1].classList.add("selected-speed");
+  } 
+  else if(v === 0.75){
+    buttons[2].classList.add("selected-speed");
+  }
 
 }
 
@@ -1166,10 +1149,14 @@ function showJudge(text){
   if(text === "PERFECT"){
     msg = " ばっちり！";
     j.style.color = "#ffd54a";
-  }else if(text === "GOOD"){
+  }
+  
+  else if(text === "GOOD"){
     msg = " イイね！";
     j.style.color = "#4dd0e1";
-  }else{
+  }
+  
+  else{
     return;
   }
 
@@ -1186,6 +1173,69 @@ function showJudge(text){
   },600);
 }
 
+const songList = [
+
+  {
+    title:"きらきら星",
+    file:"songs/twinkle.mid"
+  },
+
+  {
+    title:"ねこソング",
+    file:"songs/neko.mid"
+  },
+
+  {
+    title:"テスト",
+    file:"songs/test.mid"
+  }
+
+];
+
+const select =
+  document.getElementById("songSelect");
+
+songList.forEach((s,i)=>{
+
+  const option =
+    document.createElement("option");
+
+  option.value = i;
+  option.textContent = s.title;
+
+  select.appendChild(option);
+
+});
+
+select.addEventListener("change", async ()=>{
+
+  const song =
+    songList[select.value];
+
+  const res =
+    await fetch(song.file);
+
+  const buf =
+    await res.arrayBuffer();
+
+  loadMidi(buf);
+
+});
+
+window.addEventListener("load", async ()=>{
+
+  const first = songList[0];
+
+  const res =
+    await fetch(first.file);
+
+  const buf =
+    await res.arrayBuffer();
+
+  loadMidi(buf);
+
+});
+
 function comboEffect(){
 
   const mascot =
@@ -1197,6 +1247,7 @@ function comboEffect(){
 
   mascot.classList.add("combo-bounce");
 }
+
 micLoop();
 
 </script>
