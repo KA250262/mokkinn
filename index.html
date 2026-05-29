@@ -231,27 +231,25 @@ button:hover{
 
 .key{
   position:absolute;
-  width:50px;
-  height:180px;
-
+  width:28px;
+  height:140px;
   background:white;
   border:1px solid #333;
-
-  border-radius:0 0 8px 8px;
+  border-radius:0 0 6px 6px;
 }
 
 .black{
   position:absolute;
 
-  width:34px;
-  height:110px;
+  width:18px;
+  height:85px;
 
   background:#222;
   border:2px solid white;
 
-  border-radius:0 0 6px 6px;
+  border-radius:0 0 4px 4px;
 
-  z-index:10;
+  z-index:20;
 }
 
 .hit{
@@ -343,12 +341,13 @@ button:hover{
 
 <span id="speedLabel"></span>
 
-スコア:
-<span id="score">0</span>
+HIT:
+<span id="hitCount">0</span>
 
+/
 
-コンボ:
-<span id="combo">0</span>
+<span id="totalCount">0</span>
+
 <br><br>
 
 
@@ -374,6 +373,7 @@ button:hover{
 <script>
 let prevRMS = 0;
 let baseline = 0;
+let prevSpectrum = [];
 let lastHitDetect = 0;
 
 async function startMic() {
@@ -397,16 +397,13 @@ async function startMic() {
 
       bufferSize: 512,
 
-      featureExtractors: [
-        "rms",
-        "amplitudeSpectrum"
-      ],
+     featureExtractors: [
+     "rms",
+     "amplitudeSpectrum",
+     "spectralCentroid"
+    ],
 
 callback: (features) => {
-
-  if(!features) return;
-
-  if(typeof features.rms !== "number") return;
 
   const currentRMS =
     features.rms || 0;
@@ -414,77 +411,80 @@ callback: (features) => {
   const spectrum =
     features.amplitudeSpectrum || [];
 
-    const centroid =
-  features.spectralCentroid;
+  const centroid =
+    features.spectralCentroid || 0;
 
-  let prevSpectrum = [];
- let flux = 0;
-
-if(prevSpectrum.length === spectrum.length){
-
-  for(let i = 0; i < spectrum.length; i++){
-    flux += Math.abs(spectrum[i] - prevSpectrum[i]);
-  }
-
-}
-
-console.log("centroid:", centroid);
-
-prevSpectrum = spectrum;
-  let max = -9999;
-  let maxIndex = 0;
-
-  for(let i = 0; i < spectrum.length; i++){
-
-    if(
-
-      typeof spectrum[i] === "number" &&
-
-      spectrum[i] > max
-
-    ){
-
-      max = spectrum[i];
-      maxIndex = i;
-
-    }
-
-  }
+  /* ================= baseline ================= */
 
   baseline =
     baseline * 0.95 +
     currentRMS * 0.05;
 
+  /* ================= flux ================= */
+
+  let flux = 0;
+
+  if(prevSpectrum.length === spectrum.length){
+
+    for(let i = 0; i < spectrum.length; i++){
+
+      flux += Math.abs(
+        spectrum[i] - prevSpectrum[i]
+      );
+
+    }
+
+  }
+
+  prevSpectrum = [...spectrum];
+
+  /* ================= delta ================= */
+
   const delta =
     currentRMS - prevRMS;
 
+  const now =
+    performance.now();
+
+  /* ================= DEBUG ================= */
+
   document.getElementById("debug")
-  .textContent =
+    .textContent =
 
-    "RMS : "
-    + currentRMS.toFixed(3)
+      "RMS : "
+      + currentRMS.toFixed(3)
 
-    + " / Δ : "
-    + delta.toFixed(3)
+      + " / Δ : "
+      + delta.toFixed(3)
 
-    + " / base : "
-    + baseline.toFixed(3)
+      + " / base : "
+      + baseline.toFixed(3)
 
-    + " / peak : "
-    + maxIndex;
+      + " / flux : "
+      + flux.toFixed(3)
 
-  const now = performance.now();
+      + " / centroid : "
+      + centroid.toFixed(0);
+
+  /* ================= HIT DETECT ================= */
+
+  const attackMode =
+
+  currentRMS > 0.01 &&
+
+  currentRMS > baseline * 1.5 &&
+
+  (
+    flux > 0.08 ||
+    delta > baseline * 0.8
+  );
 
 if(
-  (
-    currentRMS > baseline * 1.3 &&
-    (flux > 0.05 || delta > baseline * 0.5)
-  ) ||
 
-  (
-    currentRMS > baseline * 2.0 &&
-    centroid > 200
-  )
+  attackMode &&
+
+  now - lastHitDetect > 120
+
 ){
 
   console.log("押された！");
@@ -494,17 +494,17 @@ if(
   lastHitDetect = now;
 
 }
+  /* ================= SAVE ================= */
 
-prevRMS = currentRMS;
+  prevRMS = currentRMS;
 
-}   // ← callback end
+}   // callback end
 
-}); // ← Meyda analyzer end
+}); // Meyda analyzer end
 
 analyzer.start();
 
-}
-
+} // startMic end
 /* ================= AUDIO ================= */  
 
 const synth = new Tone.PolySynth(
@@ -523,8 +523,8 @@ let analyser;
 let notes = [];
 let active = [];
 
-let score = 0;
-let combo = 0;
+let hitCount = 0;
+let totalCount = 0;
 
 let lastHitTime = 0;
 
@@ -560,18 +560,18 @@ const spawnY = -80;
 /* ================= KEYBOARD ================= */
 
 const keys = [
-
+"C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2",
+"C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3",
 "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
-
 "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
-
-"C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6"
-
+"C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6"
 ];
 
 const kb = document.getElementById("keyboard");
 
-let x = 0;
+kb.innerHTML = "";
+
+let whiteIndex = 0;
 
 keys.forEach(n=>{
 
@@ -579,27 +579,29 @@ keys.forEach(n=>{
 
   k.dataset.note = n;
 
-  k.className =
-    n.includes("#")
-    ? "black"
-    : "key";
+  const isBlack = n.includes("#");
 
-  if(!n.includes("#")){
+  k.className = isBlack ? "black" : "key";
 
-    k.style.left = x + "px";
+  if(isBlack){
 
-    x += 50;
+    k.style.left =
+      (whiteIndex * 28 - 9) + "px";
 
   }else{
 
-    k.style.left = (x - 20) + "px";
+    k.style.left =
+      (whiteIndex * 28) + "px";
+
+    whiteIndex++;
   }
 
   kb.appendChild(k);
 
 });
 
-kb.style.width = x + "px";
+kb.style.width =
+  (whiteIndex * 28) + "px";
 /* ================= MIDI LOAD ================= */
 
 document.getElementById("midiFile")
@@ -695,6 +697,10 @@ function loadMidi(buffer){
 
   console.log("MIDI OK:", notes.length);
 
+  totalCount = notes.length;
+
+  document.getElementById("totalCount")
+  .textContent = totalCount;
 }
 
 /* ================= START ================= */
@@ -994,14 +1000,11 @@ function hitNearest(){
 
   hitFlash();
 
-  score += add;
-  combo++;
+  hitCount++;
 
-  addScoreEffect(add);
+document.getElementById("hitCount")
+  .textContent = hitCount;
 
-  showJudge(judge);
-
-  update();
 }
 /* ================= HIT ================= */
 
@@ -1088,26 +1091,20 @@ function hitFlash(){
 }
 /* ================= SUCCESS ================= */
 
-function success(best, note){
+function success(best){
 
-  best.el.style.transform =
-    "translateX(-50%) scale(1.8)";
-
-  best.el.style.filter =
-    "brightness(3)";
-
-  best.el.classList.add("bubble-out");
-
-best.el.style.top =
-  (parseFloat(best.el.style.top) + 60) + "px";
-
-setTimeout(()=>{
   best.el.remove();
-},250);
 
   active =
     active.filter(n=>n!==best);
-    updateNextKey();
+
+  hitCount++;
+
+  document.getElementById("hitCount")
+    .textContent = hitCount;
+
+  updateNextKey();
+
 }
 /* ================= INPUT(関数） ================= */
 
@@ -1146,20 +1143,11 @@ document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
 
 function update(){
 
-  const scoreEl =
-    document.getElementById("score");
+  document.getElementById("hitCount")
+    .textContent = hitCount;
 
-  const comboEl =
-    document.getElementById("combo");
-
-  scoreEl.textContent = score;
-  comboEl.textContent = combo;
-
-  comboEl.style.transform = "scale(1.2)";
-
-  setTimeout(()=>{
-    comboEl.style.transform = "scale(1)";
-  },80);
+  document.getElementById("totalCount")
+    .textContent = totalCount;
 
 }
 
