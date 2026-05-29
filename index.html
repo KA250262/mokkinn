@@ -539,6 +539,13 @@ const synth = new Tone.PolySynth(
   }
 ).toDestination();
 
+/* ===== 設定系（ここ） ===== */
+const songConfig = {
+  "song.mid": { split: 60 },
+  "55.mid": { split: 69 },
+  "song3.mid": { split: 65 }
+};
+
 /* ================= STATE ================= */
 let mic;
 let analyser;
@@ -627,30 +634,26 @@ kb.style.width =
 /* ================= MIDI LOAD ================= */
 
 document.getElementById("midiFile")
-.addEventListener("change", async (e)=>{
+.addEventListener("change", async (e) => {
 
-  try{
+  try {
 
     const file = e.target.files[0];
 
+    if (!file) {
+      console.log("ファイルが選ばれていません");
+      return;
+    }
+
     const buf = await file.arrayBuffer();
 
-    /* 保存 */
-    const array =
-      Array.from(new Uint8Array(buf));
+    loadMidi(buf, file.name);
 
-    localStorage.setItem(
-      "savedMidi",
-      JSON.stringify(array)
-    );
-
-    loadMidi(buf);
-
-  }catch(err){
+  } catch (err) {
 
     console.error(err);
-
     alert("MIDI読み込み失敗");
+
   }
 
 });
@@ -676,25 +679,68 @@ window.addEventListener("load", async ()=>{
 });
 
 /* ================= MIDI PARSE ================= */
-
-function loadMidi(buffer){
+function loadMidi(buffer, fileName){
 
   const midi = new Midi(buffer);
 
   notes = [];
 
-  midi.tracks.forEach(t=>{
+  // 🎯 曲ごとのスプリット適用（なければ60）
+  splitNote = songConfig[fileName]?.split ?? 60;
 
-    t.notes.forEach(n=>{
+  midi.tracks.forEach(t => {
+
+    t.notes.forEach(n => {
+
+      const midiNum = n.midi;
 
       notes.push({
-        time:n.time,
-        note:n.name
+        time: n.time,
+        note: n.name,
+        midi: midiNum,
+        hand: midiNum < splitNote ? "left" : "right"
       });
 
     });
 
   });
+
+  // 時間順ソート
+  notes.sort((a, b) => a.time - b.time);
+
+  // 和音グループ
+  let chordId = 0;
+
+  for (let i = 0; i < notes.length; i++) {
+
+    if (i > 0) {
+      const gap = notes[i].time - notes[i - 1].time;
+
+      if (gap > 0.03) {
+        chordId++;
+      }
+    }
+
+    notes[i].chordId = chordId;
+  }
+
+  console.log("MIDI OK:", notes.length);
+  console.log("splitNote:", splitNote);
+
+  totalCount = notes.length;
+
+  document.getElementById("totalCount").textContent = totalCount;
+}
+
+function getNoteColor(note){
+
+  if(note.hand === "left"){
+    return "#4aa3ff"; // 青系
+  }
+
+  return "#ff4a4a";   // 赤系（右手）
+}
+
 
   notes.sort((a,b)=>a.time-b.time);
 
@@ -705,8 +751,7 @@ function loadMidi(buffer){
 
     if(i > 0){
 
-      const gap =
-        notes[i].time - notes[i-1].time;
+      const gap = notes[i].time - notes[i-1].time;
 
       if(gap > 0.03){
         chordId++;
@@ -723,7 +768,6 @@ function loadMidi(buffer){
 
   document.getElementById("totalCount")
   .textContent = totalCount;
-}
 
 /* ================= START ================= */
 
@@ -868,7 +912,6 @@ function updateNextKey(){
 }
 
 /* ================= SPAWN ================= */
-
 function spawn(n){
 
   const key =
@@ -890,8 +933,11 @@ function spawn(n){
 
   el.className = "note";
 
+  // 🎨 ここで色を付ける（正解ポイント）
+  el.style.background = getNoteColor(n);
+
   el.style.left =
-    (k.left - g.left + k.width/2)
+    (k.left - g.left + k.width / 2)
     + "px";
 
   const text = document.createElement("div");
@@ -907,14 +953,15 @@ function spawn(n){
     .appendChild(el);
 
   active.push({
-  el,
-  note:n.note,
-  hit:n.time,
-  chordId:n.chordId,
-  missed:false
-});
-  updateNextKey();
+    el,
+    note: n.note,
+    hit: n.time,
+    chordId: n.chordId,
+    missed: false,
+    hand: n.hand
+  });
 
+  updateNextKey();
 }
 
 
@@ -1154,8 +1201,8 @@ function update(){
 }
 
 function setSpeed(v){
+  console.log("speed:", v);
 
-  speed = v;
 
   const label =
     v === 0.25 ? "ゆっくり" :
