@@ -13,6 +13,7 @@
 
 body{
   margin:0;
+  padding:0;
   background:#111;
   color:white;
   text-align:center;
@@ -22,33 +23,27 @@ body{
 
 #gameArea{
   position: relative;
-
   width: 95vw;
   max-width: 1000px;
-
-  height: 700px;
-
-  margin:auto;
-
+  height: 88vh;
+  margin:0 auto;
   background:#222;
-
   border:3px solid #555;
   border-radius:20px;
-
   overflow:hidden;
 }
 
 #keyboard{
   position:absolute;
 
-  bottom:50px;
-
   left:50%;
+  top: 400px;
+
   transform:translateX(-50%);
 
   height:180px;
 
-  z-index:10;
+  z-index:3;
 }
 
 h1{
@@ -57,22 +52,58 @@ h1{
 }
 
 #ui{
-  margin:10px;
-  font-size:20px;
+
+  position:absolute;
+
+  top:200px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  z-index:100;
+
+  display:flex;
+
+  gap:10px;
+
+  align-items:center;
+
+  background:
+    rgba(255,255,255,0.15);
+
+  backdrop-filter: blur(6px);
+
+  padding:10px 16px;
+
+  border-radius:20px;
+}
+
+#hitUI{
+
+  position:absolute;
+
+  top:20px;
+  right:20px;
+
+  z-index:200;
+
+  font-size:28px;
+  font-weight:bold;
+
+  color:white;
+
+  text-shadow:
+    0 0 6px black;
 }
 
 /* 判定ライン */
 
 #judgeLine{
   position:absolute;
-
   left:0;
   width:100%;
-
   top:460px;
-
   height:4px;
-
   background:
     linear-gradient(
       to right,
@@ -83,11 +114,10 @@ h1{
 
   box-shadow:
     0 0 10px rgba(180,220,255,0.35);
-
   z-index:5;
-
   pointer-events:none;
 }
+
 button{
   font-size:18px;
   padding:8px 18px;
@@ -128,30 +158,30 @@ button:hover{
   overflow: hidden;
 }
 
-
-
 .combo-bounce{
   animation: comboBounce 0.5s ease;
 }
 
 #mascot{
+
   position:absolute;
 
   width:100%;
-  height:auto;
+  height:70%;
 
   left:0;
   top:0;
 
+  object-fit:contain;
+
+  object-position:top;
+
   pointer-events:none;
+
   z-index:1;
 }
-
 /* 判定ライン */
-
-
 /* ノーツ */
-
 .note{
   
   position:absolute;
@@ -172,7 +202,7 @@ button:hover{
   opacity:0.92;
   transform:translateX(-50%);
 
-  z-index:30;
+  z-index:100;
 }
 
 .note-text{
@@ -187,9 +217,11 @@ button:hover{
   font-weight:900;
 
   color:white;
-
+ 
   text-shadow:
     0 1px 2px rgba(0,0,0,0.7);
+
+ z-index:101;
 }
 
 @keyframes comboBounce {
@@ -232,7 +264,7 @@ button:hover{
 .key{
   position:absolute;
   width:28px;
-  height:140px;
+  height:120px;
   background:white;
   border:1px solid #333;
   border-radius:0 0 6px 6px;
@@ -240,15 +272,11 @@ button:hover{
 
 .black{
   position:absolute;
-
   width:18px;
-  height:85px;
-
+  height:75px;
   background:#222;
   border:2px solid white;
-
   border-radius:0 0 4px 4px;
-
   z-index:20;
 }
 
@@ -324,9 +352,20 @@ button:hover{
 </head>
 <body>
 
-<h1>メロころ♪</h1>
+<div id="judge"></div>
 
-<div id="ui">
+<div id="gameArea">
+
+  <img id="mascot" src="melokoro.png">
+  <div id="hitUI">
+
+  HIT:
+  <span id="hitCount">0</span>
+  /
+  <span id="totalCount">0</span>
+
+</div>
+  <div id="ui">
 <button onclick="setSpeed(0.25)">ゆっくり</button>
 <button onclick="setSpeed(0.5)">ふつう</button>
 <button onclick="setSpeed(0.75)">はやい</button>
@@ -336,33 +375,18 @@ button:hover{
 <button onclick="startGame()">再生</button>
 
 <button onclick="stopGame()">停止</button>
-
+</div>
 <br><br>
 
 <span id="speedLabel"></span>
 
-HIT:
-<span id="hitCount">0</span>
-
-/
-
-<span id="totalCount">0</span>
-
 <br><br>
-
-
-</div>
-<div id="judge"></div>
-
-<div id="gameArea">
-
-  <img id="mascot" src="melokoro.png">
 
   <div id="judgeLine"></div>
 
   <div id="keyboard"></div>
 
-</div>
+
 
 <button onclick="startMic()">
 マイク開始
@@ -470,13 +494,13 @@ callback: (features) => {
 
   const attackMode =
 
-  currentRMS > 0.01 &&
+  currentRMS > 0.015 &&
 
-  currentRMS > baseline * 1.5 &&
+  currentRMS > baseline * 2 &&
 
   (
-    flux > 0.08 ||
-    delta > baseline * 0.8
+    flux > 0.15 ||
+    delta > baseline * 1.2
   );
 
 if(
@@ -552,10 +576,9 @@ const noteMap = {
 
 /* ================= SETTINGS ================= */
 
-const travelTime = 6;
-
-const hitY = 460;
-const spawnY = -80;
+const travelTime = 3;
+const hitY = 500;
+const spawnY = -50;
 
 /* ================= KEYBOARD ================= */
 
@@ -772,10 +795,14 @@ function stopGame(){
 
   active = [];
 
+  hitCount = 0;
+
+  document.getElementById("hitCount")
+    .textContent = 0;
+
 }
 
 /* ================= MIC ================= */
-
 
 /* ================= micLoop ================= */
 
@@ -784,7 +811,7 @@ function micLoop(){
   if(!running) return;
 
   if(!analyser){
-
+    updateNextKey();
     requestAnimationFrame(micLoop);
     return;
 
@@ -807,14 +834,9 @@ function micLoop(){
 
   /* ================= 音量判定 ================= */
 
-  if(volume > 0.08){
+ if(volume > 0.08){
 
-  if(!wasLoud){
-
-    hitNearest();
-
-    wasLoud = true;
-  }
+  wasLoud = true;
 
 }else{
 
@@ -910,45 +932,33 @@ function loop(){
     index < notes.length &&
     notes[index].time <= t + travelTime
   ){
-
     spawn(notes[index]);
     index++;
-
   }
 
-  active.forEach(n=>{
+  active.forEach(n => {
 
-  const p =
-    1 - ((n.hit - t)/travelTime);
+    const p =
+      1 - ((n.hit - t) / travelTime);
 
-  const y =
-    spawnY + p*(hitY - spawnY);
+    const y =
+      spawnY + p * (hitY - spawnY);
 
-  n.el.style.top = y + "px";
+    n.el.style.top = y + "px";
 
-  /* MISS */
-if(!n.missed && n.hit + 0.4 < t){
+    /* MISS */
+    if(!n.missed && n.hit + 0.4 < t){
 
-  n.missed = true;
+      n.missed = true;
 
-  const hadCombo = combo > 0;
+      n.el.remove();
 
-  n.el.remove();
+      active = active.filter(x => x !== n);
+    }
 
-  active = active.filter(x=>x!==n);
+  });
 
-  combo = 0;
-
-  if(hadCombo){
-    showJudge("MISS");
-  }
-
-  update();
-}
-
-});
-
-requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
 
 }
 
@@ -999,11 +1009,6 @@ function hitNearest(){
   success(target, target.note);
 
   hitFlash();
-
-  hitCount++;
-
-document.getElementById("hitCount")
-  .textContent = hitCount;
 
 }
 /* ================= HIT ================= */
