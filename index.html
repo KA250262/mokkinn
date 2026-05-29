@@ -37,7 +37,7 @@ body{
   position:absolute;
 
   left:50%;
-  top: 400px;
+  top: 450px;
 
   transform:translateX(-50%);
 
@@ -102,7 +102,7 @@ h1{
   position:absolute;
   left:0;
   width:100%;
-  top:460px;
+  top:500px;
   height:4px;
   background:
     linear-gradient(
@@ -365,7 +365,8 @@ button:hover{
   <span id="totalCount">0</span>
 
 </div>
-  <div id="ui">
+
+<div id="ui">
 <button onclick="setSpeed(0.25)">ゆっくり</button>
 <button onclick="setSpeed(0.5)">ふつう</button>
 <button onclick="setSpeed(0.75)">はやい</button>
@@ -373,27 +374,19 @@ button:hover{
 <input type="file" id="midiFile">
 
 <button onclick="startGame()">再生</button>
-
 <button onclick="stopGame()">停止</button>
 </div>
-<br><br>
+<div id="debug"></div>
 
 <span id="speedLabel"></span>
-
-<br><br>
 
   <div id="judgeLine"></div>
 
   <div id="keyboard"></div>
 
+  <button onclick="startMic()">マイク開始</button>
 
-
-<button onclick="startMic()">
-マイク開始
-</button>
-
-<div id="debug"></div>
-
+  
 <script>
 let prevRMS = 0;
 let baseline = 0;
@@ -431,6 +424,11 @@ callback: (features) => {
 
   const currentRMS =
     features.rms || 0;
+
+    const debugEl = document.getElementById("debug");
+if(debugEl){
+  debugEl.textContent = "test";
+}
 
   const spectrum =
     features.amplitudeSpectrum || [];
@@ -522,11 +520,12 @@ if(
 
   prevRMS = currentRMS;
 
-}   // callback end
+}  
 
-}); // Meyda analyzer end
+}); 
 
-analyzer.start();
+analyser = analyzer;
+analyser.start();
 
 } // startMic end
 /* ================= AUDIO ================= */  
@@ -810,11 +809,11 @@ function micLoop(){
 
   if(!running) return;
 
-  if(!analyser){
+  // analyser存在チェック
+  if(!analyser || typeof analyser.getValue !== "function"){
     updateNextKey();
     requestAnimationFrame(micLoop);
     return;
-
   }
 
   const data = analyser.getValue();
@@ -923,8 +922,6 @@ function spawn(n){
 function loop(){
 
   const t = getTime();
-
-  console.log(t);
 
   if(!running) return;
 
