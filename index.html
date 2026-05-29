@@ -1,13 +1,490 @@
-const now = performance.now();
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メロころ♪</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+<script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+
+<style>
+
+body{
+  margin:0;
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+  overflow:hidden;
+}
+
+#gameArea{
+  position: relative;
+
+  width: 95vw;
+  max-width: 1000px;
+
+  height: 700px;
+
+  margin:auto;
+
+  background:#222;
+
+  border:3px solid #555;
+  border-radius:20px;
+
+  overflow:hidden;
+}
+
+#keyboard{
+  position:absolute;
+
+  bottom:50px;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  height:180px;
+
+  z-index:10;
+}
+
+h1{
+  color:#ffb3d9;
+  text-shadow:0 0 10px hotpink;
+}
+
+#ui{
+  margin:10px;
+  font-size:20px;
+}
+
+/* 判定ライン */
+
+#judgeLine{
+  position:absolute;
+
+  left:0;
+  width:100%;
+
+  top:460px;
+
+  height:4px;
+
+  background:
+    linear-gradient(
+      to right,
+      transparent,
+      rgba(255,255,255,0.5),
+      transparent
+    );
+
+  box-shadow:
+    0 0 10px rgba(180,220,255,0.35);
+
+  z-index:5;
+
+  pointer-events:none;
+}
+button{
+  font-size:18px;
+  padding:8px 18px;
+  border:none;
+  border-radius:10px;
+  background:#ff7ac8;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  transform:scale(1.05);
+}
+
+#score{
+  color:gold;
+  display:inline-block;
+  transition:0.1s;
+}
+
+#combo{
+  color:lime;
+  display:inline-block;
+  transition:0.1s;
+}
+
+#judge{
+  height:40px;
+  font-size:32px;
+  font-weight:bold;
+  margin:5px;
+}
+
+#game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+
+.combo-bounce{
+  animation: comboBounce 0.5s ease;
+}
+
+#mascot{
+  position:absolute;
+
+  width:100%;
+  height:auto;
+
+  left:0;
+  top:0;
+
+  pointer-events:none;
+  z-index:1;
+}
+
+/* 判定ライン */
+
+
+/* ノーツ */
+
+.note{
+  
+  position:absolute;
+
+  width:46px;
+  height:46px;
+
+  border-radius:50%;
+
+  background:linear-gradient(
+  135deg,
+  #7ad8ff,
+  #3aa6ff
+  
+);
+
+  border:2px solid rgba(255,255,255,0.85);
+  opacity:0.92;
+  transform:translateX(-50%);
+
+  z-index:30;
+}
+
+.note-text{
+  position:absolute;
+
+  top:50%;
+  left:50%;
+
+  transform:translate(-50%, -50%);
+
+  font-size:20px;
+  font-weight:900;
+
+  color:white;
+
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.7);
+}
+
+@keyframes comboBounce {
+
+  0%{
+    transform:scale(1);
+  }
+
+  30%{
+    transform:scale(1.03) rotate(-1deg);
+  }
+
+  60%{
+    transform:scale(1.03) rotate(1deg);
+  }
+
+  100%{
+    transform:scale(1);
+  }
+
+}
+
+@keyframes bubblePop {
+
+  0%{
+    transform:translateX(-50%) scale(1);
+    opacity:1;
+  }
+
+  100%{
+    transform:translateX(-50%) scale(2);
+    opacity:0;
+  }
+
+}
+.bubble-out {
+  animation: bubblePop 0.25s ease-out forwards;
+}
+
+.key{
+  position:absolute;
+  width:50px;
+  height:180px;
+
+  background:white;
+  border:1px solid #333;
+
+  border-radius:0 0 8px 8px;
+}
+
+.black{
+  position:absolute;
+
+  width:34px;
+  height:110px;
+
+  background:#222;
+  border:2px solid white;
+
+  border-radius:0 0 6px 6px;
+
+  z-index:10;
+}
+
+.hit{
+  background:#7CFF6B !important;
+}
+
+.hit-flash{
+  position:absolute;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  width:90%;
+  height:24px;
+
+  border-radius:20px;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(255,255,255,0.95),
+      rgba(120,220,255,0.7),
+      rgba(120,220,255,0)
+    );
+
+  pointer-events:none;
+
+  animation:flashAnim 0.18s ease-out forwards;
+
+  z-index:40;
+}
+
+@keyframes flashAnim{
+
+  0%{
+    opacity:1;
+    transform:translateX(-50%) scaleX(0.7);
+  }
+
+  100%{
+    opacity:0;
+    transform:translateX(-50%) scaleX(1.3);
+  }
+
+}
+.next{
+
+  background:#9ee7ff !important;
+
+  box-shadow:
+    0 0 8px rgba(120,220,255,0.6);
+
+  transition:
+    background 0.1s,
+    box-shadow 0.1s;
+}
+
+#debug{
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  font-size: 14px;
+  text-align: left;
+  border-radius: 8px;
+  color: white;
+  
+  
+}
+</style>
+</head>
+<body>
+
+<h1>メロころ♪</h1>
+
+<div id="ui">
+<button onclick="setSpeed(0.25)">ゆっくり</button>
+<button onclick="setSpeed(0.5)">ふつう</button>
+<button onclick="setSpeed(0.75)">はやい</button>
+
+<input type="file" id="midiFile">
+
+<button onclick="startGame()">再生</button>
+
+<button onclick="stopGame()">停止</button>
+
+<br><br>
+
+<span id="speedLabel"></span>
+
+スコア:
+<span id="score">0</span>
+
+
+コンボ:
+<span id="combo">0</span>
+<br><br>
+
+
+</div>
+<div id="judge"></div>
+
+<div id="gameArea">
+
+  <img id="mascot" src="melokoro.png">
+
+  <div id="judgeLine"></div>
+
+  <div id="keyboard"></div>
+
+</div>
+
+<button onclick="startMic()">
+マイク開始
+</button>
+
+<div id="debug"></div>
+
+<script>
+let prevRMS = 0;
+let baseline = 0;
+let lastHitDetect = 0;
+
+async function startMic() {
+
+  const stream =
+    await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+  const audioContext = new AudioContext();
+
+  const source =
+    audioContext.createMediaStreamSource(stream);
+
+  const analyzer =
+    Meyda.createMeydaAnalyzer({
+
+      audioContext: audioContext,
+
+      source: source,
+
+      bufferSize: 512,
+
+      featureExtractors: [
+        "rms",
+        "amplitudeSpectrum"
+      ],
+
+callback: (features) => {
+
+  if(!features) return;
+
+  if(typeof features.rms !== "number") return;
+
+  const currentRMS =
+    features.rms || 0;
+
+  const spectrum =
+    features.amplitudeSpectrum || [];
+
+    const centroid =
+  features.spectralCentroid;
+
+  let prevSpectrum = [];
+ let flux = 0;
+
+if(prevSpectrum.length === spectrum.length){
+
+  for(let i = 0; i < spectrum.length; i++){
+    flux += Math.abs(spectrum[i] - prevSpectrum[i]);
+  }
+
+}
+
+console.log("centroid:", centroid);
+
+prevSpectrum = spectrum;
+  let max = -9999;
+  let maxIndex = 0;
+
+  for(let i = 0; i < spectrum.length; i++){
+
+    if(
+
+      typeof spectrum[i] === "number" &&
+
+      spectrum[i] > max
+
+    ){
+
+      max = spectrum[i];
+      maxIndex = i;
+
+    }
+
+  }
+
+  baseline =
+    baseline * 0.95 +
+    currentRMS * 0.05;
+
+  const delta =
+    currentRMS - prevRMS;
+
+  document.getElementById("debug")
+  .textContent =
+
+    "RMS : "
+    + currentRMS.toFixed(3)
+
+    + " / Δ : "
+    + delta.toFixed(3)
+
+    + " / base : "
+    + baseline.toFixed(3)
+
+    + " / peak : "
+    + maxIndex;
+
+  const now = performance.now();
 
 if(
+  (
+    currentRMS > baseline * 1.3 &&
+    (flux > 0.05 || delta > baseline * 0.5)
+  ) ||
 
-  delta > baseline * 2 &&
-
-  currentRMS > baseline * 3 &&
-
-  now - lastHitDetect > 120
-
+  (
+    currentRMS > baseline * 2.0 &&
+    centroid > 200
+  )
 ){
 
   console.log("押された！");
@@ -17,3 +494,735 @@ if(
   lastHitDetect = now;
 
 }
+
+prevRMS = currentRMS;
+
+}   // ← callback end
+
+}); // ← Meyda analyzer end
+
+analyzer.start();
+
+}
+
+/* ================= AUDIO ================= */  
+
+const synth = new Tone.PolySynth(
+  Tone.Synth,
+  {
+    oscillator:{
+      type:"triangle"
+    }
+  }
+).toDestination();
+
+/* ================= STATE ================= */
+let mic;
+let analyser;
+
+let notes = [];
+let active = [];
+
+let score = 0;
+let combo = 0;
+
+let lastHitTime = 0;
+
+let running = false;
+
+let startTime = 0;
+let index = 0;
+let speed = 0.5;
+
+let wasLoud = false;
+
+function getTime(){
+  return (performance.now() - startTime) / 1000 - 3;
+}
+
+const noteMap = {
+  "C":"ど",
+  "D":"れ",
+  "E":"み",
+  "F":"ふぁ",
+  "G":"そ",
+  "A":"ら",
+  "B":"し"
+};
+
+/* ================= SETTINGS ================= */
+
+const travelTime = 6;
+
+const hitY = 460;
+const spawnY = -80;
+
+/* ================= KEYBOARD ================= */
+
+const keys = [
+
+"C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
+
+"C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
+
+"C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6"
+
+];
+
+const kb = document.getElementById("keyboard");
+
+let x = 0;
+
+keys.forEach(n=>{
+
+  const k = document.createElement("div");
+
+  k.dataset.note = n;
+
+  k.className =
+    n.includes("#")
+    ? "black"
+    : "key";
+
+  if(!n.includes("#")){
+
+    k.style.left = x + "px";
+
+    x += 50;
+
+  }else{
+
+    k.style.left = (x - 20) + "px";
+  }
+
+  kb.appendChild(k);
+
+});
+
+kb.style.width = x + "px";
+/* ================= MIDI LOAD ================= */
+
+document.getElementById("midiFile")
+.addEventListener("change", async (e)=>{
+
+  try{
+
+    const file = e.target.files[0];
+
+    const buf = await file.arrayBuffer();
+
+    /* 保存 */
+    const array =
+      Array.from(new Uint8Array(buf));
+
+    localStorage.setItem(
+      "savedMidi",
+      JSON.stringify(array)
+    );
+
+    loadMidi(buf);
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("MIDI読み込み失敗");
+  }
+
+});
+
+/* ================= AUTO LOAD ================= */
+
+window.addEventListener("load", async ()=>{
+
+  const saved =
+    localStorage.getItem("savedMidi");
+
+  if(saved){
+
+    const array =
+      JSON.parse(saved);
+
+    const uint =
+      new Uint8Array(array);
+
+    loadMidi(uint.buffer);
+
+  }
+});
+
+/* ================= MIDI PARSE ================= */
+
+function loadMidi(buffer){
+
+  const midi = new Midi(buffer);
+
+  notes = [];
+
+  midi.tracks.forEach(t=>{
+
+    t.notes.forEach(n=>{
+
+      notes.push({
+        time:n.time,
+        note:n.name
+      });
+
+    });
+
+  });
+
+  notes.sort((a,b)=>a.time-b.time);
+
+  // 和音グループ作成
+  let chordId = 0;
+
+  for(let i = 0; i < notes.length; i++){
+
+    if(i > 0){
+
+      const gap =
+        notes[i].time - notes[i-1].time;
+
+      if(gap > 0.03){
+        chordId++;
+      }
+
+    }
+
+    notes[i].chordId = chordId;
+  }
+
+  console.log("MIDI OK:", notes.length);
+
+}
+
+/* ================= START ================= */
+
+async function startGame(){
+  await Tone.start();
+  console.log("音声OK");
+
+  if(!mic){
+    await startMic();
+  }
+
+  if(!notes.length){
+    alert("MIDIを読み込んでね");
+    return;
+  }
+
+  stopGame();
+  score = 0;
+  combo = 0;
+  update();
+
+  running = true;
+  index = 0;
+
+countdown(3);
+}
+
+
+/* ================= COUNTDOWN ================= */
+
+function countdown(n){
+
+  const judge =
+    document.getElementById("judge");
+
+  judge.textContent = n;
+
+  if(n <= 0){
+  
+    startTime = performance.now();
+
+    micLoop();
+
+    judge.textContent = "START!";
+
+   setTimeout(()=>{
+    judge.textContent = "";
+  },800);
+
+  requestAnimationFrame(loop);
+
+  return;
+}
+
+  setTimeout(()=>{
+    countdown(n-1);
+  },1000);
+
+}
+
+/* ================= STOP ================= */
+
+function stopGame(){
+
+  running = false;
+
+  active.forEach(n=>n.el.remove());
+
+  active = [];
+
+}
+
+/* ================= MIC ================= */
+
+
+/* ================= micLoop ================= */
+
+function micLoop(){
+
+  if(!running) return;
+
+  if(!analyser){
+
+    requestAnimationFrame(micLoop);
+    return;
+
+  }
+
+  const data = analyser.getValue();
+
+  /* ================= 音量計算 ================= */
+
+  let volume = 0;
+
+  for(let i = 0; i < data.length; i++){
+
+    volume += Math.abs(data[i]);
+
+  }
+
+  volume /= data.length;
+
+
+  /* ================= 音量判定 ================= */
+
+  if(volume > 0.08){
+
+  if(!wasLoud){
+
+    hitNearest();
+
+    wasLoud = true;
+  }
+
+}else{
+
+  wasLoud = false;
+
+}
+
+  requestAnimationFrame(micLoop);
+
+}
+
+function updateNextKey(){
+
+  document
+    .querySelectorAll(".next")
+    .forEach(k=>k.classList.remove("next"));
+
+  if(active.length === 0) return;
+
+  const next = active[0];
+
+  const key = document.querySelector(
+    `[data-note="${next.note}"]`
+  );
+
+  if(key){
+    key.classList.add("next");
+  }
+
+}
+
+/* ================= SPAWN ================= */
+
+function spawn(n){
+
+  const key =
+    document.querySelector(
+      `[data-note="${n.note}"]`
+    );
+
+  if(!key) return;
+
+  const g =
+    document.getElementById("gameArea")
+    .getBoundingClientRect();
+
+  const k =
+    key.getBoundingClientRect();
+
+  const el =
+    document.createElement("div");
+
+  el.className = "note";
+
+  el.style.left =
+    (k.left - g.left + k.width/2)
+    + "px";
+
+  const text = document.createElement("div");
+
+  text.className = "note-text";
+
+  text.textContent = noteMap[n.note[0]];
+
+  el.appendChild(text);
+
+  document
+    .getElementById("gameArea")
+    .appendChild(el);
+
+  active.push({
+  el,
+  note:n.note,
+  hit:n.time,
+  chordId:n.chordId,
+  missed:false
+});
+  updateNextKey();
+
+}
+
+
+
+function loop(){
+
+  const t = getTime();
+
+  console.log(t);
+
+  if(!running) return;
+
+  while(
+    index < notes.length &&
+    notes[index].time <= t + travelTime
+  ){
+
+    spawn(notes[index]);
+    index++;
+
+  }
+
+  active.forEach(n=>{
+
+  const p =
+    1 - ((n.hit - t)/travelTime);
+
+  const y =
+    spawnY + p*(hitY - spawnY);
+
+  n.el.style.top = y + "px";
+
+  /* MISS */
+if(!n.missed && n.hit + 0.4 < t){
+
+  n.missed = true;
+
+  const hadCombo = combo > 0;
+
+  n.el.remove();
+
+  active = active.filter(x=>x!==n);
+
+  combo = 0;
+
+  if(hadCombo){
+    showJudge("MISS");
+  }
+
+  update();
+}
+
+});
+
+requestAnimationFrame(loop);
+
+}
+
+
+function hitNearest(){
+
+  const t = getTime();
+
+  let best = null;
+  let bestDiff = 999;
+
+  // 一番近いノーツを探す
+  active.forEach(n=>{
+
+    if(n.hitDone) return;
+
+    const diff = Math.abs(n.hit - t);
+
+    if(diff < bestDiff){
+      bestDiff = diff;
+      best = n;
+    }
+
+  });
+
+  // 判定外
+  if(!best || bestDiff > 0.6) return;
+
+  let judge = "GOOD";
+  let add = 100;
+
+  if(bestDiff < 0.30){
+    judge = "PERFECT";
+    add = 300;
+  }
+
+  // 同じ和音グループ
+  const targets = active.filter(n=>
+    n.chordId === best.chordId &&
+    !n.hitDone
+  );
+
+  // その中から1個だけ取る
+  const target = targets[0];
+
+  if(!target) return;
+
+  success(target, target.note);
+
+  hitFlash();
+
+  score += add;
+  combo++;
+
+  addScoreEffect(add);
+
+  showJudge(judge);
+
+  update();
+}
+/* ================= HIT ================= */
+
+function hit(note){
+
+  const t = getTime();
+
+  const JUDGE_WINDOW = 0.6;
+
+  let best = null;
+  let bestDiff = 999;
+
+  active.forEach(n=>{
+
+    if(n.note !== note) return;
+
+    const diff = n.hit - t;
+
+    if(diff > JUDGE_WINDOW) return;
+    if(diff < -JUDGE_WINDOW) return;
+
+    const absDiff = Math.abs(diff);
+
+    if(absDiff < bestDiff){
+      bestDiff = absDiff;
+      best = n;
+    }
+
+  });
+
+
+  // synth.triggerAttackRelease(note, "8n");
+
+  if(best && bestDiff < 0.30){
+
+  success(best,note);
+
+  score += 300;
+  addScoreEffect(300);
+
+  combo++;
+
+  hitFlash();
+  showJudge("PERFECT");
+
+} else if(best && bestDiff < 0.6){
+
+  success(best,note);
+
+  score += 100;
+  addScoreEffect(100);
+
+  combo++;
+
+  hitFlash();
+  showJudge("GOOD");
+
+} 
+
+update();
+
+}
+
+
+
+
+function hitFlash(){
+
+  const flash =
+    document.createElement("div");
+
+  flash.className = "hit-flash";
+
+  flash.style.top = (hitY - 10) + "px";
+
+  document
+    .getElementById("gameArea")
+    .appendChild(flash);
+
+  setTimeout(()=>{
+    flash.remove();
+  },180);
+
+}
+/* ================= SUCCESS ================= */
+
+function success(best, note){
+
+  best.el.style.transform =
+    "translateX(-50%) scale(1.8)";
+
+  best.el.style.filter =
+    "brightness(3)";
+
+  best.el.classList.add("bubble-out");
+
+best.el.style.top =
+  (parseFloat(best.el.style.top) + 60) + "px";
+
+setTimeout(()=>{
+  best.el.remove();
+},250);
+
+  active =
+    active.filter(n=>n!==best);
+    updateNextKey();
+}
+/* ================= INPUT(関数） ================= */
+
+
+
+
+function addScoreEffect(value){
+
+  const el =
+    document.getElementById("score");
+
+  el.style.transform = "scale(1.3)";
+  el.style.color = "yellow";
+
+  setTimeout(()=>{
+
+    el.style.transform = "scale(1)";
+    el.style.color = "gold";
+
+  },100);
+}
+
+document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
+
+  const key = document.elementFromPoint(
+    e.touches[0].clientX,
+    e.touches[0].clientY
+  );
+
+  if(key && key.dataset.note){
+    hit(key.dataset.note);
+  }
+
+});
+/* ================= UI ================= */
+
+function update(){
+
+  const scoreEl =
+    document.getElementById("score");
+
+  const comboEl =
+    document.getElementById("combo");
+
+  scoreEl.textContent = score;
+  comboEl.textContent = combo;
+
+  comboEl.style.transform = "scale(1.2)";
+
+  setTimeout(()=>{
+    comboEl.style.transform = "scale(1)";
+  },80);
+
+}
+
+function setSpeed(v){
+
+  speed = v;
+
+  const label =
+    v === 0.25 ? "ゆっくり" :
+    v === 0.5 ? "ふつう" :
+    "はやい";
+
+  document.getElementById("speedLabel")
+    .textContent = label;
+
+}
+
+/* ================= JUDGE ================= */
+
+function showJudge(text){
+
+  const j =
+    document.getElementById("judge");
+
+  j.textContent = text;
+
+  /* ★追加 */
+  j.style.transform = "scale(1.4)";
+  j.style.opacity = "1";
+
+  if(text === "PERFECT"){
+    j.style.color = "gold";
+  }else if(text === "GOOD"){
+    j.style.color = "cyan";
+  }else{
+    j.style.color = "red";
+  }
+
+  clearTimeout(j.timer);
+
+  j.timer = setTimeout(()=>{
+
+    j.textContent = "";
+    j.style.transform = "scale(1)";
+    j.style.opacity = "0.7";
+
+  },500);
+}
+
+function comboEffect(){
+
+  const mascot =
+    document.getElementById("mascot");
+
+  mascot.classList.remove("combo-bounce");
+
+  void mascot.offsetWidth;
+
+  mascot.classList.add("combo-bounce");
+}
+micLoop();
+
+</script>
+
+</body>
+</html>
