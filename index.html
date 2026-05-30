@@ -37,7 +37,7 @@ body{
   position:absolute;
 
   left:50%;
-  top: 450px;
+  top: 500px;
 
   transform:translateX(-50%);
 
@@ -382,9 +382,9 @@ button:hover{
 <div id="lineLayer"></div>
 
 <div id="ui">
-<button onclick="setSpeed(0.25)">ゆっくり</button>
-<button onclick="setSpeed(0.5)">ふつう</button>
-<button onclick="setSpeed(0.75)">はやい</button>
+<button onclick="setSpeed('slow')">ゆっくり</button>
+<button onclick="setSpeed('normal')">ふつう</button>
+<button onclick="setSpeed('fast')">はやい</button>
 
 <input type="file" id="midiFile">
 
@@ -573,7 +573,8 @@ let totalCount = 0;
 let whiteIndex = 0;
 
 let splitNote = 60;
-let speed = 0.5;
+
+let currentMode = "normal";
 
 
 
@@ -589,6 +590,12 @@ function getTime(){
 const travelTime = 3;
 const hitY = 500;
 const spawnY = -50;
+
+const SPEED_MAP = {
+  slow: 0.4,
+  normal: 0.6,
+  fast: 0.8
+};
 
 const songConfig = {
   "song.mid": { split: 60 },
@@ -960,9 +967,8 @@ function spawn(n){
 
 
 function loop(){
-
-  const t = getTime();
-  const gameTime = t / speed;
+  const rawTime = (performance.now() - startTime) / 1000 - 3;
+  const gameTime = rawTime * SPEED_MAP[currentMode];
 
   if(!running) return;
 
@@ -1241,8 +1247,8 @@ function update(){
 
 }
 
-function setSpeed(v){
-  speed = v;
+function setSpeed(mode){
+  currentMode = mode;
 
   const label =
     v === 0.25 ? "ゆっくり" :
