@@ -1142,6 +1142,25 @@ if(
 
   });
 
+  if(
+    index >= notes.length &&
+    active.length === 0
+  ){
+
+    running = false;
+
+    for(let i=0;i<30;i++){
+
+      createBubble();
+
+    }
+
+    showResult();
+
+    return;
+  }
+
+  
   requestAnimationFrame(loop);
 
 }
@@ -1230,51 +1249,38 @@ function drawChordLines(){
 }
 /* ================= hitnearest ================= */
 function hitNearest(){
-  const t = getTime() + 0.10;
+
+  const hitRange = 40; // ←ここが判定の太さ（px）
 
   let best = null;
-  let bestDiff = 999;
+  let bestDist = 999;
 
-  // 一番近いノーツを探す
-  active.forEach(n=>{
+  active.forEach(n => {
 
-    if(n.hitDone) return;
+    const rect = n.el.getBoundingClientRect();
+    const game = document.getElementById("gameArea").getBoundingClientRect();
 
-    const diff = Math.abs(n.hit - t);
+    const y = rect.top - game.top;
 
-    if(diff < bestDiff){
-      bestDiff = diff;
+    const dist = Math.abs(y - hitY);
+
+    if(dist < bestDist){
+      bestDist = dist;
       best = n;
     }
 
   });
 
-  // 判定外
-  if(!best || bestDiff > 0.6) return;
+  // 範囲外なら無視
+  if(!best || bestDist > hitRange) return;
 
   let judge = "GOOD";
-  let add = 100;
+  if(bestDist < 15) judge = "PERFECT";
 
-  if(bestDiff < 0.30){
-    judge = "PERFECT";
-    add = 300;
-  }
-
-  // 同じ和音グループ
-  const targets = active.filter(n=>
-    n.chordId === best.chordId &&
-    !n.hitDone
-  );
-
-  // その中から1個だけ取る
-  const target = targets[0];
-
-  if(!target) return;
-
-  success(target, target.note);
+  success(best);
 
   hitFlash();
-
+  showJudge(judge);
 }
 /* ================= HIT ================= */
 
