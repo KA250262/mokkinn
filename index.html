@@ -172,8 +172,10 @@ button:hover{
 .combo-bounce{
   animation: comboBounce 0.5s ease;
 }
-
-
+.guide{
+  box-shadow: 0 0 8px rgba(120,220,255,0.5);
+  opacity: 0.6;
+}
 
 #mascot{
 
@@ -336,17 +338,7 @@ button:hover{
   }
 
 }
-.next{
 
-  background:#9ee7ff !important;
-
-  box-shadow:
-    0 0 8px rgba(120,220,255,0.6);
-
-  transition:
-    background 0.1s,
-    box-shadow 0.1s;
-}
 
 #debug{
   position: fixed;
@@ -404,11 +396,22 @@ button:hover{
   
 <script>
 
-  /* ===== グローバル（ここが全部の土台）===== */
+/* ===== グローバル（ここが全部の土台）===== */
+
 let prevRMS = 0;
+
 let baseline = 0;
+
 let prevSpectrum = [];
+
+let latestRMS = 0;
+let latestSpectrum = [];
+
 let lastHitDetect = 0;
+
+let keyHighlight = {};
+
+
 
 
 async function startMic() {
@@ -418,10 +421,13 @@ async function startMic() {
       audio: true
     });
 
-  const audioContext = new AudioContext();
+  const audioContext =
+    new AudioContext();
 
   const source =
-    audioContext.createMediaStreamSource(stream);
+    audioContext.createMediaStreamSource(
+      stream
+    );
 
   const analyzer =
     Meyda.createMeydaAnalyzer({
@@ -432,124 +438,129 @@ async function startMic() {
 
       bufferSize: 512,
 
-     featureExtractors: [
-     "rms",
-     "amplitudeSpectrum",
-     "spectralCentroid"
-    ],
+      featureExtractors: [
+        "rms",
+        "amplitudeSpectrum",
+        "spectralCentroid"
+      ],
 
-callback: (features) => {
+      callback: (features) => {
 
-  const currentRMS =
-    features.rms || 0;
+        const currentRMS =
+          features.rms || 0;
 
-    const debugEl = document.getElementById("debug");
-if(debugEl){
-  debugEl.textContent = "test";
-}
+        const spectrum =
+          features.amplitudeSpectrum || [];
 
-  const spectrum =
-    features.amplitudeSpectrum || [];
+        const centroid =
+          features.spectralCentroid || 0;
 
-  const centroid =
-    features.spectralCentroid || 0;
+        latestRMS = currentRMS;
+        latestSpectrum = spectrum;
 
-  /* ================= baseline ================= */
+        /* ================= baseline ================= */
 
-  baseline =
-    baseline * 0.95 +
-    currentRMS * 0.05;
+        baseline =
+          baseline * 0.95 +
+          currentRMS * 0.05;
 
-  /* ================= flux ================= */
+        /* ================= flux ================= */
 
-  let flux = 0;
+        let flux = 0;
 
-  if(prevSpectrum.length === spectrum.length){
+        if(
+          prevSpectrum.length &&
+          prevSpectrum.length === spectrum.length
+        ){
 
-    for(let i = 0; i < spectrum.length; i++){
+          for(let i = 0; i < spectrum.length; i++){
 
-      flux += Math.abs(
-        spectrum[i] - prevSpectrum[i]
-      );
+            flux += Math.abs(
+              spectrum[i] - prevSpectrum[i]
+            );
 
-    }
+          }
 
-  }
+        }
 
-  prevSpectrum = [...spectrum];
+        /* ================= delta ================= */
 
-  /* ================= delta ================= */
+        const delta =
+          currentRMS - prevRMS;
 
-  const delta =
-    currentRMS - prevRMS;
+        const now =
+          performance.now();
 
-  const now =
-    performance.now();
+        /* ================= DEBUG ================= */
 
-  /* ================= DEBUG ================= */
+        const debug =
+          document.getElementById("debug");
 
-  document.getElementById("debug")
-    .textContent =
+        if(debug){
 
-      "RMS : "
-      + currentRMS.toFixed(3)
+          debug.textContent =
 
-      + " / Δ : "
-      + delta.toFixed(3)
+            "RMS : "
+            + currentRMS.toFixed(3)
 
-      + " / base : "
-      + baseline.toFixed(3)
+            + " / Δ : "
+            + delta.toFixed(3)
 
-      + " / flux : "
-      + flux.toFixed(3)
+            + " / base : "
+            + baseline.toFixed(3)
 
-      + " / centroid : "
-      + centroid.toFixed(0);
+            + " / flux : "
+            + flux.toFixed(3)
 
-  /* ================= HIT DETECT ================= */
+            + " / centroid : "
+            + centroid.toFixed(0);
 
-  const attackMode =
+        }
 
-  currentRMS > 0.015 &&
+        /* ================= HIT DETECT ================= */
 
-  currentRMS > baseline * 2 &&
+        const attackMode =
 
-  (
-    flux > 0.15 ||
-    delta > baseline * 1.2
-  );
+          currentRMS > 0.015 &&
 
-if(
+          currentRMS > baseline * 2 &&
 
-  attackMode &&
+          (
+            flux > 0.15 ||
+            delta > baseline * 1.2
+          );
 
-  now - lastHitDetect > 120
+        if(
+          attackMode &&
+          now - lastHitDetect > 120
+        ){
 
-){
+          console.log("押された！");
 
-  console.log("押された！");
+          hitNearest();
 
-  hitNearest();
+          lastHitDetect = now;
 
-  lastHitDetect = now;
+        }
 
-}
-  /* ================= SAVE ================= */
+        /* ================= SAVE ================= */
 
-  prevRMS = currentRMS;
+        prevRMS = currentRMS;
 
-}  
+        prevSpectrum = [...spectrum];
 
-}); 
+      }
 
-analyser = analyzer;
-analyser.start();
+    });
+
+  analyser = analyzer;
+
+  analyser.start();
 
 } // startMic end
-/* ================= AUDIO （音）================= */  
+/* ================= AUDIO （音）================= */
 let mic;
 let analyser;
-let wasLoud = false;
 
 const synth = new Tone.PolySynth(
   Tone.Synth,
@@ -562,10 +573,14 @@ const synth = new Tone.PolySynth(
 
 
 /* ================= STATE （ゲーム状態）================= */
+
 let notes = [];
 let active = [];
 let index = 0;
 let running = false;
+
+let score = 0;
+let combo = 0;
 
 let hitCount = 0;
 let totalCount = 0;
@@ -573,19 +588,23 @@ let totalCount = 0;
 let whiteIndex = 0;
 
 let splitNote = 60;
-
-let currentMode = "normal";
-
+let speed = 0.5;
 
 
 /* ================= TIMING （時間）=================== */
+
 let startTime = 0;
 let lastHitTime = 0;
 
 function getTime(){
-  return ((performance.now() - startTime) / 1000 - 3) 
-}
 
+  return (
+    (performance.now() - startTime)
+    / 1000
+    - 3
+  );
+
+}
 /* ================= CONFIG （設定）================= */
 const travelTime = 3;
 const hitY = 500;
@@ -684,11 +703,8 @@ document.getElementById("midiFile")
 /* ================= AUTO LOAD ================= */
 
 window.addEventListener("load", () => {
-
-  let songLibrary = [];
-
+  const saved = localStorage.getItem("savedMidi");
   if (!saved) return;
-
   const obj = JSON.parse(saved);
 
   const uint = new Uint8Array(obj.data);
@@ -809,8 +825,6 @@ function countdown(n){
   
     startTime = performance.now();
 
-    micLoop();
-
     judge.textContent = "START!";
 
    setTimeout(()=>{
@@ -845,54 +859,8 @@ function stopGame(){
 
 }
 
-/* ================= MIC ================= */
-
-/* ================= micLoop ================= */
-
-function micLoop(){
-
-  if(!running) return;
-
-  // analyser存在チェック
-  if(!analyser || typeof analyser.getValue !== "function"){
-    updateNextKey();
-    requestAnimationFrame(micLoop);
-    return;
-  }
-
-  const data = analyser.getValue();
-
-  /* ================= 音量計算 ================= */
-
-  let volume = 0;
-
-  for(let i = 0; i < data.length; i++){
-
-    volume += Math.abs(data[i]);
-
-  }
-
-  volume /= data.length;
-
-
-  /* ================= 音量判定 ================= */
-
- if(volume > 0.08){
-
-  wasLoud = true;
-
-}else{
-
-  wasLoud = false;
-
-}
-
-  requestAnimationFrame(micLoop);
-
-}
-
 function updateNextKey(){
-
+return;
   document
     .querySelectorAll(".next")
     .forEach(k=>k.classList.remove("next"));
@@ -965,16 +933,19 @@ function spawn(n){
 }
 
 
-
+/* ================= Loop ================= */
 function loop(){
-  const rawTime = (performance.now() - startTime) / 1000 - 3;
-  const gameTime = rawTime * SPEED_MAP[currentMode];
+const rawTime = (performance.now() - startTime) / 1000 - 3;
+const gameTime = rawTime * speed;
+ 
 
   if(!running) return;
+ 
+  const PREVIEW_TIME = 0.3; // 先読み量
 
-  while(
+ while(
     index < notes.length &&
-    notes[index].time <= gameTime + travelTime
+    notes[index].time <= gameTime + travelTime + PREVIEW_TIME
   ){
     spawn(notes[index]);
     index++;
@@ -1000,9 +971,45 @@ function loop(){
   });
 
   requestAnimationFrame(loop);
+
 }
 
+/* ================= KeyGuide ================= */
 
+function updateKeyGuide(){
+  return;
+  const rawTime =
+  (performance.now() - startTime) / 1000 - 3;
+
+const currentTime =
+  rawTime * speed;
+
+document.querySelectorAll(".key")
+  .forEach(k=>{
+    k.classList.remove("guide");
+    k.style.opacity = "";
+  });
+
+  const PREVIEW_TIME = 0.3;
+
+  // ① 未来ノーツだけ青く光る
+  for(let i = index; i < notes.length; i++){
+
+    const n = notes[i];
+    const diff = n.time - currentTime;
+
+    if(diff < 0) continue;
+    if(diff > travelTime + PREVIEW_TIME) break;
+
+    const key = document.querySelector(`[data-note="${n.note}"]`);
+
+    if(key){
+      key.classList.add("guide");
+      key.style.opacity = 0.4 + (1 - diff / (travelTime + PREVIEW_TIME)) * 0.6;
+    }
+  }
+}
+/* ================= ChordLine ================= */
 function drawChordLines(){
   return;
   const layer = document.getElementById("lineLayer");
@@ -1053,10 +1060,13 @@ function drawChordLines(){
   });
 
 }
-
+/* ================= hitnearest ================= */
 function hitNearest(){
 
-  const t = getTime();
+  const rawTime =
+  (performance.now() - startTime) / 1000 - 3;
+
+const t = rawTime * speed;
 
   let best = null;
   let bestDiff = 999;
@@ -1248,16 +1258,24 @@ function update(){
 }
 
 function setSpeed(mode){
-  currentMode = mode;
+
+  const SPEED_MAP = {
+    slow: 0.4,
+    normal: 0.6,
+    fast: 0.8
+  };
+
+  speed = SPEED_MAP[mode];
 
   const label =
-    v === 0.25 ? "ゆっくり" :
-    v === 0.5 ? "ふつう" :
+    mode === "slow" ? "ゆっくり" :
+    mode === "normal" ? "ふつう" :
     "はやい";
 
   document.getElementById("speedLabel")
     .textContent = label;
 }
+
 
 /* ================= JUDGE ================= */
 
@@ -1302,8 +1320,6 @@ function comboEffect(){
 
   mascot.classList.add("combo-bounce");
 }
-micLoop();
-
 </script>
 
 </body>
