@@ -410,7 +410,8 @@ let latestSpectrum = [];
 let lastHitDetect = 0;
 
 let keyHighlight = {};
-
+let songLibrary = [];
+let usedNotes = new Set();
 
 
 
@@ -729,6 +730,7 @@ function loadMidi(buffer, fileName){
   const midi = new Midi(buffer);
 
   notes = [];
+  usedNotes.clear();
 
   // 🎯 曲ごとのスプリット（デフォルト60）
   splitNote = songConfig[fileName]?.split ?? 60;
@@ -747,8 +749,9 @@ function loadMidi(buffer, fileName){
 
         // 🎯 左右判定
         hand: midiNum < splitNote ? "left" : "right"
+        
       });
-
+      usedNotes.add(n.name);
     });
 
   });
@@ -772,12 +775,63 @@ function loadMidi(buffer, fileName){
     notes[i].chordId = chordId;
   }
 
+
   // ================= UI更新 =================
   totalCount = notes.length;
   document.getElementById("totalCount").textContent = totalCount;
 
   console.log("MIDI OK:", notes.length);
   console.log("splitNote:", splitNote);
+
+  paintKeyboard();
+}
+
+
+function paintKeyboard(){
+
+  document
+    .querySelectorAll(".key,.black")
+    .forEach(key=>{
+
+      const note = key.dataset.note;
+
+      if(usedNotes.has(note)){
+
+        // 曲で使う鍵盤は普通の色
+        if(key.classList.contains("black")){
+
+          key.style.background = "#222";
+
+        }else{
+
+          key.style.background = "white";
+
+        }
+
+        key.style.opacity = "1";
+
+      }else{
+
+        // 曲で使わない鍵盤は木目
+
+        if(key.classList.contains("black")){
+
+          key.style.background =
+            "repeating-linear-gradient(90deg,#7b5a3a 0px,#7b5a3a 4px,#6a4b2d 4px,#6a4b2d 8px)";
+
+        }else{
+
+          key.style.background =
+            "repeating-linear-gradient(90deg,#d8b184 0px,#d8b184 4px,#c89b6d 4px,#c89b6d 8px)";
+
+        }
+
+        key.style.opacity = "0.7";
+
+      }
+
+    });
+
 }
 
 /* ================= START ================= */
