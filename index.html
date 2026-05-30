@@ -244,7 +244,7 @@ button:hover{
   width:46px;
   height:46px;
 
-  border-radius:50%;
+  border-radius:40%;
 
   background:linear-gradient(
   135deg,
@@ -306,10 +306,27 @@ button:hover{
     opacity:1;
   }
 
+  50%{
+    transform:translateX(-50%) scale(1.3);
+    opacity:1;
+  }
+
   100%{
-    transform:translateX(-50%) scale(2);
+    transform:translateX(-50%) scale(2.2);
     opacity:0;
   }
+
+}
+.chord-flash{
+
+  box-shadow:
+    0 0 20px white,
+    0 0 40px #fff8a8,
+    0 0 60px #ffd966;
+
+  transform:
+    translateX(-50%)
+    scale(1.3);
 
 }
 .bubble-out {
@@ -378,7 +395,34 @@ button:hover{
   }
 
 }
+.note-spawn{
+  animation: noteSpawn 0.25s ease-out;
+}
 
+@keyframes noteSpawn{
+
+  0%{
+    transform:
+      translateX(-50%)
+      scale(0);
+    opacity:0;
+  }
+
+  60%{
+    transform:
+      translateX(-50%)
+      scale(1.35);
+    opacity:1;
+  }
+
+  100%{
+    transform:
+      translateX(-50%)
+      scale(1);
+    opacity:1;
+  }
+
+}
 
 #debug{
   position: fixed;
@@ -639,17 +683,17 @@ let lastHitTime = 0;
 
 function getTime(){
 
-  return (
+  const rawTime =
     (performance.now() - startTime)
     / 1000
-    - 3
-  );
+    - 3;
 
+  return rawTime * speed;
 }
 /* ================= CONFIG （設定）================= */
 const travelTime = 3;
 const hitY = 470;
-const spawnY = -50;
+const spawnY = -40;
 
 const SPEED_MAP = {
   slow: 0.4,
@@ -994,7 +1038,10 @@ function spawn(n){
     document.createElement("div");
 
   el.className = "note";
-
+  el.classList.add("note-spawn");
+  setTimeout(()=>{
+  el.classList.remove("note-spawn");
+  },250);
   // 🎨 ここで色を付ける（正解ポイント）
   el.style.background = getNoteColor(n);
 
@@ -1020,7 +1067,8 @@ function spawn(n){
     hit: n.time,
     chordId: n.chordId,
     missed: false,
-    hand: n.hand
+    hand: n.hand,
+    flashDone:false
   });
 
   updateNextKey();
@@ -1054,8 +1102,38 @@ const gameTime = rawTime * speed;
       spawnY + p * (hitY - spawnY);
 
     n.el.style.top = y + "px";
+    const diff = n.hit - gameTime;
 
-    if(!n.missed && n.hit + 0.4 < gameTime){
+if(
+  diff < 0.25 &&
+  diff > 0.15 &&
+  !n.flashDone
+){
+
+  const sameChord =
+    active.filter(x =>
+      x.chordId === n.chordId
+    );
+
+  if(sameChord.length >= 2){
+
+    sameChord.forEach(x=>{
+
+      x.el.classList.add("chord-flash");
+
+      setTimeout(()=>{
+        x.el.classList.remove("chord-flash");
+      },120);
+
+      x.flashDone = true;
+
+    });
+
+  }
+
+}
+
+    if(!n.missed && n.hit + 0.15 < gameTime){
 
       n.missed = true;
       n.el.remove();
@@ -1072,11 +1150,7 @@ const gameTime = rawTime * speed;
 
 function updateKeyGuide(){
   return;
-  const rawTime =
-  (performance.now() - startTime) / 1000 - 3;
-
-const currentTime =
-  rawTime * speed;
+  const currentTime = getTime();
 
 document.querySelectorAll(".key")
   .forEach(k=>{
@@ -1156,11 +1230,7 @@ function drawChordLines(){
 }
 /* ================= hitnearest ================= */
 function hitNearest(){
-
-  const rawTime =
-  (performance.now() - startTime) / 1000 - 3;
-
-const t = rawTime * speed;
+  const t = getTime() + 0.10;
 
   let best = null;
   let bestDiff = 999;
@@ -1293,7 +1363,13 @@ function hitFlash(){
 
 function success(best){
 
-  best.el.remove();
+  best.el.classList.add("bubble-out");
+
+  setTimeout(()=>{
+
+    best.el.remove();
+
+  },250);
 
   active =
     active.filter(n=>n!==best);
