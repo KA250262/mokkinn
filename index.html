@@ -96,6 +96,17 @@ h1{
     0 0 6px black;
 }
 
+
+#lineLayer{
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:90;
+}
+
 /* 判定ライン */
 
 #judgeLine{
@@ -161,6 +172,8 @@ button:hover{
 .combo-bounce{
   animation: comboBounce 0.5s ease;
 }
+
+
 
 #mascot{
 
@@ -366,6 +379,8 @@ button:hover{
 
 </div>
 
+<div id="lineLayer"></div>
+
 <div id="ui">
 <button onclick="setSpeed(0.25)">ゆっくり</button>
 <button onclick="setSpeed(0.5)">ふつう</button>
@@ -388,10 +403,13 @@ button:hover{
 
   
 <script>
+
+  /* ===== グローバル（ここが全部の土台）===== */
 let prevRMS = 0;
 let baseline = 0;
 let prevSpectrum = [];
 let lastHitDetect = 0;
+
 
 async function startMic() {
 
@@ -528,7 +546,10 @@ analyser = analyzer;
 analyser.start();
 
 } // startMic end
-/* ================= AUDIO ================= */  
+/* ================= AUDIO （音）================= */  
+let mic;
+let analyser;
+let wasLoud = false;
 
 const synth = new Tone.PolySynth(
   Tone.Synth,
@@ -539,36 +560,42 @@ const synth = new Tone.PolySynth(
   }
 ).toDestination();
 
-/* ===== 設定系（ここ） ===== */
-const songConfig = {
-  "song.mid": { split: 60 },
-  "55.mid": { split: 69 },
-  "song3.mid": { split: 65 }
-};
 
-/* ================= STATE ================= */
-let mic;
-let analyser;
-
+/* ================= STATE （ゲーム状態）================= */
 let notes = [];
 let active = [];
+let index = 0;
+let running = false;
 
 let hitCount = 0;
 let totalCount = 0;
 
-let lastHitTime = 0;
+let whiteIndex = 0;
 
-let running = false;
-
-let startTime = 0;
-let index = 0;
+let splitNote = 60;
 let speed = 0.5;
 
-let wasLoud = false;
+
+
+/* ================= TIMING （時間）=================== */
+let startTime = 0;
+let lastHitTime = 0;
 
 function getTime(){
-  return (performance.now() - startTime) / 1000 - 3;
+  return ((performance.now() - startTime) / 1000 - 3) 
 }
+
+/* ================= CONFIG （設定）================= */
+const travelTime = 3;
+const hitY = 500;
+const spawnY = -50;
+
+const songConfig = {
+  "song.mid": { split: 60 },
+  "55.mid": { split: 70 },
+  "song3.mid": { split: 65 }
+};
+
 
 const noteMap = {
   "C":"ど",
@@ -580,11 +607,7 @@ const noteMap = {
   "B":"し"
 };
 
-/* ================= SETTINGS ================= */
 
-const travelTime = 3;
-const hitY = 500;
-const spawnY = -50;
 
 /* ================= KEYBOARD ================= */
 
@@ -600,7 +623,6 @@ const kb = document.getElementById("keyboard");
 
 kb.innerHTML = "";
 
-let whiteIndex = 0;
 
 keys.forEach(n=>{
 
@@ -636,58 +658,59 @@ kb.style.width =
 document.getElementById("midiFile")
 .addEventListener("change", async (e) => {
 
-  try {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const file = e.target.files[0];
+  const buf = await file.arrayBuffer();
 
-    if (!file) {
-      console.log("ファイルが選ばれていません");
-      return;
-    }
+  const array = Array.from(new Uint8Array(buf));
 
-    const buf = await file.arrayBuffer();
+  localStorage.setItem("savedMidi", JSON.stringify({
+    name: file.name,
+    data: array
+  }));
 
-    loadMidi(buf, file.name);
-
-  } catch (err) {
-
-    console.error(err);
-    alert("MIDI読み込み失敗");
-
-  }
+  loadMidi(buf, file.name);
 
 });
 
 /* ================= AUTO LOAD ================= */
 
-window.addEventListener("load", async ()=>{
+window.addEventListener("load", () => {
 
-  const saved =
-    localStorage.getItem("savedMidi");
+  let songLibrary = [];
 
-  if(saved){
+  if (!saved) return;
 
-    const array =
-      JSON.parse(saved);
+  const obj = JSON.parse(saved);
 
-    const uint =
-      new Uint8Array(array);
+  const uint = new Uint8Array(obj.data);
 
-    loadMidi(uint.buffer);
+  loadMidi(uint.buffer, obj.name);
 
-  }
 });
 
-/* ================= MIDI PARSE ================= */
+
+/* ================= COLOR UTIL ================= */
+function getNoteColor(note){
+
+  if(note.hand === "left"){
+    return "#4aa3ff"; // 青系
+  }
+
+  return "#ff4a4a";   // 赤系（右手）
+}
+
 function loadMidi(buffer, fileName){
 
   const midi = new Midi(buffer);
 
   notes = [];
 
-  // 🎯 曲ごとのスプリット適用（なければ60）
+  // 🎯 曲ごとのスプリット（デフォルト60）
   splitNote = songConfig[fileName]?.split ?? 60;
 
+  // ================= MIDI展開 =================
   midi.tracks.forEach(t => {
 
     t.notes.forEach(n => {
@@ -698,6 +721,8 @@ function loadMidi(buffer, fileName){
         time: n.time,
         note: n.name,
         midi: midiNum,
+
+        // 🎯 左右判定
         hand: midiNum < splitNote ? "left" : "right"
       });
 
@@ -705,10 +730,10 @@ function loadMidi(buffer, fileName){
 
   });
 
-  // 時間順ソート
+  // ================= 時間順ソート =================
   notes.sort((a, b) => a.time - b.time);
 
-  // 和音グループ
+  // ================= 和音グループ化 =================
   let chordId = 0;
 
   for (let i = 0; i < notes.length; i++) {
@@ -724,67 +749,34 @@ function loadMidi(buffer, fileName){
     notes[i].chordId = chordId;
   }
 
+  // ================= UI更新 =================
+  totalCount = notes.length;
+  document.getElementById("totalCount").textContent = totalCount;
+
   console.log("MIDI OK:", notes.length);
   console.log("splitNote:", splitNote);
-
-  totalCount = notes.length;
-
-  document.getElementById("totalCount").textContent = totalCount;
 }
-
-function getNoteColor(note){
-
-  if(note.hand === "left"){
-    return "#4aa3ff"; // 青系
-  }
-
-  return "#ff4a4a";   // 赤系（右手）
-}
-
-
-  notes.sort((a,b)=>a.time-b.time);
-
-  // 和音グループ作成
-  let chordId = 0;
-
-  for(let i = 0; i < notes.length; i++){
-
-    if(i > 0){
-
-      const gap = notes[i].time - notes[i-1].time;
-
-      if(gap > 0.03){
-        chordId++;
-      }
-
-    }
-
-    notes[i].chordId = chordId;
-  }
-
-  console.log("MIDI OK:", notes.length);
-
-  totalCount = notes.length;
-
-  document.getElementById("totalCount")
-  .textContent = totalCount;
 
 /* ================= START ================= */
-
 async function startGame(){
+
   await Tone.start();
   console.log("音声OK");
 
-  if(!mic){
+  // マイク初期化
+  if(!analyser){
     await startMic();
   }
 
+  // MIDIチェック
   if(!notes.length){
     alert("MIDIを読み込んでね");
     return;
   }
 
+  // ゲームリセット
   stopGame();
+
   score = 0;
   combo = 0;
   update();
@@ -792,7 +784,8 @@ async function startGame(){
   running = true;
   index = 0;
 
-countdown(3);
+  // カウントダウン開始
+  countdown(3);
 }
 
 
@@ -969,12 +962,13 @@ function spawn(n){
 function loop(){
 
   const t = getTime();
+  const gameTime = t / speed;
 
   if(!running) return;
 
   while(
     index < notes.length &&
-    notes[index].time <= t + travelTime
+    notes[index].time <= gameTime + travelTime
   ){
     spawn(notes[index]);
     index++;
@@ -983,29 +977,76 @@ function loop(){
   active.forEach(n => {
 
     const p =
-      1 - ((n.hit - t) / travelTime);
+      1 - ((n.hit - gameTime) / travelTime);
 
     const y =
       spawnY + p * (hitY - spawnY);
 
     n.el.style.top = y + "px";
 
-    /* MISS */
-    if(!n.missed && n.hit + 0.4 < t){
+    if(!n.missed && n.hit + 0.4 < gameTime){
 
       n.missed = true;
-
       n.el.remove();
-
       active = active.filter(x => x !== n);
     }
 
   });
 
   requestAnimationFrame(loop);
-
 }
 
+
+function drawChordLines(){
+  return;
+  const layer = document.getElementById("lineLayer");
+  layer.innerHTML = "";
+
+  const groups = {};
+
+  // chordIdごとにまとめる
+  active.forEach(n => {
+
+    if(!groups[n.chordId]){
+      groups[n.chordId] = [];
+    }
+
+    groups[n.chordId].push(n);
+
+  });
+
+  // 各グループで線を描く
+  Object.values(groups).forEach(group => {
+
+    if(group.length < 2) return;
+
+    // X位置を集める
+    const xs = group.map(n => {
+      const rect = n.el.getBoundingClientRect();
+      const game = document.getElementById("gameArea").getBoundingClientRect();
+      return rect.left - game.left + rect.width / 2;
+    });
+
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+
+    const line = document.createElement("div");
+
+    line.style.position = "absolute";
+    line.style.left = minX + "px";
+    line.style.top = (hitY - 20) + "px";
+
+    line.style.width = (maxX - minX) + "px";
+    line.style.height = "4px";
+
+    line.style.background = "rgba(255,255,255,0.6)";
+    line.style.borderRadius = "2px";
+
+    layer.appendChild(line);
+
+  });
+
+}
 
 function hitNearest(){
 
@@ -1121,7 +1162,7 @@ update();
 
 
 function hitFlash(){
-
+  return;
   const flash =
     document.createElement("div");
 
@@ -1201,8 +1242,7 @@ function update(){
 }
 
 function setSpeed(v){
-  console.log("speed:", v);
-
+  speed = v;
 
   const label =
     v === 0.25 ? "ゆっくり" :
@@ -1211,7 +1251,6 @@ function setSpeed(v){
 
   document.getElementById("speedLabel")
     .textContent = label;
-
 }
 
 /* ================= JUDGE ================= */
