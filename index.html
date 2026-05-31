@@ -329,7 +329,7 @@ button:hover{
 }
 
 .bubble-out {
-  animation: bubblePop 0.25s ease-out forwards;
+  animation: bubblePop 0.12s ease-out forwards;
 }
 
 .key{
@@ -401,24 +401,17 @@ button:hover{
 @keyframes noteSpawn{
 
   0%{
-    transform:
-      translateX(-50%)
-      scale(0);
     opacity:0;
-  }
-
-  60%{
     transform:
       translateX(-50%)
-      scale(1.35);
-    opacity:1;
+      translateY(-10px);
   }
 
   100%{
+    opacity:1;
     transform:
       translateX(-50%)
-      scale(1);
-    opacity:1;
+      translateY(0);
   }
 
 }
@@ -1054,7 +1047,7 @@ function loop() {
 
     n.el.style.zIndex = Math.floor(1000 - dist);
 
-if(dist < 30){
+if(dist < 20){
 
   n.el.style.transform =
     "translateX(-50%) scale(1.8)";
@@ -1247,7 +1240,7 @@ function success(best){
 
     best.el.remove();
 
-  },250);
+  },120);
 
   active =
     active.filter(n=>n!==best);
