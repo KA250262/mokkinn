@@ -108,6 +108,25 @@ h1{
 }
 
 /* 判定ライン */
+#judgeCenter{
+  position:absolute;
+
+  left:0;
+  right:0;
+
+  top:50%;
+
+  height:3px;
+
+  transform:translateY(-50%);
+
+  background:#8a0040;
+
+  box-shadow:
+    0 0 4px rgba(255,255,255,0.7);
+
+  border-radius:999px;
+}
 
 #judgeLine{
   position:absolute;
@@ -115,7 +134,7 @@ h1{
   left:20px;
   right:20px;
 
-  top:470px;
+  top:493px;
 
   height:24px;
 
@@ -202,13 +221,6 @@ button:hover{
   margin:5px;
 }
 
-#game {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
-
 .combo-bounce{
   animation: comboBounce 0.5s ease;
 }
@@ -238,9 +250,7 @@ button:hover{
 /* 判定ライン */
 /* ノーツ */
 .note{
-  
   position:absolute;
-
   width:46px;
   height:46px;
 
@@ -317,18 +327,7 @@ button:hover{
   }
 
 }
-.chord-flash{
 
-  box-shadow:
-    0 0 20px white,
-    0 0 40px #fff8a8,
-    0 0 60px #ffd966;
-
-  transform:
-    translateX(-50%)
-    scale(1.3);
-
-}
 .bubble-out {
   animation: bubblePop 0.25s ease-out forwards;
 }
@@ -434,8 +433,7 @@ button:hover{
   text-align: left;
   border-radius: 8px;
   color: white;
-  
-  
+   
 }
 </style>
 </head>
@@ -471,35 +469,25 @@ button:hover{
 
 <span id="speedLabel"></span>
 
-  <div id="judgeLine"></div>
+  <div id="judgeLine">
+  <div id="judgeCenter"></div>
+</div>
 
   <div id="keyboard"></div>
 
   <button onclick="startMic()">マイク開始</button>
 
-  
 <script>
 
 /* ===== グローバル（ここが全部の土台）===== */
-
 let prevRMS = 0;
-
 let baseline = 0;
-
 let prevSpectrum = [];
-
 let latestRMS = 0;
 let latestSpectrum = [];
-
 let lastHitDetect = 0;
-
-let keyHighlight = {};
-let songLibrary = [];
 let usedNotes = new Set();
-
-let chordMap = {};
-let chordSpawnIndex = {};
-
+let score = 0;
 
 async function startMic() {
 
@@ -518,13 +506,9 @@ async function startMic() {
 
   const analyzer =
     Meyda.createMeydaAnalyzer({
-
       audioContext: audioContext,
-
       source: source,
-
       bufferSize: 512,
-
       featureExtractors: [
         "rms",
         "amplitudeSpectrum",
@@ -607,27 +591,19 @@ async function startMic() {
         /* ================= HIT DETECT ================= */
 
         const attackMode =
-
           currentRMS > 0.015 &&
-
           currentRMS > baseline * 2 &&
-
           (
             flux > 0.15 ||
             delta > baseline * 1.2
           );
-
         if(
           attackMode &&
-          now - lastHitDetect > 120
+          now - lastHitDetect > 300
         ){
-
           console.log("押された！");
-
           hitNearest();
-
           lastHitDetect = now;
-
         }
 
         /* ================= SAVE ================= */
@@ -666,7 +642,6 @@ let active = [];
 let index = 0;
 let running = false;
 
-let score = 0;
 let combo = 0;
 
 let hitCount = 0;
@@ -677,11 +652,9 @@ let whiteIndex = 0;
 let splitNote = 60;
 let speed = 0.5;
 
-
 /* ================= TIMING （時間）=================== */
 
 let startTime = 0;
-let lastHitTime = 0;
 
 function getTime(){
 
@@ -689,11 +662,10 @@ function getTime(){
     (performance.now() - startTime)
     / 1000
     - 3;
-
   return rawTime * speed;
 }
 /* ================= CONFIG （設定）================= */
-const travelTime = 3;
+const travelTime = 1.2;
 const hitY = 470;
 const spawnY = -40;
 
@@ -710,7 +682,6 @@ const songConfig = {
   "3A_前奏曲.mid": { split: 68 }
 };
 
-
 const noteMap = {
   "C":"ど",
   "D":"れ",
@@ -720,8 +691,6 @@ const noteMap = {
   "A":"ら",
   "B":"し"
 };
-
-
 
 /* ================= KEYBOARD ================= */
 
@@ -739,22 +708,17 @@ kb.innerHTML = "";
 
 
 keys.forEach(n=>{
-
   const k = document.createElement("div");
-
   k.dataset.note = n;
 
   const isBlack = n.includes("#");
-
   k.className = isBlack ? "black" : "key";
 
   if(isBlack){
-
     k.style.left =
       (whiteIndex * 28 - 9) + "px";
 
   }else{
-
     k.style.left =
       (whiteIndex * 28) + "px";
 
@@ -801,7 +765,6 @@ window.addEventListener("load", () => {
 
 });
 
-
 /* ================= COLOR UTIL ================= */
 function getNoteColor(note){
 
@@ -813,13 +776,12 @@ function getNoteColor(note){
 }
 
 function loadMidi(buffer, fileName){
-
+  chordSpawnIndex = {};
   const midi = new Midi(buffer);
 
   notes = [];
   usedNotes.clear();
 
-  // 🎯 曲ごとのスプリット（デフォルト60）
   splitNote = songConfig[fileName]?.split ?? 60;
 
   // ================= MIDI展開 =================
@@ -847,21 +809,9 @@ function loadMidi(buffer, fileName){
   notes.sort((a, b) => a.time - b.time);
 
   // ================= 和音グループ化 =================
-  let chordId = 0;
-
   for (let i = 0; i < notes.length; i++) {
-
-    if (i > 0) {
-      const gap = notes[i].time - notes[i - 1].time;
-
-      if (gap > 0.03) {
-        chordId++;
-      }
-    }
-
-    notes[i].chordId = chordId;
-  }
-
+  notes[i].chordId = i;
+}
 
   // ================= UI更新 =================
   totalCount = notes.length;
@@ -871,6 +821,12 @@ function loadMidi(buffer, fileName){
   console.log("splitNote:", splitNote);
 
   paintKeyboard();
+
+console.log(
+  notes.slice(0,30).map(n =>
+    `${n.time.toFixed(3)} ${n.note}`
+  )
+);
 }
 
 
@@ -884,7 +840,6 @@ function paintKeyboard(){
 
       if(usedNotes.has(note)){
 
-        // 曲で使う鍵盤は普通の色
         if(key.classList.contains("black")){
 
           key.style.background = "#222";
@@ -898,8 +853,6 @@ function paintKeyboard(){
         key.style.opacity = "1";
 
       }else{
-
-        // 曲で使わない鍵盤は木目
 
         if(key.classList.contains("black")){
 
@@ -923,22 +876,19 @@ function paintKeyboard(){
 
 /* ================= START ================= */
 async function startGame(){
-
+  chordSpawnIndex = {};
   await Tone.start();
   console.log("音声OK");
 
-  // マイク初期化
   if(!analyser){
     await startMic();
   }
 
-  // MIDIチェック
   if(!notes.length){
     alert("MIDIを読み込んでね");
     return;
   }
 
-  // ゲームリセット
   stopGame();
 
   score = 0;
@@ -948,7 +898,6 @@ async function startGame(){
   running = true;
   index = 0;
 
-  // カウントダウン開始
   countdown(3);
 }
 
@@ -1000,26 +949,6 @@ function stopGame(){
 
 }
 
-function updateNextKey(){
-return;
-  document
-    .querySelectorAll(".next")
-    .forEach(k=>k.classList.remove("next"));
-
-  if(active.length === 0) return;
-
-  const next = active[0];
-
-  const key = document.querySelector(
-    `[data-note="${next.note}"]`
-  );
-
-  if(key){
-    key.classList.add("next");
-  }
-
-}
-
 /* ================= SPAWN ================= */
 
 function spawn(n){
@@ -1033,14 +962,12 @@ function spawn(n){
   const el = document.createElement("div");
   el.className = "note note-spawn";
 
-  // アニメ削除タイミング（保険）
+
   setTimeout(() => {
     el.classList.remove("note-spawn");
   }, 250);
 
-  // =========================
-  // 色（黒鍵だけ濃くする）
-  // =========================
+
   const isBlack = key.classList.contains("black");
 
   let color;
@@ -1065,29 +992,18 @@ function spawn(n){
 
   document.getElementById("gameArea").appendChild(el);
 
-  // =========================
-  // chordズレ防止（安定版）
-  // =========================
-  if (chordSpawnIndex[n.chordId] === undefined) {
-    chordSpawnIndex[n.chordId] = 0;
-  }
 
-  const idx = chordSpawnIndex[n.chordId]++;
-  const DROP_DELAY = 0.15;
-  const dropOffset = idx * DROP_DELAY;
+  const dropOffset = 0;
+active.push({
+  el,
+  note:n.note,
+  hit:n.time,
+  chordId:n.chordId,
+  hand:n.hand,
+  missed:false,
+  dropOffset:0
+});
 
-  active.push({
-    el,
-    note: n.note,
-    hit: n.time,
-    chordId: n.chordId,
-    hand: n.hand,
-    missed: false,
-    flashDone: false,
-    dropOffset
-  });
-
-  updateNextKey();
 }
 
 /* ================= Loop ================= */
@@ -1100,7 +1016,7 @@ function loop() {
 
   const gameTime = rawTime * speed;
 
-  const PREVIEW_TIME = 0.3;
+  const PREVIEW_TIME = 0;
 
   // =========================
   // ノーツ生成
@@ -1117,30 +1033,14 @@ function loop() {
   // ノーツ更新
   // =========================
   active.forEach(n => {
-    // =========================
-// 判定ライン通過エフェクト（薄くする）
-// =========================
-const yNow = parseFloat(n.el.style.top);
-const passed = yNow > hitY + 20; // 少し余裕
-
-if (passed) {
-  n.el.style.opacity = "0.25";
-  n.el.style.filter = "grayscale(1)";
-} else {
-  n.el.style.opacity = "1";
-  n.el.style.filter = "none";
-}
-
-    // 🌊デバッグ（必要ならON）
-    // console.log(n.note, n.dropOffset);
-
+    
     // =========================
     // しずく演出時間
     // =========================
     const visualTime = gameTime - n.dropOffset;
 
     // =========================
-    // 位置計算（ここが本体）
+    // 位置計算
     // =========================
     const p =
       1 - ((n.hit - visualTime) / travelTime);
@@ -1150,41 +1050,48 @@ if (passed) {
 
     n.el.style.top = y + "px";
 
+    const dist = Math.abs(y - hitY);
+
+    n.el.style.zIndex = Math.floor(1000 - dist);
+
+if(dist < 30){
+
+  n.el.style.transform =
+    "translateX(-50%) scale(1.8)";
+
+  n.el.style.boxShadow =
+    "0 0 20px white";
+
+}else{
+
+  n.el.style.transform =
+    "translateX(-50%) scale(1)";
+
+  n.el.style.boxShadow =
+    "none";
+}
+
     // =========================
-    // 和音フラッシュ
+    // 判定ライン通過後は薄くする
     // =========================
-    const diff = n.hit - visualTime;
+    const passed =
+  (gameTime > n.hit + 0.05);
 
-    if (
-      diff < 0.25 &&
-      diff > 0.15 &&
-      !n.flashDone
-    ) {
-
-      const sameChord =
-        active.filter(x => x.chordId === n.chordId);
-
-      if (sameChord.length >= 2) {
-
-        sameChord.forEach(x => {
-
-          x.el.classList.add("chord-flash");
-
-          setTimeout(() => {
-            x.el.classList.remove("chord-flash");
-          }, 120);
-
-          x.flashDone = true;
-
-        });
-
-      }
+    if (passed) {
+      n.el.style.opacity = "0";
+    
+    } else {
+      n.el.style.opacity = "1";
+    
     }
 
     // =========================
     // MISS処理
     // =========================
-    if (!n.missed && n.hit + 0.15 < (gameTime - n.dropOffset)){
+  if (
+  !n.missed &&
+  n.hit + 0.15 < gameTime
+){
 
       n.missed = true;
       n.el.remove();
@@ -1203,13 +1110,12 @@ if (passed) {
   ) {
 
     running = false;
-    showResult(); 
+    showResult();
     return;
   }
 
   requestAnimationFrame(loop);
 }
-
 
 function showResult(){
 
@@ -1227,122 +1133,14 @@ function showResult(){
   }, 2000);
 }
 
-
-function createBubble(){
-
-  const el = document.createElement("div");
-
-  el.style.position = "absolute";
-  el.style.width = "10px";
-  el.style.height = "10px";
-  el.style.borderRadius = "50%";
-  el.style.background = "white";
-  el.style.left = Math.random() * window.innerWidth + "px";
-  el.style.top = "80%";
-  el.style.opacity = "0.6";
-
-  document.getElementById("gameArea").appendChild(el);
-
-  el.animate([
-    { transform: "translateY(0px)", opacity: 0.6 },
-    { transform: "translateY(-200px)", opacity: 0 }
-  ], {
-    duration: 800,
-    easing: "ease-out"
-  });
-
-  setTimeout(() => el.remove(), 800);
-}
-/* ================= KeyGuide ================= */
-
-function updateKeyGuide(){
-  return;
-  const currentTime = getTime();
-
-document.querySelectorAll(".key")
-  .forEach(k=>{
-    k.classList.remove("guide");
-    k.style.opacity = "";
-  });
-
-  const PREVIEW_TIME = 0.3;
-
-  // ① 未来ノーツだけ青く光る
-  for(let i = index; i < notes.length; i++){
-
-    const n = notes[i];
-    const diff = n.time - currentTime;
-
-    if(diff < 0) continue;
-    if(diff > travelTime + PREVIEW_TIME) break;
-
-    const key = document.querySelector(`[data-note="${n.note}"]`);
-
-    if(key){
-      key.classList.add("guide");
-      key.style.opacity = 0.4 + (1 - diff / (travelTime + PREVIEW_TIME)) * 0.6;
-    }
-  }
-}
-/* ================= ChordLine ================= */
-function drawChordLines(){
-  return;
-  const layer = document.getElementById("lineLayer");
-  layer.innerHTML = "";
-
-  const groups = {};
-
-  // chordIdごとにまとめる
-  active.forEach(n => {
-
-    if(!groups[n.chordId]){
-      groups[n.chordId] = [];
-    }
-
-    groups[n.chordId].push(n);
-
-  });
-
-  // 各グループで線を描く
-  Object.values(groups).forEach(group => {
-
-    if(group.length < 2) return;
-
-    // X位置を集める
-    const xs = group.map(n => {
-      const rect = n.el.getBoundingClientRect();
-      const game = document.getElementById("gameArea").getBoundingClientRect();
-      return rect.left - game.left + rect.width / 2;
-    });
-
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-
-    const line = document.createElement("div");
-
-    line.style.position = "absolute";
-    line.style.left = minX + "px";
-    line.style.top = (hitY - 20) + "px";
-
-    line.style.width = (maxX - minX) + "px";
-    line.style.height = "4px";
-
-    line.style.background = "rgba(255,255,255,0.6)";
-    line.style.borderRadius = "2px";
-
-    layer.appendChild(line);
-
-  });
-
-}
 /* ================= hitnearest ================= */
 function hitNearest(){
 
-  const hitRange = 40; // ←ここが判定の太さ（px）
+  const hitRange = 40;
 
-  let best = null;
   let bestDist = 999;
 
+  // 一番近いノーツを探す
   active.forEach(n => {
 
     const rect = n.el.getBoundingClientRect();
@@ -1354,20 +1152,34 @@ function hitNearest(){
 
     if(dist < bestDist){
       bestDist = dist;
-      best = n;
     }
 
   });
 
-  // 範囲外なら無視
-  if(!best || bestDist > hitRange) return;
+  if(bestDist > hitRange) return;
 
   let judge = "GOOD";
-  if(bestDist < 15) judge = "PERFECT";
 
-  success(best);
+  if(bestDist < 15){
+    judge = "PERFECT";
+  }
 
-  hitFlash();
+  // 一番近いノーツと同じタイミングのものを全部消す
+  active
+    .filter(n => {
+
+      const rect = n.el.getBoundingClientRect();
+      const game = document.getElementById("gameArea").getBoundingClientRect();
+
+      const y = rect.top - game.top;
+
+      const dist = Math.abs(y - hitY);
+
+      return Math.abs(dist - bestDist) < 12;
+
+    })
+    .forEach(n => success(n));
+
   showJudge(judge);
 }
 /* ================= HIT ================= */
@@ -1399,19 +1211,14 @@ function hit(note){
 
   });
 
-
-  // synth.triggerAttackRelease(note, "8n");
-
   if(best && bestDiff < 0.30){
 
   success(best,note);
 
   score += 300;
-  addScoreEffect(300);
 
   combo++;
 
-  hitFlash();
   showJudge("PERFECT");
 
 } else if(best && bestDiff < 0.6){
@@ -1419,11 +1226,9 @@ function hit(note){
   success(best,note);
 
   score += 100;
-  addScoreEffect(100);
 
   combo++;
 
-  hitFlash();
   showJudge("GOOD");
 
 } 
@@ -1432,27 +1237,6 @@ update();
 
 }
 
-
-
-
-function hitFlash(){
-  return;
-  const flash =
-    document.createElement("div");
-
-  flash.className = "hit-flash";
-
-  flash.style.top = (hitY - 10) + "px";
-
-  document
-    .getElementById("gameArea")
-    .appendChild(flash);
-
-  setTimeout(()=>{
-    flash.remove();
-  },180);
-
-}
 /* ================= SUCCESS ================= */
 
 function success(best){
@@ -1473,29 +1257,8 @@ function success(best){
   document.getElementById("hitCount")
     .textContent = hitCount;
 
-  updateNextKey();
-
 }
 /* ================= INPUT(関数） ================= */
-
-
-
-
-function addScoreEffect(value){
-
-  const el =
-    document.getElementById("score");
-
-  el.style.transform = "scale(1.3)";
-  el.style.color = "yellow";
-
-  setTimeout(()=>{
-
-    el.style.transform = "scale(1)";
-    el.style.color = "gold";
-
-  },100);
-}
 
 document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
 
@@ -1540,7 +1303,6 @@ function setSpeed(mode){
     .textContent = label;
 }
 
-
 /* ================= JUDGE ================= */
 
 function showJudge(text){
@@ -1571,18 +1333,6 @@ function showJudge(text){
     j.style.opacity = "0.7";
 
   },500);
-}
-
-function comboEffect(){
-
-  const mascot =
-    document.getElementById("mascot");
-
-  mascot.classList.remove("combo-bounce");
-
-  void mascot.offsetWidth;
-
-  mascot.classList.add("combo-bounce");
 }
 </script>
 
