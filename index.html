@@ -497,6 +497,8 @@ let keyHighlight = {};
 let songLibrary = [];
 let usedNotes = new Set();
 
+let chordMap = {};
+let chordSpawnIndex = {};
 
 
 async function startMic() {
@@ -704,7 +706,7 @@ const SPEED_MAP = {
 const songConfig = {
   "song.mid": { split: 60 },
   "55.mid": { split: 70 },
-  "song3.mid": { split: 65 }
+  "3B_15_マリオネットのダンス.mid": { split: 67 }
 };
 
 
@@ -1018,49 +1020,55 @@ return;
 }
 
 /* ================= SPAWN ================= */
+
 function spawn(n){
 
-  const key =
-    document.querySelector(
-      `[data-note="${n.note}"]`
-    );
-
+  const key = document.querySelector(`[data-note="${n.note}"]`);
   if(!key) return;
 
-  const g =
-    document.getElementById("gameArea")
-    .getBoundingClientRect();
+  const g = document.getElementById("gameArea").getBoundingClientRect();
+  const k = key.getBoundingClientRect();
 
-  const k =
-    key.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = "note note-spawn";
 
-  const el =
-    document.createElement("div");
+  setTimeout(() => {
+    el.classList.remove("note-spawn");
+  }, 250);
 
-  el.className = "note";
-  el.classList.add("note-spawn");
-  setTimeout(()=>{
-  el.classList.remove("note-spawn");
-  },250);
-  // 🎨 ここで色を付ける（正解ポイント）
+  // 色
   el.style.background = getNoteColor(n);
 
   el.style.left =
-    (k.left - g.left + k.width / 2)
-    + "px";
+    (k.left - g.left + k.width / 2) + "px";
 
+  // テキスト
   const text = document.createElement("div");
-
   text.className = "note-text";
-
   text.textContent = noteMap[n.note[0]];
-
   el.appendChild(text);
 
-  document
-    .getElementById("gameArea")
-    .appendChild(el);
+  document.getElementById("gameArea").appendChild(el);
 
+  // =========================
+  // 🌊 安定したドロップ計算
+  // =========================
+
+  // chordIdごとの“固定インデックス”
+  if (chordSpawnIndex[n.chordId] === undefined) {
+    chordSpawnIndex[n.chordId] = 0;
+  }
+
+  const idx = chordSpawnIndex[n.chordId];
+  chordSpawnIndex[n.chordId]++;
+
+  const DROP_DELAY = 0.15;
+
+  const dropOffset = idx * DROP_DELAY;
+
+  // =========================
+  // active登録
+  // =========================
   active.push({
     el,
     note: n.note,
@@ -1068,103 +1076,163 @@ function spawn(n){
     chordId: n.chordId,
     missed: false,
     hand: n.hand,
-    flashDone:false
+    flashDone: false,
+    dropOffset: dropOffset
   });
 
   updateNextKey();
 }
 
-
 /* ================= Loop ================= */
-function loop(){
-const rawTime = (performance.now() - startTime) / 1000 - 3;
-const gameTime = rawTime * speed;
- 
+function loop() {
 
-  if(!running) return;
- 
-  const PREVIEW_TIME = 0.3; // 先読み量
+  if (!running) return;
 
- while(
+  const rawTime =
+    (performance.now() - startTime) / 1000 - 3;
+
+  const gameTime = rawTime * speed;
+
+  const PREVIEW_TIME = 0.3;
+
+  // =========================
+  // ノーツ生成
+  // =========================
+  while (
     index < notes.length &&
     notes[index].time <= gameTime + travelTime + PREVIEW_TIME
-  ){
+  ) {
     spawn(notes[index]);
     index++;
   }
 
+  // =========================
+  // ノーツ更新
+  // =========================
   active.forEach(n => {
 
+    // 🌊デバッグ（必要ならON）
+    // console.log(n.note, n.dropOffset);
+
+    // =========================
+    // しずく演出時間
+    // =========================
+    const visualTime = gameTime - n.dropOffset;
+
+    // =========================
+    // 位置計算（ここが本体）
+    // =========================
     const p =
-      1 - ((n.hit - gameTime) / travelTime);
+      1 - ((n.hit - visualTime) / travelTime);
 
     const y =
       spawnY + p * (hitY - spawnY);
 
     n.el.style.top = y + "px";
-    const diff = n.hit - gameTime;
 
-if(
-  diff < 0.25 &&
-  diff > 0.15 &&
-  !n.flashDone
-){
+    // =========================
+    // 和音フラッシュ
+    // =========================
+    const diff = n.hit - visualTime;
 
-  const sameChord =
-    active.filter(x =>
-      x.chordId === n.chordId
-    );
+    if (
+      diff < 0.25 &&
+      diff > 0.15 &&
+      !n.flashDone
+    ) {
 
-  if(sameChord.length >= 2){
+      const sameChord =
+        active.filter(x => x.chordId === n.chordId);
 
-    sameChord.forEach(x=>{
+      if (sameChord.length >= 2) {
 
-      x.el.classList.add("chord-flash");
+        sameChord.forEach(x => {
 
-      setTimeout(()=>{
-        x.el.classList.remove("chord-flash");
-      },120);
+          x.el.classList.add("chord-flash");
 
-      x.flashDone = true;
+          setTimeout(() => {
+            x.el.classList.remove("chord-flash");
+          }, 120);
 
-    });
+          x.flashDone = true;
 
-  }
+        });
 
-}
+      }
+    }
 
-    if(!n.missed && n.hit + 0.15 < gameTime){
+    // =========================
+    // MISS処理
+    // =========================
+    if (!n.missed && n.hit + 0.15 < (gameTime - n.dropOffset)){
 
       n.missed = true;
       n.el.remove();
+
       active = active.filter(x => x !== n);
     }
 
   });
 
-  if(
+  // =========================
+  // 終了判定
+  // =========================
+  if (
     index >= notes.length &&
     active.length === 0
-  ){
+  ) {
 
     running = false;
-
-    for(let i=0;i<30;i++){
-
-      createBubble();
-
-    }
-
-    showResult();
-
+    showResult(); 
     return;
   }
 
-  
   requestAnimationFrame(loop);
-
 }
 
+
+function showResult(){
+
+  const judge = document.getElementById("judge");
+
+  judge.textContent = "FINISH!";
+  judge.style.color = "gold";
+  judge.style.transform = "scale(1.5)";
+  judge.style.opacity = "1";
+
+  setTimeout(() => {
+    judge.textContent = "";
+    judge.style.transform = "scale(1)";
+    judge.style.opacity = "0.7";
+  }, 2000);
+}
+
+
+function createBubble(){
+
+  const el = document.createElement("div");
+
+  el.style.position = "absolute";
+  el.style.width = "10px";
+  el.style.height = "10px";
+  el.style.borderRadius = "50%";
+  el.style.background = "white";
+  el.style.left = Math.random() * window.innerWidth + "px";
+  el.style.top = "80%";
+  el.style.opacity = "0.6";
+
+  document.getElementById("gameArea").appendChild(el);
+
+  el.animate([
+    { transform: "translateY(0px)", opacity: 0.6 },
+    { transform: "translateY(-200px)", opacity: 0 }
+  ], {
+    duration: 800,
+    easing: "ease-out"
+  });
+
+  setTimeout(() => el.remove(), 800);
+}
 /* ================= KeyGuide ================= */
 
 function updateKeyGuide(){
@@ -1436,9 +1504,9 @@ function update(){
 function setSpeed(mode){
 
   const SPEED_MAP = {
-    slow: 0.4,
-    normal: 0.6,
-    fast: 0.8
+    slow: 0.15,
+    normal: 0.25,
+    fast: 0.35
   };
 
   speed = SPEED_MAP[mode];
