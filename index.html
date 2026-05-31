@@ -706,7 +706,8 @@ const SPEED_MAP = {
 const songConfig = {
   "song.mid": { split: 60 },
   "55.mid": { split: 70 },
-  "3B_15_マリオネットのダンス.mid": { split: 67 }
+  "3B_15_マリオネットのダンス.mid": { split: 67 },
+  "3A_前奏曲.mid": { split: 68 }
 };
 
 
@@ -1032,13 +1033,27 @@ function spawn(n){
   const el = document.createElement("div");
   el.className = "note note-spawn";
 
+  // アニメ削除タイミング（保険）
   setTimeout(() => {
     el.classList.remove("note-spawn");
   }, 250);
 
-  // 色
-  el.style.background = getNoteColor(n);
+  // =========================
+  // 色（黒鍵だけ濃くする）
+  // =========================
+  const isBlack = key.classList.contains("black");
 
+  let color;
+
+  if(n.hand === "left"){
+    color = isBlack ? "#1f4f7a" : "#4aa3ff";
+  }else{
+    color = isBlack ? "#7a1f1f" : "#ff4a4a";
+  }
+
+  el.style.background = color;
+
+  // 位置
   el.style.left =
     (k.left - g.left + k.width / 2) + "px";
 
@@ -1051,33 +1066,25 @@ function spawn(n){
   document.getElementById("gameArea").appendChild(el);
 
   // =========================
-  // 🌊 安定したドロップ計算
+  // chordズレ防止（安定版）
   // =========================
-
-  // chordIdごとの“固定インデックス”
   if (chordSpawnIndex[n.chordId] === undefined) {
     chordSpawnIndex[n.chordId] = 0;
   }
 
-  const idx = chordSpawnIndex[n.chordId];
-  chordSpawnIndex[n.chordId]++;
-
+  const idx = chordSpawnIndex[n.chordId]++;
   const DROP_DELAY = 0.15;
-
   const dropOffset = idx * DROP_DELAY;
 
-  // =========================
-  // active登録
-  // =========================
   active.push({
     el,
     note: n.note,
     hit: n.time,
     chordId: n.chordId,
-    missed: false,
     hand: n.hand,
+    missed: false,
     flashDone: false,
-    dropOffset: dropOffset
+    dropOffset
   });
 
   updateNextKey();
@@ -1110,6 +1117,19 @@ function loop() {
   // ノーツ更新
   // =========================
   active.forEach(n => {
+    // =========================
+// 判定ライン通過エフェクト（薄くする）
+// =========================
+const yNow = parseFloat(n.el.style.top);
+const passed = yNow > hitY + 20; // 少し余裕
+
+if (passed) {
+  n.el.style.opacity = "0.25";
+  n.el.style.filter = "grayscale(1)";
+} else {
+  n.el.style.opacity = "1";
+  n.el.style.filter = "none";
+}
 
     // 🌊デバッグ（必要ならON）
     // console.log(n.note, n.dropOffset);
