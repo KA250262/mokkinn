@@ -203,6 +203,62 @@ button:hover{
   transform:scale(1.05);
 }
 
+#flowerBar{
+
+  position:absolute;
+
+  top:270px;
+
+  left:50%;
+
+  transform:translateX(-50%);
+
+  display:flex;
+
+  gap:20px;
+
+  z-index:150;
+}
+
+.flowerBtn{
+
+  border:none;
+
+  background:none;
+
+  font-size:42px;
+
+  cursor:pointer;
+
+  transition:0.2s;
+}
+
+.flowerBtn:hover{
+
+  transform:scale(1.15);
+
+}
+
+#songMenu{
+
+  display:none;
+
+  position:absolute;
+
+  top:280px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  background:white;
+
+  border-radius:20px;
+
+  padding:10px;
+
+  z-index:999;
+}
+
 #score{
   color:gold;
   display:inline-block;
@@ -229,6 +285,34 @@ button:hover{
   box-shadow: 0 0 8px rgba(120,220,255,0.5);
   opacity: 0.6;
 }
+
+
+.flower{
+  width:48px;
+  height:48px;
+
+  border:none;
+  background:none;
+
+  font-size:32px;
+
+  cursor:pointer;
+
+  transition:0.2s;
+}
+
+.flower:hover{
+  transform:scale(1.2) rotate(10deg);
+}
+
+.flower1{ filter:hue-rotate(0deg); }
+.flower2{ filter:hue-rotate(40deg); }
+.flower3{ filter:hue-rotate(80deg); }
+.flower4{ filter:hue-rotate(120deg); }
+.flower5{ filter:hue-rotate(180deg); }
+.flower6{ filter:hue-rotate(240deg); }
+.flower7{ filter:hue-rotate(300deg); }
+
 
 #mascot{
 
@@ -532,15 +616,50 @@ button:hover{
 <div id="lineLayer"></div>
 
 <div id="ui">
-<button onclick="setSpeed('slow')">ゆっくり</button>
-<button onclick="setSpeed('normal')">ふつう</button>
-<button onclick="setSpeed('fast')">はやい</button>
+ <button onclick="setSpeed('slow')">ゆっくり</button>
+ <button onclick="setSpeed('normal')">ふつう</button>
+ <button onclick="setSpeed('fast')">はやい</button>
 
-<input type="file" id="midiFile">
+ <button onclick="startGame()">再生</button>
+ <button onclick="stopGame()">停止</button>
 
-<button onclick="startGame()">再生</button>
-<button onclick="stopGame()">停止</button>
 </div>
+
+<div id="songMenu">
+
+  <button onclick="loadSong('55.mid')">
+    55.mid
+  </button>
+
+  <button onclick="loadSong('3A_前奏曲.mid')">
+    前奏曲
+  </button>
+
+  <button onclick="loadSong('3B_15_マリオネットのダンス.mid')">
+    マリオネット
+  </button>
+
+</div>
+
+<div id="flowerBar">
+
+  <button class="flowerBtn"
+          onclick="loadSong('55.mid')">
+    🌸
+  </button>
+
+  <button class="flowerBtn"
+          onclick="loadSong('3A_前奏曲.mid')">
+    🌸
+  </button>
+
+  <button class="flowerBtn"
+          onclick="loadSong('3B_15_マリオネットのダンス.mid')">
+    🌸
+  </button>
+
+</div>
+
 <div id="debug"></div>
 
 <span id="speedLabel"></span>
@@ -818,30 +937,14 @@ keys.forEach(n=>{
 
 kb.style.width =
   (whiteIndex * 28) + "px";
-/* ================= MIDI LOAD ================= */
-
-document.getElementById("midiFile")
-.addEventListener("change", async (e) => {
-
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const buf = await file.arrayBuffer();
-
-  const array = Array.from(new Uint8Array(buf));
-
-  localStorage.setItem("savedMidi", JSON.stringify({
-    name: file.name,
-    data: array
-  }));
-
-  loadMidi(buf, file.name);
-
-});
 
 /* ================= AUTO LOAD ================= */
 
 window.addEventListener("load", () => {
+
+    loadMidiFromUrl("./songs/55.mid","55.mid");
+
+  
   const saved = localStorage.getItem("savedMidi");
   if (!saved) return;
   const obj = JSON.parse(saved);
@@ -861,6 +964,27 @@ function getNoteColor(note){
 
   return "#ff4a4a";   // 赤系（右手）
 }
+
+/* ================= MIDI URL LOAD ================= */
+
+async function loadMidiFromUrl(url, fileName){
+
+  console.log("読み込み開始");
+
+  const res = await fetch(url);
+
+  console.log("status:", res.status);
+
+  const buf = await res.arrayBuffer();
+
+  console.log("サイズ:", buf.byteLength);
+
+  loadMidi(buf, fileName);
+
+  console.log("MIDI読込成功");
+}
+
+/* ================= MIDI LOAD ================= */
 
 function loadMidi(buffer, fileName){
   chordSpawnIndex = {};
@@ -1410,6 +1534,15 @@ function showGoal() {
   setTimeout(() => {
     el.style.display = "none";
   }, 2500);
+}
+
+function loadSong(fileName){
+
+  loadMidiFromUrl(
+    "./songs/" + fileName,
+    fileName
+  );
+
 }
 </script>
 
