@@ -437,11 +437,11 @@ button:hover{
 /* 🎯 同時押しノーツを繋ぐ光の線 */
 .combo-line {
   position: absolute;
-  height: 4px; /* 細い光の線 */
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
-  box-shadow: 0 0 8px #ffffff, 0 0 15px rgba(255, 255, 255, 0.5);
+  height: 4px; /* 太さ */
+  background: linear-gradient(90deg, transparent, #ffffff 20%, #ffffff 80%, transparent) !important;
+  box-shadow: 0 0 12px #ffffff, 0 0 20px #ffff00;
   pointer-events: none;
-  z-index: 1500; /* ノーツよりは下、通常の鍵盤よりは上 */
+  z-index: 9999 !important; /* 👈 ノーツやマスコットより絶対手前に出すために !important を付与 */
   animation: lineFlash 0.15s ease-out forwards;
 }
 
@@ -1266,122 +1266,107 @@ function loop() {
     index++;
   }
 
-// =========================
-// ノーツ更新
-// =========================
-active.forEach(n => {
-  const visualTime = gameTime - n.dropOffset;
-  const p = 1 - ((n.hit - visualTime) / travelTime);
-  const y = spawnY + p * (hitY - spawnY);
-  n.el.style.top = y + "px";
-
-  const gameHeight = document.getElementById("gameArea").clientHeight;
-  if (y > gameHeight + 50) {
-    n.el.remove();
-    active = active.filter(x => x !== n);
-    return;
-  }
-
-  const dist = Math.abs(y - hitY);
-  n.el.style.zIndex = Math.floor(1000 - dist);
-
-
-
 // ==========================================
-  // 🎯 巨大化・スマートな縮小の統合処理（サイズを半分に調整版）
+  // 🎯 ノーツ更新（同時押し横線の絶対描画版）
   // ==========================================
-  if (gameTime > n.hit) {
-    // ① 判定タイミングを過ぎた後（縮小しながらスッと消す）
-    const timePast = gameTime - n.hit;
-    const fadeDuration = 0.10; // 0.1秒で完全に消す
-    
-    // 🎯 最大サイズ（1.4）から一気に小さくしぼませる
-    const scale = Math.max(0.2, 1.4 - (timePast / fadeDuration) * 1.2);
-    const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-    
-    n.el.style.transform = `translateX(-50%) scale(${scale})`;
-    n.el.style.opacity = opacity;
-    n.el.style.zIndex = 500;
+  active.forEach(n => {
+    const visualTime = gameTime - n.dropOffset;
+    const p = 1 - ((n.hit - visualTime) / travelTime);
+    const y = spawnY + p * (hitY - spawnY);
+    n.el.style.top = y + "px";
 
-    
-} else if (dist < 25) {
-    // ② ジャストのタイミング（巨大化 ＆ 鍵盤を光らせる）
-    n.el.style.transform = "translateX(-50%) scale(1.4)";
-    n.el.style.opacity = "1";
-    n.el.style.zIndex = 2000;
+    const gameHeight = document.getElementById("gameArea").clientHeight;
+    if (y > gameHeight + 50) {
+      n.el.remove();
+      active = active.filter(x => x !== n);
+      return;
+    }
 
-    // まだこのノーツで鍵盤を光らせていない場合のみ実行
-    if (!n.isKeyFlashed) {
-      n.isKeyFlashed = true; // 2回以上走らないようにロック
+    const dist = Math.abs(y - hitY);
+    n.el.style.zIndex = Math.floor(1000 - dist);
 
-
+    // サイズと透明度のアニメーション計算
+    if (gameTime > n.hit) {
+      // ① 判定タイミングを過ぎた後（さらにシュッと縮んで消える）
+      const timePast = gameTime - n.hit;
+      const fadeDuration = 0.10;
       
-// 🌟 【修正版】同時押しノーツを横線で繋ぐエフェクト
-        // 自分と同じタイミング（chordId）の相方ノーツを探す
-        const partner = active.find(other => other !== n && other.chordId === n.chordId && Math.abs(other.hit - n.hit) < 0.01);
-        
-        if (partner && !n.isLineDrawn && !partner.isLineDrawn) {
-          n.isLineDrawn = true;
-          partner.isLineDrawn = true;
+      const scale = Math.max(0.2, 1.0 - (timePast / fadeDuration) * 0.8);
+      const opacity = Math.max(0, 1 - (timePast / fadeDuration));
+      
+      n.el.style.transform = `translateX(-50%) scale(${scale})`;
+      n.el.style.opacity = opacity;
+      n.el.style.zIndex = 500;
+    } else {
+      // ② 判定位置に近づく前（出始めが大きく、だんだんしぼむ）
+      const currentScale = 1.8 - (p * 0.8);
+      n.el.style.transform = `translateX(-50%) scale(${currentScale})`;
+      n.el.style.opacity = "1";
 
-          // 🎯 style.left からではなく、画面上の実際のピクセル位置（getBoundingClientRect）から正確に取得する
-          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-          const rect1 = n.el.getBoundingClientRect();
-          const rect2 = partner.el.getBoundingClientRect();
+      // ③ ジャストの瞬間（dist が 25px 未満）に鍵盤発光 ＆ 同時押し線を引く
+      if (dist < 25 && !n.isKeyFlashed) {
+        n.isKeyFlashed = true; // 2回以上走らないようにロック
+        n.el.style.zIndex = 2000;
 
-          // ノーツの中心のX座標を計算
-          const x1 = rect1.left - gameRect.left + (rect1.width / 2);
-          const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+        // 🌟 【超確実版】同時押しノーツを横線で繋ぐエフェクト
+        // まだ線が引かれていない場合のみ、同じ chordId の相方ノーツを画面全体（active）から探す
+        if (!n.isLineDrawn) {
+          const partner = active.find(other => other !== n && other.chordId === n.chordId);
           
-          const leftX = Math.min(x1, x2);
-          const lineWidth = Math.abs(x1 - x2);
+          if (partner) {
+            // お互いに「描画済みフラグ」を立てて二重描画を防ぐ
+            n.isLineDrawn = true;
+            partner.isLineDrawn = true;
 
-          // 横線（レーザー）の要素を作成
-          const lineEl = document.createElement("div");
-          lineEl.className = "combo-line";
-          lineEl.style.left = leftX + "px";
-          lineEl.style.width = lineWidth + "px";
-          
-          // 🎯 現在のノーツの高さ（中心）にぴったり合わせる
-          const currentY = rect1.top - gameRect.top + (rect1.height / 2);
-          lineEl.style.top = currentY + "px"; 
+            const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+            const rect1 = n.el.getBoundingClientRect();
+            const rect2 = partner.el.getBoundingClientRect();
 
-          document.getElementById("gameArea").appendChild(lineEl);
+            // ノーツの中心のX座標を計算
+            const x1 = rect1.left - gameRect.left + (rect1.width / 2);
+            const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+            
+            const leftX = Math.min(x1, x2);
+            const lineWidth = Math.abs(x1 - x2);
 
-          // 0.15秒後に線を消去
-          setTimeout(() => lineEl.remove(), 150);
+            // 横線（レーザー）の要素を作成
+            const lineEl = document.createElement("div");
+            lineEl.className = "combo-line";
+            lineEl.style.left = leftX + "px";
+            lineEl.style.width = lineWidth + "px";
+            
+            // 現在のノーツの高さ（中心）にぴったり合わせる
+            const currentY = rect1.top - gameRect.top + (rect1.height / 2);
+            lineEl.style.top = currentY + "px"; 
+
+            document.getElementById("gameArea").appendChild(lineEl);
+
+            // 0.15秒後に線を消去
+            setTimeout(() => lineEl.remove(), 150);
+          }
         }
 
-
-
-// 鍵盤を光らせる既存の処理
-      const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
-      if (targetKey) {
-        const isBlackKey = targetKey.classList.contains("black");
-        const flashClass = isBlackKey ? "hit-black" : "hit";
-        
-        targetKey.classList.add(flashClass);
-        setTimeout(() => {
-          targetKey.classList.remove(flashClass);
-        }, 150);
+        // 🌟 ターゲット鍵盤を光らせる
+        const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+        if (targetKey) {
+          const isBlackKey = targetKey.classList.contains("black");
+          const flashClass = isBlackKey ? "hit-black" : "hit";
+          
+          targetKey.classList.add(flashClass);
+          setTimeout(() => {
+            targetKey.classList.remove(flashClass);
+          }, 150);
+        }
       }
     }
-  }
 
-
-
-
-
-  // MISS処理
-  if (!n.missed && n.hit + 0.15 < gameTime) {
-    n.missed = true;
-    n.el.remove();
-    n.el.style.opacity = "0.3";
-  }
-
-
-  
-});
+    // MISS処理
+    if (!n.missed && n.hit + 0.15 < gameTime) {
+      n.missed = true;
+      n.el.remove();
+      n.el.style.opacity = "0.3";
+    }
+  });
 
   // =========================
   // 終了判定（GOAL）
