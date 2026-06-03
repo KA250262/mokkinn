@@ -455,16 +455,34 @@ button:hover{
 
 
 
-/* 🎯 同時押しノーツを繋ぐ光の線 */
+/* 🎯 同時押しノーツを繋ぐ光の線（点滅なし・常時しっかり表示版） */
 .combo-line {
   position: absolute;
-  height: 4px;
-  /* 🎯 transparent 100% を追加して構文エラーを修正 */
-  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important;
-  box-shadow: 0 0 12px #ffffff, 0 0 20px #ffff00;
+  height: 5px; /* 見やすい太さ */
+  background: linear-gradient(90deg, transparent 0%, #ffffff 15%, #ffffff 85%, transparent 100%) !important;
+  box-shadow: 0 0 12px #ffffff, 0 0 20px #ff7ac8; /* 白とピンクの強い発光 */
   pointer-events: none;
-  z-index: 9999 !important; /* 👈 絶対手前に出す */
-  animation: lineFlash 0.15s ease-out forwards;
+  z-index: 9999 !important;
+  opacity: 1; /* 最初は不透明度100%でしっかり見せる */
+  transition: opacity 0.05s linear;
+}
+
+/* 🎯 和音ノーツを片手ずつぐるっと囲むエフェクト */
+.chord-surround {
+  position: absolute;
+  pointer-events: none;
+  z-index: 90; /* ノーツ(100)より下、同時押し線(9999)より下 */
+  /* 基本的にSVGとして描画されます */
+}
+
+/* 右手和音（赤）の囲み */
+.chord-surround-right {
+  filter: drop-shadow(0 0 8px #ff4a4a) !important;
+}
+
+/* 左手和音（青）の囲み */
+.chord-surround-left {
+  filter: drop-shadow(0 0 8px #4aa3ff) !important;
 }
 
 @keyframes lineFlash {
@@ -1215,8 +1233,10 @@ active.push({
   dropOffset:0
 });
 
-}
 
+
+
+}
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
@@ -1243,6 +1263,9 @@ function loop() {
     const gameHeight = document.getElementById("gameArea").clientHeight;
     if (y > gameHeight + 50) {
       n.el.remove();
+      // 画面外に消える時に、紐づく同時押し線があれば一緒に消去
+      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (line) line.remove();
       active = active.filter(x => x !== n);
       return;
     }
@@ -1257,12 +1280,16 @@ function loop() {
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
       n.el.style.transform = `translateX(-50%) scale(1)`;
       n.el.style.opacity = opacity;
+      
+      // 🌟 鍵盤を通り過ぎたら、同時押し線も一緒にフェードアウトさせる
+      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (line) line.style.opacity = opacity;
     } else {
       // ② 判定位置に近づく前（降下中）
       n.el.style.transform = `translateX(-50%) scale(1)`;
       n.el.style.opacity = "1";
 
-      // 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
+      // 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から常時ハッキリ出現させる
       if (dist < 220 && !n.isLineDrawn) {
         const partner = active.find(other => other !== n && other.chordId === n.chordId);
         if (partner && !partner.isLineDrawn) {
@@ -1283,22 +1310,26 @@ function loop() {
           lineEl.style.left = leftX + "px";
           lineEl.style.width = lineWidth + "px";
           
-          // 後でリアルタイムに動かすためにIDを紐付け
+          // リアルタイム移動用のID紐付け
           lineEl.dataset.chordId = n.chordId;
           document.getElementById("gameArea").appendChild(lineEl);
-
-          // ⚡ 鍵盤の手前（判定エリア）まで点滅を残すため、500ms後に削除
-          setTimeout(() => lineEl.remove(), 500);
         }
       }
 
-      // 🌟 生成された線をノーツの降下に同期させてリアルタイムに動かす
+      // 🌟 生成された線をノーツの降下に完全に同期させる（カクつき・ズレなし）
       const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (existingLine) {
         const gameRect = document.getElementById("gameArea").getBoundingClientRect();
         const rect1 = n.el.getBoundingClientRect();
         const currentY = rect1.top - gameRect.top + (rect1.height / 2);
         existingLine.style.top = currentY + "px";
+        
+        // 鍵盤の直前（25px未満）まで来たら、線を徐々に薄くしてノーツに吸い込ませる演出
+        if (dist < 25) {
+          existingLine.style.opacity = (dist / 25); 
+        } else {
+          existingLine.style.opacity = "1"; // 中央からここまではずっと100%表示
+        }
       }
 
       // ③ ジャストの瞬間（鍵盤が光る処理：dist < 25）
@@ -1314,24 +1345,115 @@ function loop() {
       }
     }
 
-    // MISS処理
+  // ==========================================
+  // 和音の囲み（サークリング）ロジック
+  // ==========================================
+  // 画面上の全ノーツを chordId ごとにグループ化
+  const chords = {};
+  active.forEach(n => {
+    const hand = n.hand;
+    const cid = `${n.chordId}-${hand}`;
+    if (!chords[cid]) chords[cid] = [];
+    chords[cid].push(n);
+  });
+
+  // 各和音グループについて、囲みを生成・更新
+  Object.keys(chords).forEach(cid => {
+    const notesInChord = chords[cid];
+    if (notesInChord.length < 2) {
+      // 単音は囲まない
+      const existingSurround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
+      if (existingSurround) existingSurround.remove();
+      return;
+    }
+
+    const hand = notesInChord[0].hand;
+    const handClass = hand === "right" ? "chord-surround-right" : "chord-surround-left";
+    const handColor = hand === "right" ? "#ff4a4a" : "#4aa3ff";
+
+    // 囲みの要素（SVG）を取得または生成
+    let surroundEl = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
+    if (!surroundEl) {
+      surroundEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      surroundEl.classList.add("chord-surround", handClass);
+      surroundEl.dataset.chordGroup = cid;
+      // 囲むパス要素を追加
+      const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathEl.style.fill = `${handColor}20`; // 囲み内を薄く塗る（例: 20%透明度）
+      pathEl.style.stroke = handColor; // 囲みの線
+      pathEl.style.strokeWidth = "3px";
+      pathEl.style.strokeLinecap = "round";
+      surroundEl.appendChild(pathEl);
+      document.getElementById("gameArea").appendChild(surroundEl);
+    }
+
+    // 🌟 全ノーツを囲むバウンディングボックス（境界）を計算
+    const gRect = document.getElementById("gameArea").getBoundingClientRect();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    notesInChord.forEach(n => {
+      const r = n.el.getBoundingClientRect();
+      minX = Math.min(minX, r.left);
+      minY = Math.min(minY, r.top);
+      maxX = Math.max(maxX, r.right);
+      maxY = Math.max(maxY, r.bottom);
+    });
+
+    // 少し余白を持たせる
+    const padding = 15;
+    minX -= (padding + gRect.left);
+    minY -= (padding + gRect.top);
+    maxX += (padding - gRect.left);
+    maxY += (padding - gRect.top);
+
+    // SVGのサイズと位置を設定
+    surroundEl.setAttribute("width", (maxX - minX));
+    surroundEl.setAttribute("height", (maxY - minY));
+    surroundEl.style.left = minX + "px";
+    surroundEl.style.top = minY + "px";
+
+    // 🌟 パス（ぐるっと囲む線）を更新（ここでは楕円形の例）
+    // （※より複雑なノーツ配置に合わせて囲むには、凸包計算などの高度なジオメトリが必要ですが、
+    // ここではノーツ全体を包む大きな楕円として実装します）
+    const pathEl = surroundEl.querySelector("path");
+    const cx = (maxX - minX) / 2;
+    const cy = (maxY - minY) / 2;
+    const rx = (maxX - minX) / 2;
+    const ry = (maxY - minY) / 2;
+    pathEl.setAttribute("d", `M ${cx}, ${cy} m ${-rx}, 0 a ${rx},${ry} 0 1,0 ${rx*2},0 a ${rx},${ry} 0 1,0 ${-rx*2},0`);
+  });
+
+  // ==========================================
+  // 既存のノーツ更新ロジック (MISS処理の前)
+  // ==========================================
+  active.forEach(n => {
+    // ...
+  });
+
+    // MISS処理（ここでヒットに失敗した同時押し線も削除）
     if (!n.missed && n.hit + 0.15 < gameTime) {
       n.missed = true;
+      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (line) line.remove();
       n.el.remove();
     }
-  }); // 👈 active.forEach の閉じ
+  });
 
   // =========================
   // 終了判定（GOAL）
   // =========================
   if (index >= notes.length && active.length === 0) {
+    // 残ってしまった線を最後に綺麗に掃除
+    document.querySelectorAll(".combo-line").forEach(l => l.remove());
     running = false;
     showGoal();
     return;
   }
 
   requestAnimationFrame(loop);
-} // 👈 function loop() の閉じ
+}
+
+
+
 
 function showResult(){
   const judge = document.getElementById("judge");
