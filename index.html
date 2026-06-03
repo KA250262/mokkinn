@@ -264,22 +264,14 @@ button:hover{
 /* ノーツ */
 .note{
   position:absolute;
-  width:46px;
-  height:46px;
-  transition: transform 0.08s linear, opacity 0.08s linear;
+  width:46px; height:46px;
+  /* 🎯 transformのアニメーションを削除し、scale(1)（等倍）を固定にする */
+  transition: opacity 0.1s linear; /* 不透明度のアニメーションだけ残す */
   border-radius:40%;
-
-  background:linear-gradient(
-  135deg,
-  #7ad8ff,
-  #3aa6ff
-  
-);
-
+  background:linear-gradient(135deg, #7ad8ff, #3aa6ff );
   border:2px solid rgba(255,255,255,0.85);
   opacity:0.92;
-  transform:translateX(-50%);
-
+  /* 🎯 ここから transform の記述を完全に削除する */
   z-index:100;
 }
 
@@ -437,11 +429,12 @@ button:hover{
 /* 🎯 同時押しノーツを繋ぐ光の線 */
 .combo-line {
   position: absolute;
-  height: 4px; /* 太さ */
-  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important; /* 🎯 100%を追加してエラーを修正 */
+  height: 4px;
+  /* 🎯 transparent 100% を追加して構文エラーを修正 */
+  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important;
   box-shadow: 0 0 12px #ffffff, 0 0 20px #ffff00;
   pointer-events: none;
-  z-index: 9999 !important; /* ノーツやマスコットより絶対手前に出す */
+  z-index: 9999 !important; /* 👈 絶対手前に出す */
   animation: lineFlash 0.15s ease-out forwards;
 }
 
@@ -1267,7 +1260,7 @@ function loop() {
   }
 
 // ==========================================
-  // 🎯 ノーツ更新（同時押し横線の絶対描画版）
+  // 🎯 ノーツ更新（一定サイズ版＆横線描画）
   // ==========================================
   active.forEach(n => {
     const visualTime = gameTime - n.dropOffset;
@@ -1285,31 +1278,25 @@ function loop() {
     const dist = Math.abs(y - hitY);
     n.el.style.zIndex = Math.floor(1000 - dist);
 
-    // サイズと透明度のアニメーション計算
+    // ーーー 🎯 サイズと透明度のアニメーション計算 ーーー
     if (gameTime > n.hit) {
-      // ① 判定タイミングを過ぎた後（さらにシュッと縮んで消える）
+      // ① 判定タイミングを過ぎた後（フェードアウトのみ）
       const timePast = gameTime - n.hit;
-      const fadeDuration = 0.10;
-      
-      const scale = Math.max(0.2, 1.0 - (timePast / fadeDuration) * 0.8);
+      const fadeDuration = 0.10; // 0.1秒で完全消滅
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
       
-      n.el.style.transform = `translateX(-50%) scale(${scale})`;
+      n.el.style.transform = `translateX(-50%) scale(1)`; // サイズは1固定
       n.el.style.opacity = opacity;
-      n.el.style.zIndex = 500;
     } else {
-      // ② 判定位置に近づく前（出始めが大きく、だんだんしぼむ）
-      const currentScale = 1.8 - (p * 0.8);
-      n.el.style.transform = `translateX(-50%) scale(${currentScale})`;
+      // ② 判定位置に近づく前（一定サイズで降ってくる）
+      n.el.style.transform = `translateX(-50%) scale(1)`; // サイズは1固定
       n.el.style.opacity = "1";
 
       // ③ ジャストの瞬間（dist が 25px 未満）に鍵盤発光 ＆ 同時押し線を引く
       if (dist < 25 && !n.isKeyFlashed) {
         n.isKeyFlashed = true; // 2回以上走らないようにロック
-        n.el.style.zIndex = 2000;
 
         // 🌟 【超確実版】同時押しノーツを横線で繋ぐエフェクト
-        // まだ線が引かれていない場合のみ、同じ chordId の相方ノーツを画面全体（active）から探す
         if (!n.isLineDrawn) {
           const partner = active.find(other => other !== n && other.chordId === n.chordId);
           
@@ -1325,7 +1312,6 @@ function loop() {
             // ノーツの中心のX座標を計算
             const x1 = rect1.left - gameRect.left + (rect1.width / 2);
             const x2 = rect2.left - gameRect.left + (rect2.width / 2);
-            
             const leftX = Math.min(x1, x2);
             const lineWidth = Math.abs(x1 - x2);
 
@@ -1340,8 +1326,6 @@ function loop() {
             lineEl.style.top = currentY + "px"; 
 
             document.getElementById("gameArea").appendChild(lineEl);
-
-            // 0.15秒後に線を消去
             setTimeout(() => lineEl.remove(), 150);
           }
         }
@@ -1351,11 +1335,8 @@ function loop() {
         if (targetKey) {
           const isBlackKey = targetKey.classList.contains("black");
           const flashClass = isBlackKey ? "hit-black" : "hit";
-          
           targetKey.classList.add(flashClass);
-          setTimeout(() => {
-            targetKey.classList.remove(flashClass);
-          }, 150);
+          setTimeout(() => { targetKey.classList.remove(flashClass); }, 150);
         }
       }
     }
@@ -1364,7 +1345,6 @@ function loop() {
     if (!n.missed && n.hit + 0.15 < gameTime) {
       n.missed = true;
       n.el.remove();
-      n.el.style.opacity = "0.3";
     }
   });
 
