@@ -304,17 +304,19 @@ button:hover{
   transition: all 0.15s ease-out;
 }
 
+
+/* 修正前：translateY(20px) や横方向のズレを無くし、その場で綺麗に消す */
 @keyframes suckToLine {
   0% {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateX(-50%) scale(1);
     opacity: 1;
   }
-
   100% {
-    transform: translateX(-50%) translateY(20px) scale(0.2);
+    transform: translateX(-50%) scale(0.6); /* 横にブレさせず、その場で少し小さく */
     opacity: 0;
   }
 }
+
 
 .note-suck {
   animation: suckToLine 0.18s ease-in forwards;
@@ -502,27 +504,19 @@ button:hover{
     opacity: 0;
   }
 }
-.note-spawn{
-  animation: noteSpawn 0.25s ease-out;
+
+
+
+/* 修正前：translateY(-10px) などが入っていたのを、位置を動かさないように修正 */
+.note-spawn {
+  animation: noteSpawn 0.1s ease-out; /* 時間も少し短くしてキレを良く */
 }
 
-@keyframes noteSpawn{
-
-  0%{
-    opacity:0;
-    transform:
-      translateX(-50%)
-      translateY(-10px);
-  }
-
-  100%{
-    opacity:1;
-    transform:
-      translateX(-50%)
-      translateY(0);
-  }
-
+@keyframes noteSpawn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
+
 
 #debug{
   position: fixed;
