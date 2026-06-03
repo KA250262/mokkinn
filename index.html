@@ -81,6 +81,12 @@ h1{
   border-radius:20px;
 }
 
+/* 🎯 判定タイミングで自動で光る鍵盤の色 */
+.hit {
+  background: #ff3399 !important; /* 目立つネオンピンク（お好みで #7CFF6B などの緑系にしてもOK） */
+  box-shadow: inset 0 0 15px rgba(255, 51, 153, 0.8), 0 0 15px #ff3399; /* 内側と外側を発光させる */
+}
+
 #hitUI{
 
   position:absolute;
@@ -110,87 +116,6 @@ h1{
   z-index:90;
 }
 
-/* 判定ライン */
-#judgeCenter{
-  position:absolute;
-
-  left:0;
-  right:0;
-
-  top:50%;
-
-  height:3px;
-
-  transform:translateY(-50%);
-
-  background:#8a0040;
-
-  box-shadow:
-    0 0 4px rgba(255,255,255,0.7);
-
-  border-radius:999px;
-}
-
-
-#judgeLine{
-  position:absolute;
-
-  left:20px;
-  right:20px;
-
-  top:493px;
-
-  height:24px;
-
-  border-radius:999px;
-
-  background:
-    linear-gradient(
-      to bottom,
-      #ffe2c8,
-      #ffb7c5 45%,
-      #ff91b6
-    );
-
-  border:3px solid white;
-
-  box-shadow:
-    0 0 12px rgba(255,170,180,0.8);
-
-  z-index:5;
-}
-
-#judgeLine::before{
-  content:"𝄢";
-
-  position:absolute;
-
-  left:-25px;
-  top:-18px;
-
-  font-size:48px;
-
-  color:white;
-
-  text-shadow:
-    0 0 8px rgba(255,255,255,0.8);
-}
-
-#judgeLine::after{
-  content:"𝄞";
-
-  position:absolute;
-
-  right:-25px;
-  top:-33px;
-
-  font-size:48px;
-
-  color:white;
-
-  text-shadow:
-    0 0 8px rgba(255,255,255,0.8);
-}
 
 button{
   font-size:18px;
@@ -382,22 +307,16 @@ button:hover{
 }
 
 .note-text{
-  position:absolute;
-
-  top:50%;
-  left:50%;
-
-  transform:translate(-50%, -50%);
-
-  font-size:20px;
-  font-weight:900;
-
-  color:white;
- 
-  text-shadow:
-    0 1px 2px rgba(0,0,0,0.7);
-
- z-index:101;
+  position:absolute; 
+  top:50%; 
+  left:50%; 
+  transform:translate(-50%, -50%); 
+  font-size:14px; /* 🎯 3文字でも収まるように少し小さく(14px〜15px) */
+  white-space: nowrap; /* 🎯 絶対に自動改行（縦書き）させない魔法のプロパティ */
+  font-weight:900; 
+  color:white; 
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7); 
+  z-index:101; 
 }
 
 @keyframes comboBounce {
@@ -443,26 +362,34 @@ button:hover{
   animation: bubblePop 0.12s ease-out forwards;
 }
 
-.key{
-  position:absolute;
-  flex: 1;   /* これが超重要 */
+.key {
+  position: absolute;
+  flex: 1;
   min-width: 12px;
-  width:28px;
-  height:120px;
-  background:white;
-  border:1px solid #333;
-  border-radius:0 0 6px 6px;
+  top:45px;
+  width: 28px;
+  height: 90px; /* 🎯 白鍵の縦幅を少し短く（120px から 105px に変更） */
+  margin-top: 25px; /* 🎯 上側に25pxの隙間を作って、短く見せる */
+  background: white;
+  border: 1px solid #333;
+  border-radius: 0 0 6px 6px;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
 }
 
-.black{
-  position:absolute;
-  width:18px;
-  height:75px;
-  background:#222;
-  border:2px solid white;
-  border-radius:0 0 4px 4px;
-  z-index:20;
+.black {
+  position: absolute;
+  width: 22px;
+  top:50px;
+  height: 70px; /* 🎯 黒鍵の縦幅を少し伸ばして存在感を出す */
+  margin-top: 0; /* 🎯 隙間なく一番上から配置することで、白鍵より上に飛び出させる */
+  background: #222;
+  border: 2px solid white;
+  border-radius: 0 0 4px 4px;
+  z-index: 20;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
 }
+
+
 
 .hit{
   background:#7CFF6B !important;
@@ -492,6 +419,38 @@ button:hover{
 
   z-index:40;
 }
+
+/* 🎯 白鍵が光る色：鮮やかな緑（ライム） */
+.hit {
+  background: #ffffff !important;
+  box-shadow: inset 0 0 15px rgba(51, 255, 51, 0.8), 0 0 15px #33ff33;
+}
+
+/* 🎯 黒鍵が光る色：パキッとした黄色（ネオンイエロー） */
+.hit-black {
+  background: #ffff00 !important;
+  box-shadow: inset 0 0 15px rgba(255, 255, 0, 0.8), 0 0 15px #ffff00;
+}
+
+
+
+/* 🎯 同時押しノーツを繋ぐ光の線 */
+.combo-line {
+  position: absolute;
+  height: 4px; /* 細い光の線 */
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  box-shadow: 0 0 8px #ffffff, 0 0 15px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1500; /* ノーツよりは下、通常の鍵盤よりは上 */
+  animation: lineFlash 0.15s ease-out forwards;
+}
+
+@keyframes lineFlash {
+  0% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(0); }
+}
+
+
 
 @keyframes flashFade {
   0% {
@@ -677,10 +636,6 @@ button:hover{
 <div id="debug"></div>
 
 <span id="speedLabel"></span>
-
-  <div id="judgeLine">
-  <div id="judgeCenter"></div>
-</div>
 
   <div id="keyboard"></div>
 
@@ -1061,47 +1016,19 @@ midi.tracks.forEach(t => {
 
 
 function paintKeyboard(){
-
   document
     .querySelectorAll(".key,.black")
     .forEach(key=>{
-
-      const note = key.dataset.note;
-
-      if(usedNotes.has(note)){
-
-        if(key.classList.contains("black")){
-
-          key.style.background = "#222";
-
-        }else{
-
-          key.style.background = "white";
-
-        }
-
+      if(key.classList.contains("black")){
+        // 🎯 黒鍵は一律で「すべて黒」にする
+        key.style.background = "#222";
         key.style.opacity = "1";
-
       }else{
-
-        if(key.classList.contains("black")){
-
-          key.style.background =
-            "repeating-linear-gradient(90deg,#7b5a3a 0px,#7b5a3a 4px,#6a4b2d 4px,#6a4b2d 8px)";
-
-        }else{
-
-          key.style.background =
-            "repeating-linear-gradient(90deg,#d8b184 0px,#d8b184 4px,#c89b6d 4px,#c89b6d 8px)";
-
-        }
-
-        key.style.opacity = "0.7";
-
+        // 🎯 白鍵は一律で「すべて木目調」にする（使われていない鍵盤に割り当てられていた綺麗な木目グラデーションです）
+        key.style.background = "repeating-linear-gradient(90deg,#d8b184 0px,#d8b184 4px,#c89b6d 4px,#c89b6d 8px)";
+        key.style.opacity = "1"; // 不透明度を1にしてクッキリ表示
       }
-
     });
-
 }
 
 /* ================= START ================= */
@@ -1281,8 +1208,17 @@ function spawn(n){
   el.style.background = color;
 
   // 位置
-  el.style.left =
-    (k.left - g.left + k.width / 2) + "px";
+  // 位置（和音や重なりを避けるために、ノートの高さや左右の手でわずかに横にずらす補正）
+let xOffset = 0;
+if (n.hand === "left") {
+  // 左手ノーツ：低音ほど左に、高音ほど右に少しだけ傾ける（例：-15px 〜 +15px）
+  xOffset = ((n.midi - 60) / 12) * 10; 
+} else {
+  // 右手ノーツ：少し右側に逃がす、またはノートごとに絶妙に変える
+  xOffset = ((n.midi - 72) / 12) * 10;
+}
+
+el.style.left = (k.left - g.left + k.width / 2 + xOffset) + "px";
 
   // テキスト
   const text = document.createElement("div");
@@ -1330,54 +1266,122 @@ function loop() {
     index++;
   }
 
-  // =========================
-  // ノーツ更新
-  // =========================
-  active.forEach(n => {
+// =========================
+// ノーツ更新
+// =========================
+active.forEach(n => {
+  const visualTime = gameTime - n.dropOffset;
+  const p = 1 - ((n.hit - visualTime) / travelTime);
+  const y = spawnY + p * (hitY - spawnY);
+  n.el.style.top = y + "px";
 
-    const visualTime = gameTime - n.dropOffset;
+  const gameHeight = document.getElementById("gameArea").clientHeight;
+  if (y > gameHeight + 50) {
+    n.el.remove();
+    active = active.filter(x => x !== n);
+    return;
+  }
 
-    const p =
-      1 - ((n.hit - visualTime) / travelTime);
+  const dist = Math.abs(y - hitY);
+  n.el.style.zIndex = Math.floor(1000 - dist);
 
-    const y =
-      spawnY + p * (hitY - spawnY);
 
-    n.el.style.top = y + "px";
 
-    const gameHeight = document.getElementById("gameArea").clientHeight;
+// ==========================================
+  // 🎯 巨大化・スマートな縮小の統合処理（サイズを半分に調整版）
+  // ==========================================
+  if (gameTime > n.hit) {
+    // ① 判定タイミングを過ぎた後（縮小しながらスッと消す）
+    const timePast = gameTime - n.hit;
+    const fadeDuration = 0.10; // 0.1秒で完全に消す
+    
+    // 🎯 最大サイズ（1.4）から一気に小さくしぼませる
+    const scale = Math.max(0.2, 1.4 - (timePast / fadeDuration) * 1.2);
+    const opacity = Math.max(0, 1 - (timePast / fadeDuration));
+    
+    n.el.style.transform = `translateX(-50%) scale(${scale})`;
+    n.el.style.opacity = opacity;
+    n.el.style.zIndex = 500;
 
-if (y > gameHeight + 50) {
-  n.el.remove();
-  active = active.filter(x => x !== n);
-  return;
-}
+    
+} else if (dist < 25) {
+    // ② ジャストのタイミング（巨大化 ＆ 鍵盤を光らせる）
+    n.el.style.transform = "translateX(-50%) scale(1.4)";
+    n.el.style.opacity = "1";
+    n.el.style.zIndex = 2000;
 
-    const dist = Math.abs(y - hitY);
+    // まだこのノーツで鍵盤を光らせていない場合のみ実行
+    if (!n.isKeyFlashed) {
+      n.isKeyFlashed = true; // 2回以上走らないようにロック
 
-    n.el.style.zIndex = Math.floor(1000 - dist);
 
-    // 拡大演出
-if (dist < 20) {
-  n.el.style.transform = "translateX(-50%) scale(1.8)";
-  n.el.style.zIndex = 2000;
-} else {
-  n.el.style.transform = "translateX(-50%) scale(1)";
-}
+      
+// 🌟 【修正版】同時押しノーツを横線で繋ぐエフェクト
+        // 自分と同じタイミング（chordId）の相方ノーツを探す
+        const partner = active.find(other => other !== n && other.chordId === n.chordId && Math.abs(other.hit - n.hit) < 0.01);
+        
+        if (partner && !n.isLineDrawn && !partner.isLineDrawn) {
+          n.isLineDrawn = true;
+          partner.isLineDrawn = true;
 
-    // 判定ライン通過後フェード
-    const passed = (gameTime > n.hit + 0.05);
+          // 🎯 style.left からではなく、画面上の実際のピクセル位置（getBoundingClientRect）から正確に取得する
+          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+          const rect1 = n.el.getBoundingClientRect();
+          const rect2 = partner.el.getBoundingClientRect();
 
-    n.el.style.opacity = passed ? "0" : "1";
+          // ノーツの中心のX座標を計算
+          const x1 = rect1.left - gameRect.left + (rect1.width / 2);
+          const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+          
+          const leftX = Math.min(x1, x2);
+          const lineWidth = Math.abs(x1 - x2);
 
-    // MISS処理
-    if (!n.missed && n.hit + 0.15 < gameTime) {
-      n.missed = true;
-      n.el.remove();
-      n.el.style.opacity = "0.3";
+          // 横線（レーザー）の要素を作成
+          const lineEl = document.createElement("div");
+          lineEl.className = "combo-line";
+          lineEl.style.left = leftX + "px";
+          lineEl.style.width = lineWidth + "px";
+          
+          // 🎯 現在のノーツの高さ（中心）にぴったり合わせる
+          const currentY = rect1.top - gameRect.top + (rect1.height / 2);
+          lineEl.style.top = currentY + "px"; 
+
+          document.getElementById("gameArea").appendChild(lineEl);
+
+          // 0.15秒後に線を消去
+          setTimeout(() => lineEl.remove(), 150);
+        }
+
+
+
+// 鍵盤を光らせる既存の処理
+      const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+      if (targetKey) {
+        const isBlackKey = targetKey.classList.contains("black");
+        const flashClass = isBlackKey ? "hit-black" : "hit";
+        
+        targetKey.classList.add(flashClass);
+        setTimeout(() => {
+          targetKey.classList.remove(flashClass);
+        }, 150);
+      }
     }
+  }
 
-  });
+
+
+
+
+  // MISS処理
+  if (!n.missed && n.hit + 0.15 < gameTime) {
+    n.missed = true;
+    n.el.remove();
+    n.el.style.opacity = "0.3";
+  }
+
+
+  
+});
 
   // =========================
   // 終了判定（GOAL）
