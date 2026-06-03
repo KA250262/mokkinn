@@ -1217,31 +1217,22 @@ active.push({
 
 }
 
-/* ================= Loop ================= */
 function loop() {
-
   if (!running) return;
-
-  const rawTime =
-    (performance.now() - startTime) / 1000 - 3;
-
+  const rawTime = (performance.now() - startTime) / 1000 - 3;
   const gameTime = rawTime * speed;
-
   const PREVIEW_TIME = 0;
 
   // =========================
   // ノーツ生成
   // =========================
-  while (
-    index < notes.length &&
-    notes[index].time <= gameTime + travelTime + PREVIEW_TIME
-  ) {
+  while (index < notes.length && notes[index].time <= gameTime + travelTime + PREVIEW_TIME) {
     spawn(notes[index]);
     index++;
   }
 
-// ==========================================
-  // 🎯 ノーツ更新（一定サイズ版＆横線描画）
+  // ==========================================
+  // ノーツ更新＆同時押し線ロジック
   // ==========================================
   active.forEach(n => {
     const visualTime = gameTime - n.dropOffset;
@@ -1259,59 +1250,60 @@ function loop() {
     const dist = Math.abs(y - hitY);
     n.el.style.zIndex = Math.floor(1000 - dist);
 
-    // ーーー 🎯 サイズと透明度のアニメーション計算 ーーー
     if (gameTime > n.hit) {
-      // ① 判定タイミングを過ぎた後（フェードアウトのみ）
+      // ① 判定タイミングを過ぎた後（フェードアウト）
       const timePast = gameTime - n.hit;
-      const fadeDuration = 0.10; // 0.1秒で完全消滅
+      const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-      
-      n.el.style.transform = `translateX(-50%) scale(1)`; // サイズは1固定
+      n.el.style.transform = `translateX(-50%) scale(1)`;
       n.el.style.opacity = opacity;
     } else {
-      // ② 判定位置に近づく前（一定サイズで降ってくる）
-      n.el.style.transform = `translateX(-50%) scale(1)`; // サイズは1固定
+      // ② 判定位置に近づく前（降下中）
+      n.el.style.transform = `translateX(-50%) scale(1)`;
       n.el.style.opacity = "1";
 
-      // ③ ジャストの瞬間（dist が 25px 未満）に鍵盤発光 ＆ 同時押し線を引く
-      if (dist < 25 && !n.isKeyFlashed) {
-        n.isKeyFlashed = true; // 2回以上走らないようにロック
+      // 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
+      if (dist < 220 && !n.isLineDrawn) {
+        const partner = active.find(other => other !== n && other.chordId === n.chordId);
+        if (partner && !partner.isLineDrawn) {
+          n.isLineDrawn = true;
+          partner.isLineDrawn = true;
 
-        // 🌟 【超確実版】同時押しノーツを横線で繋ぐエフェクト
-        if (!n.isLineDrawn) {
-          const partner = active.find(other => other !== n && other.chordId === n.chordId);
+          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+          const rect1 = n.el.getBoundingClientRect();
+          const rect2 = partner.el.getBoundingClientRect();
+
+          const x1 = rect1.left - gameRect.left + (rect1.width / 2);
+          const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+          const leftX = Math.min(x1, x2);
+          const lineWidth = Math.abs(x1 - x2);
+
+          const lineEl = document.createElement("div");
+          lineEl.className = "combo-line";
+          lineEl.style.left = leftX + "px";
+          lineEl.style.width = lineWidth + "px";
           
-          if (partner) {
-            // お互いに「描画済みフラグ」を立てて二重描画を防ぐ
-            n.isLineDrawn = true;
-            partner.isLineDrawn = true;
+          // 後でリアルタイムに動かすためにIDを紐付け
+          lineEl.dataset.chordId = n.chordId;
+          document.getElementById("gameArea").appendChild(lineEl);
 
-            const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-            const rect1 = n.el.getBoundingClientRect();
-            const rect2 = partner.el.getBoundingClientRect();
-
-            // ノーツの中心のX座標を計算
-            const x1 = rect1.left - gameRect.left + (rect1.width / 2);
-            const x2 = rect2.left - gameRect.left + (rect2.width / 2);
-            const leftX = Math.min(x1, x2);
-            const lineWidth = Math.abs(x1 - x2);
-
-            // 横線（レーザー）の要素を作成
-            const lineEl = document.createElement("div");
-            lineEl.className = "combo-line";
-            lineEl.style.left = leftX + "px";
-            lineEl.style.width = lineWidth + "px";
-            
-            // 現在のノーツの高さ（中心）にぴったり合わせる
-            const currentY = rect1.top - gameRect.top + (rect1.height / 2);
-            lineEl.style.top = currentY + "px"; 
-
-            document.getElementById("gameArea").appendChild(lineEl);
-            setTimeout(() => lineEl.remove(), 150);
-          }
+          // ⚡ 鍵盤の手前（判定エリア）まで点滅を残すため、500ms後に削除
+          setTimeout(() => lineEl.remove(), 500);
         }
+      }
 
-        // 🌟 ターゲット鍵盤を光らせる
+      // 🌟 生成された線をノーツの降下に同期させてリアルタイムに動かす
+      const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (existingLine) {
+        const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+        const rect1 = n.el.getBoundingClientRect();
+        const currentY = rect1.top - gameRect.top + (rect1.height / 2);
+        existingLine.style.top = currentY + "px";
+      }
+
+      // ③ ジャストの瞬間（鍵盤が光る処理：dist < 25）
+      if (dist < 25 && !n.isKeyFlashed) {
+        n.isKeyFlashed = true;
         const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
         if (targetKey) {
           const isBlackKey = targetKey.classList.contains("black");
@@ -1327,30 +1319,19 @@ function loop() {
       n.missed = true;
       n.el.remove();
     }
-  });
+  }); // 👈 active.forEach の閉じ
 
   // =========================
   // 終了判定（GOAL）
   // =========================
-  if (
-    index >= notes.length &&
-    active.length === 0
-  ) {
-    console.log(index, notes.length, active.length);
-    console.log("GOAL条件入った");
+  if (index >= notes.length && active.length === 0) {
     running = false;
-
-    showGoal(); // ←ここが演出
-    return; 
-    setTimeout(() => {
-      showResult();
-    }, 2500);
-
+    showGoal();
     return;
   }
 
   requestAnimationFrame(loop);
-}
+} // 👈 function loop() の閉じ
 
 function showResult(){
   const judge = document.getElementById("judge");
