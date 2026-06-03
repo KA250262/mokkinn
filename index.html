@@ -167,24 +167,38 @@ button:hover{
 
 }
 
-#songMenu{
+#songMenu {
+    display: none; /* 最初は非表示 */
+    position: absolute;
+    top: 340px; /* お花ボタンの下に配置 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85); /* 高級感のある黒シースルー */
+    backdrop-filter: blur(8px);
+    border: 2px solid #ff7ac8;
+    border-radius: 15px;
+    padding: 10px;
+    z-index: 999;
+    flex-direction: column; /* ボタンを縦に並べる */
+    gap: 8px;
+}
 
-  display:none;
+/* メニュー内の曲選択ボタン */
+.menuSongBtn {
+    background: #ff7ac8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.1s;
+}
 
-  position:absolute;
-
-  top:280px;
-  left:50%;
-
-  transform:translateX(-50%);
-
-  background:white;
-
-  border-radius:20px;
-
-  padding:10px;
-
-  z-index:999;
+.menuSongBtn:hover {
+    background: #ff3399;
+    transform: scale(1.03);
 }
 
 #score{
@@ -588,49 +602,11 @@ button:hover{
 
 </div>
 
-<div id="songMenu">
-
-  <button onclick="loadSong('55.mid')">
-    55.mid
-  </button>
-
-  <button onclick="loadSong('3A_前奏曲.mid')">
-    前奏曲
-  </button>
-
-  <button onclick="loadSong('3B_15_マリオネットのダンス.mid')">
-    マリオネット
-  </button>
-  
-  <button onclick="loadSong('革命.mid')">
-    革命.mid
-  </button>
-  
-</div>
-
 <div id="flowerBar">
-
-  <button class="flowerBtn"
-          onclick="loadSong('55.mid')">
-    🌸
-  </button>
-
-  <button class="flowerBtn"
-          onclick="loadSong('3A_前奏曲.mid')">
-    🌸
-  </button>
-
-  <button class="flowerBtn"
-          onclick="loadSong('3B_15_マリオネットのダンス.mid')">
-    🌸
-  </button>
-
-  <button class="flowerBtn"
-          onclick="loadSong('革命.mid')">
-    🌸
-  </button>
-
+    <button class="flowerBtn" onclick="toggleSongMenu()">🌸</button>
 </div>
+
+<div id="songMenu"></div>
 
 <div id="debug"></div>
 
@@ -1626,6 +1602,48 @@ function loadSong(fileName){
   );
 
 }
+/* ================= 📦 曲リストの定義 ================= */
+// 新しい曲を追加したいときは、この配列に `{ file: 'ファイル名', title: '画面表示名' }` を追加するだけ！
+const songList = [
+    { file: "55.mid", title: "バイエル_55.mid" },
+    { file: "3A_前奏曲.mid", title: "オールインワン_前奏曲" },
+    { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー_マリオネット" },
+    { file: "コナン.mid", title: "コナン_メインテーマ" },
+    { file: "革命.mid", title: "ショパン_革命" }
+];
+
+/* ================= 🛠️ メニューの動的生成 ================= */
+function initSongMenu() {
+    const menu = document.getElementById("songMenu");
+    menu.innerHTML = ""; // 一旦クリア
+
+    songList.forEach(song => {
+        const btn = document.createElement("button");
+        btn.className = "menuSongBtn";
+        btn.textContent = song.title;
+        // クリックしたら曲をロードして、メニューを閉じる
+        btn.onclick = () => {
+            loadSong(song.file);
+            menu.style.display = "none"; 
+        };
+        menu.appendChild(btn);
+    });
+}
+
+/* ================= 🎛️ メニューの表示・非表示切り替え ================= */
+function toggleSongMenu() {
+    const menu = document.getElementById("songMenu");
+    
+    // 現在非表示（none または空）なら表示(flex)に、表示中なら非表示にする
+    if (menu.style.display === "none" || menu.style.display === "") {
+        menu.style.display = "flex";
+    } else {
+        menu.style.display = "none";
+    }
+}
+
+// 画面が読み込まれたらメニューを組み立てる
+window.addEventListener("DOMContentLoaded", initSongMenu);
 </script>
 
 </body>
