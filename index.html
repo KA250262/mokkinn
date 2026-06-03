@@ -456,14 +456,15 @@ button:hover{
 
 
 /* 🎯 同時押しノーツを繋ぐ光の線（点滅なし・常時しっかり表示版） */
+/* 🎯 同時押しノーツを繋ぐ光の線（両手同時のみ・薄め版） */
 .combo-line {
   position: absolute;
-  height: 5px; /* 見やすい太さ */
-  background: linear-gradient(90deg, transparent 0%, #ffffff 15%, #ffffff 85%, transparent 100%) !important;
-  box-shadow: 0 0 12px #ffffff, 0 0 20px #ff7ac8; /* 白とピンクの強い発光 */
+  height: 3px; /* 少し細くしてシャープに */
+  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important;
+  box-shadow: 0 0 6px #ffffff, 0 0 10px #ff7ac8; /* 光の広がり（ボカシ）を半分くらいに縮小 */
   pointer-events: none;
   z-index: 9999 !important;
-  opacity: 1; /* 最初は不透明度100%でしっかり見せる */
+  opacity: 0.55; /* 🌟 濃ゆすぎたので、全体の不透明度を 55% まで薄く設定 */
   transition: opacity 0.05s linear;
 }
 
@@ -1278,59 +1279,61 @@ function loop() {
       const timePast = gameTime - n.hit;
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-      n.el.style.transform = `translateX(-50%) scale(1)`;
-      n.el.style.opacity = opacity;
-      
-      // 🌟 鍵盤を通り過ぎたら、同時押し線も一緒にフェードアウトさせる
-      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
-      if (line) line.style.opacity = opacity;
-    } else {
-      // ② 判定位置に近づく前（降下中）
-      n.el.style.transform = `translateX(-50%) scale(1)`;
-      n.el.style.opacity = "1";
+   
+   
+// ====== loop() 内の該当箇所を以下のように書き換えます ======
 
-      // 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から常時ハッキリ出現させる
-      if (dist < 220 && !n.isLineDrawn) {
-        const partner = active.find(other => other !== n && other.chordId === n.chordId);
-        if (partner && !partner.isLineDrawn) {
-          n.isLineDrawn = true;
-          partner.isLineDrawn = true;
+// ② 判定位置に近づく前（降下中）
+n.el.style.transform = `translateX(-50%) scale(1)`;
+n.el.style.opacity = "1";
 
-          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-          const rect1 = n.el.getBoundingClientRect();
-          const rect2 = partner.el.getBoundingClientRect();
+// 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
+if (dist < 220 && !n.isLineDrawn) {
+  // 【修正】同じchordIdで、かつ「自分と違う手（右手と左手）」の相方を探す
+  const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
+  
+  if (partner && !partner.isLineDrawn) {
+    n.isLineDrawn = true;
+    partner.isLineDrawn = true;
 
-          const x1 = rect1.left - gameRect.left + (rect1.width / 2);
-          const x2 = rect2.left - gameRect.left + (rect2.width / 2);
-          const leftX = Math.min(x1, x2);
-          const lineWidth = Math.abs(x1 - x2);
+    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+    const rect1 = n.el.getBoundingClientRect();
+    const rect2 = partner.el.getBoundingClientRect();
 
-          const lineEl = document.createElement("div");
-          lineEl.className = "combo-line";
-          lineEl.style.left = leftX + "px";
-          lineEl.style.width = lineWidth + "px";
-          
-          // リアルタイム移動用のID紐付け
-          lineEl.dataset.chordId = n.chordId;
-          document.getElementById("gameArea").appendChild(lineEl);
-        }
-      }
+    const x1 = rect1.left - gameRect.left + (rect1.width / 2);
+    const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+    const leftX = Math.min(x1, x2);
+    const lineWidth = Math.abs(x1 - x2);
 
-      // 🌟 生成された線をノーツの降下に完全に同期させる（カクつき・ズレなし）
-      const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
-      if (existingLine) {
-        const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-        const rect1 = n.el.getBoundingClientRect();
-        const currentY = rect1.top - gameRect.top + (rect1.height / 2);
-        existingLine.style.top = currentY + "px";
-        
-        // 鍵盤の直前（25px未満）まで来たら、線を徐々に薄くしてノーツに吸い込ませる演出
-        if (dist < 25) {
-          existingLine.style.opacity = (dist / 25); 
-        } else {
-          existingLine.style.opacity = "1"; // 中央からここまではずっと100%表示
-        }
-      }
+    const lineEl = document.createElement("div");
+    lineEl.className = "combo-line";
+    lineEl.style.left = leftX + "px";
+    lineEl.style.width = lineWidth + "px";
+    
+    // リアルタイム移動用のID紐付け
+    lineEl.dataset.chordId = n.chordId;
+    document.getElementById("gameArea").appendChild(lineEl);
+  }
+}
+
+// 🌟 生成された線をノーツの降下に完全に同期させる
+const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+if (existingLine) {
+  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+  const rect1 = n.el.getBoundingClientRect();
+  const currentY = rect1.top - gameRect.top + (rect1.height / 2);
+  existingLine.style.top = currentY + "px";
+  
+  // 鍵盤の直前（25px未満）まで来たら、設定した薄さからさらにフェードアウト
+  if (dist < 25) {
+    existingLine.style.opacity = (dist / 25) * 0.55; 
+  } else {
+    existingLine.style.opacity = "0.55"; // 🌟 ここもベースの薄さ(0.55)に合わせる
+  }
+}
+
+
+
 
       // ③ ジャストの瞬間（鍵盤が光る処理：dist < 25）
       if (dist < 25 && !n.isKeyFlashed) {
