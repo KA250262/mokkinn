@@ -990,9 +990,14 @@ midi.tracks.forEach(t => {
   // ================= 時間順ソート =================
   notes.sort((a, b) => a.time - b.time);
 
-  // ================= 和音グループ化 =================
-  for (let i = 0; i < notes.length; i++) {
-  notes[i].chordId = i;
+// ================= 和音グループ化 =================
+// 🎯 同じ時間のノーツには同じchordIdを割り振って、システムに同時押しだと認識させる
+let currentChordId = 0;
+for (let i = 0; i < notes.length; i++) {
+  if (i > 0 && Math.abs(notes[i].time - notes[i - 1].time) > 0.01) {
+    currentChordId++;
+  }
+  notes[i].chordId = currentChordId;
 }
 
   // ================= UI更新 =================
