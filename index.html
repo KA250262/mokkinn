@@ -896,15 +896,6 @@ const SPEED_MAP = {
   fast: 0.8
 };
 
-const songConfig = {
-  "song.mid": { split: 60 },
-  "55.mid": { split: 70 },
-  "3B_15_マリオネットのダンス.mid": { split: 67 },
-  "3A_前奏曲.mid": { split: 68 }
-};
-
-
-
 
 const gameArea = document.getElementById("gameArea");
 const gameWidth = gameArea.clientWidth;
@@ -1026,28 +1017,27 @@ console.log(
 notes = [];
   usedNotes.clear();
 
-  splitNote = songConfig[fileName]?.split ?? 60;
 
-  // ================= MIDI展開 =================
-  midi.tracks.forEach(t => {
+// ================= MIDI展開 =================
+let playableTrackCount = 0; // 音符のあるトラックを数えるカウンター
 
-    t.notes.forEach(n => {
+midi.tracks.forEach(t => {
+  if (t.notes.length === 0) return; // 音データがないトラックは無視
 
-      const midiNum = n.midi;
-
-      notes.push({
-        time: n.time,
-        note: n.name,
-        midi: midiNum,
-
-        // 🎯 左右判定
-        hand: midiNum < splitNote ? "left" : "right"
-        
-      });
-      usedNotes.add(n.name);
+  t.notes.forEach(n => {
+    notes.push({
+      time: n.time,
+      note: n.name,
+      midi: n.midi,
+      // 最初の音符入りトラックなら右手(right)、それ以外(2番目以降)なら左手(left)
+      hand: (playableTrackCount === 0) ? "right" : "left"
     });
-
+    usedNotes.add(n.name);
   });
+
+  playableTrackCount++; // 次の音符入りトラックへ
+});
+
 
   // ================= 時間順ソート =================
   notes.sort((a, b) => a.time - b.time);
