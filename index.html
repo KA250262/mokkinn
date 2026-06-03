@@ -603,7 +603,7 @@ button:hover{
 </style>
 </head>
 <body>
-
+<div data-midi="60"></div>
 <div id="judge"></div>
 
 <div id="gameArea">
@@ -708,6 +708,7 @@ let latestSpectrum = [];
 let lastHitDetect = 0;
 let usedNotes = new Set();
 let score = 0;
+
 
 async function startMic() {
 
@@ -902,15 +903,7 @@ const songConfig = {
   "3A_前奏曲.mid": { split: 68 }
 };
 
-const noteMap = {
-  "C":"ど",
-  "D":"れ",
-  "E":"み",
-  "F":"ふぁ",
-  "G":"そ",
-  "A":"ら",
-  "B":"し"
-};
+
 
 
 const gameArea = document.getElementById("gameArea");
@@ -1006,7 +999,31 @@ function loadMidi(buffer, fileName){
   chordSpawnIndex = {};
   const midi = new Midi(buffer);
 
-  notes = [];
+  const keySig = midi.header.keySignatures?.[0];
+window.currentKey = keySig?.key || "C";
+const keyFix = {
+  "D#":"Eb",
+  "Eb":"Eb",
+  "C#":"Db",
+  "Db":"Db",
+  "F#":"Gb",
+  "Gb":"Gb",
+  "G#":"Ab",
+  "Ab":"Ab",
+  "A#":"Bb",
+  "Bb":"Bb"
+};
+
+window.currentKey = keyFix[keySig?.key] || "C";
+console.log("調性:", window.currentKey);
+
+console.log(midi.header);
+console.log("KeySignatures:", midi.header.keySignatures);
+console.log(
+  JSON.stringify(midi.header.keySignatures, null, 2)
+); 
+
+notes = [];
   usedNotes.clear();
 
   splitNote = songConfig[fileName]?.split ?? 60;
@@ -1049,11 +1066,7 @@ function loadMidi(buffer, fileName){
 
   paintKeyboard();
 
-console.log(
-  notes.slice(0,30).map(n =>
-    `${n.time.toFixed(3)} ${n.note}`
-  )
-);
+
 }
 
 
@@ -1176,7 +1189,77 @@ function stopGame(){
 
 }
 
+
+
 /* ================= SPAWN ================= */
+function noteToSolfege(noteName){
+    // ① オクターブ除去
+    const pitch = noteName.replace(/[0-9]/g, "");
+
+    // ② 異名同音を統一
+    const normalize = {
+        "C":"C",
+        "C#":"C#","Db":"C#",
+        "D":"D",
+        "D#":"D#","Eb":"D#",
+        "E":"E","Fb":"E",
+        "F":"F","E#":"F",
+        "F#":"F#","Gb":"F#",
+        "G":"G",
+        "G#":"G#","Ab":"G#",
+        "A":"A",
+        "A#":"A#","Bb":"A#",
+        "B":"B","Cb":"B"
+    };
+
+    const p = normalize[pitch];
+    if(!p) return pitch;
+
+    // ③ 調性（メジャー）
+    const key = window.currentKey || "C";
+
+    const majorScale = {
+        C:  ["C","D","E","F","G","A","B"],
+        G:  ["C","D","E","F#","G","A","B"],
+        D:  ["C#","D","E","F#","G","A","B"],
+        A:  ["C#","D","E","F#","G#","A","B"],
+        E:  ["C#","D#","E","F#","G#","A","B"],
+        B:  ["C#","D#","E","F#","G#","A#","B"],
+        F:  ["C","D","E","F","G","A","A#"],
+        Bb: ["C","D","D#","F","G","A","A#"],
+        Eb: ["C","D","D#","F","G","G#","A#"],
+        Ab: ["C","C#","D#","F","G","G#","A#"]
+    };
+
+    const solfege = ["ド","レ","ミ","ファ","ソ","ラ","シ"];
+
+    const scale = majorScale[key];
+
+    // ④ スケール内 → ドレミ
+    const idx = scale.indexOf(p);
+    if(idx !== -1){
+        return solfege[idx];
+    }
+
+    // ⑤ スケール外 → カタカナ臨時音
+    const kana = {
+        "C":"ド",
+        "C#":"ド♯",
+        "D":"レ",
+        "D#":"レ♯",
+        "E":"ミ",
+        "F":"ファ",
+        "F#":"ファ♯",
+        "G":"ソ",
+        "G#":"ソ♯",
+        "A":"ラ",
+        "A#":"ラ♯",
+        "B":"シ"
+    };
+
+    return kana[p] || p;
+}
+
 
 function spawn(n){
 
@@ -1214,7 +1297,8 @@ function spawn(n){
   // テキスト
   const text = document.createElement("div");
   text.className = "note-text";
-  text.textContent = noteMap[n.note[0]];
+  text.textContent = noteToSolfege(n.note);
+
   el.appendChild(text);
 
   document.getElementById("gameArea").appendChild(el);
