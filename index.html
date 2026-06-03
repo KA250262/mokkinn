@@ -308,11 +308,11 @@ button:hover{
 /* 修正前：translateY(20px) や横方向のズレを無くし、その場で綺麗に消す */
 @keyframes suckToLine {
   0% {
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
     opacity: 1;
   }
   100% {
-    transform: translateX(-50%) scale(0.6); /* 横にブレさせず、その場で少し小さく */
+    transform: scale(0.6);
     opacity: 0;
   }
 }
@@ -457,7 +457,7 @@ button:hover{
 
 
 
-/* 🎯 同時押しノーツを繋ぐ光の線（点滅なし・常時しっかり表示版） */
+
 /* 🎯 同時押しノーツを繋ぐ光の線（両手同時のみ・薄め版） */
 .combo-line {
   position: absolute;
@@ -1224,26 +1224,22 @@ active.push({
 }
 
 
-
-
-
-
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
   const gameTime = rawTime * speed;
   const PREVIEW_TIME = 0;
 
-  // =========================
-  // ノーツ生成
-  // =========================
+  // ==========================================
+  // ① ノーツ生成
+  // ==========================================
   while (index < notes.length && notes[index].time <= gameTime + travelTime + PREVIEW_TIME) {
     spawn(notes[index]);
     index++;
   }
 
   // ==========================================
-  // ノーツ更新＆同時押し線ロジック
+  // ② ノーツ更新＆同時押し線ロジック
   // ==========================================
   active.forEach(n => {
     const visualTime = gameTime - n.dropOffset;
@@ -1265,65 +1261,68 @@ function loop() {
     n.el.style.zIndex = Math.floor(1000 - dist);
 
     if (gameTime > n.hit) {
-      // ① 判定タイミングを過ぎた後（フェードアウト）
+      // ーーー 判定タイミングを過ぎた後（フェードアウト） ーーー
       const timePast = gameTime - n.hit;
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-   
-   
-// ====== loop() 内の該当箇所を以下のように書き換えます ======
+      
+      // 🌟【重要】横ブレの原因だった translateX(-50%) を完全に排除！
+      n.el.style.transform = `scale(1)`;
+      n.el.style.opacity = opacity;
+      
+      // 鍵盤を通り過ぎたら、同時押し線も一緒にフェードアウトさせる
+      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (line) line.style.opacity = opacity * 0.55;
+    } else {
+      // ーーー 判定位置に近づく前（降下中） ーーー
+      // 🌟【重要】ここからも translateX(-50%) を排除し、配置を統一
+      n.el.style.transform = `scale(1)`;
+      n.el.style.opacity = "1";
 
-// ② 判定位置に近づく前（降下中）
-n.el.style.transform = `translateX(-50%) scale(1)`;
-n.el.style.opacity = "1";
+      // 🌟 両手同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
+      if (dist < 220 && !n.isLineDrawn) {
+        // 同じchordIdで、かつ「自分と違う手（右手と左手）」の相方を探す
+        const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
+        
+        if (partner && !partner.isLineDrawn) {
+          n.isLineDrawn = true;
+          partner.isLineDrawn = true;
 
-// 🌟 同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
-if (dist < 220 && !n.isLineDrawn) {
-  // 【修正】同じchordIdで、かつ「自分と違う手（右手と左手）」の相方を探す
-  const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
-  
-  if (partner && !partner.isLineDrawn) {
-    n.isLineDrawn = true;
-    partner.isLineDrawn = true;
+          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+          const rect1 = n.el.getBoundingClientRect();
+          const rect2 = partner.el.getBoundingClientRect();
 
-    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-    const rect1 = n.el.getBoundingClientRect();
-    const rect2 = partner.el.getBoundingClientRect();
+          const x1 = rect1.left - gameRect.left + (rect1.width / 2);
+          const x2 = rect2.left - gameRect.left + (rect2.width / 2);
+          const leftX = Math.min(x1, x2);
+          const lineWidth = Math.abs(x1 - x2);
 
-    const x1 = rect1.left - gameRect.left + (rect1.width / 2);
-    const x2 = rect2.left - gameRect.left + (rect2.width / 2);
-    const leftX = Math.min(x1, x2);
-    const lineWidth = Math.abs(x1 - x2);
+          const lineEl = document.createElement("div");
+          lineEl.className = "combo-line";
+          lineEl.style.left = leftX + "px";
+          lineEl.style.width = lineWidth + "px";
+          
+          // リアルタイム移動用のID紐付け
+          lineEl.dataset.chordId = n.chordId;
+          document.getElementById("gameArea").appendChild(lineEl);
+        }
+      }
 
-    const lineEl = document.createElement("div");
-    lineEl.className = "combo-line";
-    lineEl.style.left = leftX + "px";
-    lineEl.style.width = lineWidth + "px";
-    
-    // リアルタイム移動用のID紐付け
-    lineEl.dataset.chordId = n.chordId;
-    document.getElementById("gameArea").appendChild(lineEl);
-  }
-}
-
-// 🌟 生成された線をノーツの降下に完全に同期させる
-const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
-if (existingLine) {
-  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-  const rect1 = n.el.getBoundingClientRect();
-  const currentY = rect1.top - gameRect.top + (rect1.height / 2);
-  existingLine.style.top = currentY + "px";
-  
-  // 鍵盤の直前（25px未満）まで来たら、設定した薄さからさらにフェードアウト
-  if (dist < 25) {
-    existingLine.style.opacity = (dist / 25) * 0.55; 
-  } else {
-    existingLine.style.opacity = "0.55"; // 🌟 ここもベースの薄さ(0.55)に合わせる
-  }
-}
-
-
-
+      // 🌟 生成された線をノーツの降下に完全に同期させる
+      const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (existingLine) {
+        const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+        const rect1 = n.el.getBoundingClientRect();
+        const currentY = rect1.top - gameRect.top + (rect1.height / 2);
+        existingLine.style.top = currentY + "px";
+        
+        // 鍵盤の直前（25px未満）まで来たら、さらに薄くフェードアウト
+        if (dist < 25) {
+          existingLine.style.opacity = (dist / 25) * 0.55; 
+        } else {
+          existingLine.style.opacity = "0.55"; 
+        }
+      }
 
       // ③ ジャストの瞬間（鍵盤が光る処理：dist < 25）
       if (dist < 25 && !n.isKeyFlashed) {
@@ -1338,8 +1337,17 @@ if (existingLine) {
       }
     }
 
+    // MISS処理（ここでヒットに失敗した同時押し線も削除）
+    if (!n.missed && n.hit + 0.15 < gameTime) {
+      n.missed = true;
+      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
+      if (line) line.remove();
+      n.el.remove();
+    }
+  });
+
   // ==========================================
-  // 和音の囲み（サークリング）ロジック
+  // ③ 和音の囲み（サークリング）ロジック
   // ==========================================
   // 画面上の全ノーツを chordId ごとにグループ化
   const chords = {};
@@ -1370,9 +1378,10 @@ if (existingLine) {
       surroundEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       surroundEl.classList.add("chord-surround", handClass);
       surroundEl.dataset.chordGroup = cid;
+      
       // 囲むパス要素を追加
       const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathEl.style.fill = `${handColor}20`; // 囲み内を薄く塗る（例: 20%透明度）
+      pathEl.style.fill = `${handColor}20`; // 囲み内を薄く塗る
       pathEl.style.stroke = handColor; // 囲みの線
       pathEl.style.strokeWidth = "3px";
       pathEl.style.strokeLinecap = "round";
@@ -1380,7 +1389,7 @@ if (existingLine) {
       document.getElementById("gameArea").appendChild(surroundEl);
     }
 
-    // 🌟 全ノーツを囲むバウンディングボックス（境界）を計算
+    // 全ノーツを囲むバウンディングボックス（境界）を計算
     const gRect = document.getElementById("gameArea").getBoundingClientRect();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     notesInChord.forEach(n => {
@@ -1404,9 +1413,7 @@ if (existingLine) {
     surroundEl.style.left = minX + "px";
     surroundEl.style.top = minY + "px";
 
-    // 🌟 パス（ぐるっと囲む線）を更新（ここでは楕円形の例）
-    // （※より複雑なノーツ配置に合わせて囲むには、凸包計算などの高度なジオメトリが必要ですが、
-    // ここではノーツ全体を包む大きな楕円として実装します）
+    // パス（楕円形の囲み線）を更新
     const pathEl = surroundEl.querySelector("path");
     const cx = (maxX - minX) / 2;
     const cy = (maxY - minY) / 2;
@@ -1416,34 +1423,13 @@ if (existingLine) {
   });
 
   // ==========================================
-  // 既存のノーツ更新ロジック (MISS処理の前)
+  // ④ 終了判定（GOAL）
   // ==========================================
-  active.forEach(n => {
-    // ...
-  });
-
-    // MISS処理（ここでヒットに失敗した同時押し線も削除）
-    if (!n.missed && n.hit + 0.15 < gameTime) {
-      n.missed = true;
-      const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
-      if (line) line.remove();
-      n.el.remove();
-    }
-  });
-
-  // =========================
-  // 終了判定（GOAL）
-  // =========================
   if (index >= notes.length && active.length === 0) {
-    // 残ってしまった線を最後に綺麗に掃除
     document.querySelectorAll(".combo-line").forEach(l => l.remove());
+    document.querySelectorAll(".chord-surround").forEach(s => s.remove());
     running = false;
     showGoal();
-    return;
-  }
-
-  requestAnimationFrame(loop);
-}
 
 
 
