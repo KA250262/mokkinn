@@ -168,48 +168,48 @@ button:hover{
 }
 
 #songMenu {
-    display: none; /* 最初は非表示 */
     position: absolute;
-    top: 340px; /* お花ボタンの下に配置 */
+    top: 340px; /* お花ボタンの下 */
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9) !important; /* しっかりとした黒背景 */
-    backdrop-filter: blur(8px);
-    border: 2px solid #ff7ac8;
-    border-radius: 12px !important; /* 丸まりすぎを防止 */
-    padding: 12px !important;
-    z-index: 9999 !important;
+    background: rgba(0, 0, 0, 0.9) !important; /* 真っ黒な背景 */
+    border: 2px solid #ff7ac8 !important;
+    border-radius: 10px !important; /* 丸すぎない角丸 */
+    padding: 10px !important;
+    z-index: 99999 !important; /* 一番手前に出す */
+    
+    /* 最初は非表示。表示する時はJavaScriptで flex にします */
     display: none; 
-    flex-direction: column !important; /* 確実に縦に並べる */
-    gap: 8px !important;
-    min-width: 200px; /* メニューが潰れないように幅を確保 */
-    height: auto !important; /* 縦幅がドットにならないように自動にする */
+    flex-direction: column !important; /* 必ず縦並び */
+    gap: 8px !important; /* ボタン同士の隙間 */
+    
+    /* 横幅と縦幅をドットや線にさせない設定 */
+    width: 220px !important; 
+    height: auto !important; 
 }
 
 /* メニュー内の曲選択ボタン */
 .menuSongBtn {
-    background: #ff7ac8 !important;
-    color: white !important;
+    display: block !important; /* 確実に表示 */
+    visibility: visible !important;
+    width: 100% !important; /* メニューの横幅いっぱいに広げる */
+    height: auto !important;
+    background: #ff7ac8 !important; /* 可愛いピンク */
+    color: white !important; /* 白文字 */
     border: none !important;
-    padding: 10px 16px !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    font-size: 15px !important;
+    font-weight: bold !important;
     cursor: pointer !important;
-    white-space: nowrap !important; /* 文字の折り返しを禁止 */
-    width: 100%; /* メニューの幅いっぱいに広げる */
-    display: block !important;
-    transition: background 0.2s;
+    white-space: nowrap !important; /* 改行しない */
+    text-align: center !important;
+    box-shadow: none !important;
 }
 
 .menuSongBtn:hover {
-    background: #ff3399 !important;
+    background: #ff3399 !important; /* ホバーで濃いピンク */
 }
-
-.menuSongBtn:hover {
-    background: #ff3399;
-    transform: scale(1.03);
-}
-
 #score{
   color:gold;
   display:inline-block;
@@ -614,7 +614,6 @@ button:hover{
 <div id="flowerBar">
     <button class="flowerBtn" onclick="toggleSongMenu()">🌸</button>
 </div>
-
 <div id="songMenu"></div>
 
 <div id="debug"></div>
@@ -1612,47 +1611,55 @@ function loadSong(fileName){
 
 }
 /* ================= 📦 曲リストの定義 ================= */
-// 新しい曲を追加したいときは、この配列に `{ file: 'ファイル名', title: '画面表示名' }` を追加するだけ！
 const songList = [
-    { file: "55.mid", title: "バイエル_55.mid" },
-    { file: "3A_前奏曲.mid", title: "オールインワン_前奏曲" },
-    { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー_マリオネット" },
-    { file: "コナン.mid", title: "コナン_メインテーマ" },
-    { file: "革命.mid", title: "ショパン_革命" }
+    { file: "55.mid", title: "バイエル 55番" },
+    { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
+    { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー マリオネット" },
+    { file: "コナン.mid", title: "コナン メインテーマ" },
+    { file: "革命.mid", title: "ショパン 革命" }
 ];
 
 /* ================= 🛠️ メニューの動的生成 ================= */
 function initSongMenu() {
     const menu = document.getElementById("songMenu");
-    menu.innerHTML = ""; // 一旦クリア
+    if (!menu) return;
+    
+    menu.innerHTML = ""; // 一旦中身を空っぽにする
 
     songList.forEach(song => {
+        // 1つずつボタン要素を作る
         const btn = document.createElement("button");
         btn.className = "menuSongBtn";
         btn.textContent = song.title;
-        // クリックしたら曲をロードして、メニューを閉じる
+        
+        // ボタンを押した時の処理
         btn.onclick = () => {
             loadSong(song.file);
-            menu.style.display = "none"; 
+            menu.style.style.display = "none"; // 曲を選んだらメニューを閉じる
         };
+        
+        // メニューの中にボタンを突っ込む
         menu.appendChild(btn);
     });
+    console.log("メニューの作成が完了しました！ボタン数:", songList.length);
 }
 
 /* ================= 🎛️ メニューの表示・非表示切り替え ================= */
 function toggleSongMenu() {
     const menu = document.getElementById("songMenu");
+    if (!menu) return;
     
-    // 現在非表示なら「flex」で表示、表示中なら「none」で非表示にする
+    // 現在の表示状態をチェックして切り替える
     if (menu.style.display === "none" || menu.style.display === "") {
-        menu.style.display = "flex"; /* 👈 ここを flex にするのがポイントです */
+        menu.style.setProperty("display", "flex", "important"); // 確実に縦並びで表示
     } else {
-        menu.style.display = "none";
+        menu.style.setProperty("display", "none", "important"); // 非表示
     }
 }
 
-// 画面が読み込まれたらメニューを組み立てる
+// 画面が読み込まれたら確実に実行する（2つのタイミングで保険をかけます）
 window.addEventListener("DOMContentLoaded", initSongMenu);
+window.addEventListener("load", initSongMenu);
 </script>
 
 </body>
