@@ -1198,20 +1198,13 @@ function spawn(n){
     color = isBlack ? "#7a1f1f" : "#ff4a4a";
   }
 
-  el.style.background = color;
+el.style.background = color;
 
-  // 位置
-  // 位置（和音や重なりを避けるために、ノートの高さや左右の手でわずかに横にずらす補正）
-let xOffset = 0;
-if (n.hand === "left") {
-  // 左手ノーツ：低音ほど左に、高音ほど右に少しだけ傾ける（例：-15px 〜 +15px）
-  xOffset = ((n.midi - 60) / 12) * 10; 
-} else {
-  // 右手ノーツ：少し右側に逃がす、またはノートごとに絶妙に変える
-  xOffset = ((n.midi - 72) / 12) * 10;
-}
+  // 🌟【修正】ノーツと鍵盤のズレをなくすため、xOffset（左右のズレ補正）を完全に0にする
+  let xOffset = 0;
 
-el.style.left = (k.left - g.left + k.width / 2 + xOffset) + "px";
+  // 鍵盤の真ん中にぴったり合わせる
+  el.style.left = (k.left - g.left + k.width / 2 + xOffset) + "px";
 
   // テキスト
   const text = document.createElement("div");
@@ -1234,10 +1227,13 @@ active.push({
   dropOffset:0
 });
 
-
-
-
 }
+
+
+
+
+
+
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
