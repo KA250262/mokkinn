@@ -173,27 +173,36 @@ button:hover{
     top: 340px; /* お花ボタンの下に配置 */
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85); /* 高級感のある黒シースルー */
+    background: rgba(0, 0, 0, 0.9) !important; /* しっかりとした黒背景 */
     backdrop-filter: blur(8px);
     border: 2px solid #ff7ac8;
-    border-radius: 15px;
-    padding: 10px;
-    z-index: 999;
-    flex-direction: column; /* ボタンを縦に並べる */
-    gap: 8px;
+    border-radius: 12px !important; /* 丸まりすぎを防止 */
+    padding: 12px !important;
+    z-index: 9999 !important;
+    display: none; 
+    flex-direction: column !important; /* 確実に縦に並べる */
+    gap: 8px !important;
+    min-width: 200px; /* メニューが潰れないように幅を確保 */
+    height: auto !important; /* 縦幅がドットにならないように自動にする */
 }
 
 /* メニュー内の曲選択ボタン */
 .menuSongBtn {
-    background: #ff7ac8;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.2s, transform 0.1s;
+    background: #ff7ac8 !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    white-space: nowrap !important; /* 文字の折り返しを禁止 */
+    width: 100%; /* メニューの幅いっぱいに広げる */
+    display: block !important;
+    transition: background 0.2s;
+}
+
+.menuSongBtn:hover {
+    background: #ff3399 !important;
 }
 
 .menuSongBtn:hover {
@@ -1634,9 +1643,9 @@ function initSongMenu() {
 function toggleSongMenu() {
     const menu = document.getElementById("songMenu");
     
-    // 現在非表示（none または空）なら表示(flex)に、表示中なら非表示にする
+    // 現在非表示なら「flex」で表示、表示中なら「none」で非表示にする
     if (menu.style.display === "none" || menu.style.display === "") {
-        menu.style.display = "flex";
+        menu.style.display = "flex"; /* 👈 ここを flex にするのがポイントです */
     } else {
         menu.style.display = "none";
     }
