@@ -358,25 +358,27 @@ button:hover{
   position: absolute;
   flex: 1;
   min-width: 12px;
-  top:45px;
+  top:30px;
   width: 28px;
-  height: 90px; /* 🎯 白鍵の縦幅を少し短く（120px から 105px に変更） */
+  height: 105px; /* 🎯 白鍵の縦幅を少し短く（120px から 105px に変更） */
   margin-top: 25px; /* 🎯 上側に25pxの隙間を作って、短く見せる */
   background: white;
   border: 1px solid #333;
-  border-radius: 0 0 6px 6px;
+  /* 🎯 白鍵の角の調整：上側を少しだけ丸く（2px）、下側をしっかり丸く（6px） */
+  border-radius: 2px 2px 6px 6px; 
   transition: background 0.1s ease, box-shadow 0.1s ease;
 }
 
 .black {
   position: absolute;
   width: 22px;
-  top:50px;
+  top:43px;
   height: 70px; /* 🎯 黒鍵の縦幅を少し伸ばして存在感を出す */
   margin-top: 0; /* 🎯 隙間なく一番上から配置することで、白鍵より上に飛び出させる */
   background: #222;
   border: 2px solid white;
-  border-radius: 0 0 4px 4px;
+  /* 🎯 黒鍵の角の調整：上側の角も下側と同じように丸っこく（5px）変更 */
+  border-radius: 5px 5px 4px 4px; 
   z-index: 20;
   transition: background 0.1s ease, box-shadow 0.1s ease;
 }
@@ -412,16 +414,20 @@ button:hover{
   z-index:40;
 }
 
-/* 🎯 白鍵が光る色：鮮やかな緑（ライム） */
+/* 🎯 白鍵が光る色：鮮やかな緑（ライム）＋消える時のフワッとした余韻を追加 */
 .hit {
   background: #ffffff !important;
   box-shadow: inset 0 0 15px rgba(51, 255, 51, 0.8), 0 0 15px #33ff33;
+  /* 🎯 transition を追加して、クラスが外れた時に0.35秒かけてフワッと元の色に戻す */
+  transition: background 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), box-shadow 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) !important;
 }
 
-/* 🎯 黒鍵が光る色：パキッとした黄色（ネオンイエロー） */
+/* 🎯 黒鍵が光る色：パキッとした黄色（ネオンイエロー）＋消える時のフワッとした余韻を追加 */
 .hit-black {
   background: #ffff00 !important;
   box-shadow: inset 0 0 15px rgba(255, 255, 0, 0.8), 0 0 15px #ffff00;
+  /* 🎯 同様に0.35秒のフワッとした余韻を追加 */
+  transition: background 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), box-shadow 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) !important;
 }
 
 
