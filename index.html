@@ -298,6 +298,7 @@ button:hover{
   opacity:0.92;
   /* 🎯 ここから transform の記述を完全に削除する */
   z-index:100;
+  margin-left: -8px !important;
 }
 
 .note-hit {
@@ -566,6 +567,33 @@ button:hover{
 .rightBird {
   transform: scaleX(1);  /* 左向き（内側） */
 }
+/* 手のイラストの共通スタイル */
+.piano-hand {
+  position: absolute;
+  height: 100px; /* 手のサイズ（鍵盤の大きさに合わせて調整してください） */
+  z-index: 50;   /* 鍵盤より手前、ノーツより後ろ、または最前面(102)などお好みで */
+  pointer-events: none; /* クリックを邪魔しないようにする */
+  
+  /* 初期位置は画面の下に隠しておく */
+  top: 650px; 
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  
+  /* 移動を滑らかにする魔法のプロパティ */
+  transition: left 0.1s ease-out, top 0.1s ease-out, transform 0.05s ease-out;
+  opacity: 0; /* 最初は透明 */
+}
+
+/* アクティブ（弾いているとき）に表示するクラス */
+.piano-hand.active {
+  opacity: 1;
+}
+
+/* 鍵盤を「叩いた瞬間」のバウンスエフェクト */
+.piano-hand.tap {
+  transform: translateX(-50%) scale(0.85); /* 瞬間的に少しキュッと小さくして叩いた感を出す */
+}
+
 
 /* GOALテープ */
 .tape {
@@ -595,6 +623,7 @@ button:hover{
 @keyframes wing {
   0%   { transform: translateY(0px) rotate(-5deg); }
   100% { transform: translateY(-2px) rotate(5deg); }
+  
 }
 </style>
 </head>
@@ -606,11 +635,13 @@ button:hover{
 
   <img id="mascot" src="melokoro.png">
   <div id="hitUI">
-
   HIT:
   <span id="hitCount">0</span>
   /
   <span id="totalCount">0</span>
+
+  <img id="rightHand" class="piano-hand" src="右手.png" alt="右手">
+  <img id="leftHand" class="piano-hand" src="左手.png" alt="左手">
 
 </div>
 
@@ -1097,7 +1128,7 @@ function stopGame(){
 
 
 
-/* ================= SPAWN ================= */
+
 function noteToSolfege(noteName){
     // ① オクターブ除去
     const pitch = noteName.replace(/[0-9]/g, "");
@@ -1166,7 +1197,7 @@ function noteToSolfege(noteName){
     return kana[p] || p;
 }
 
-
+/* ================= SPAWN ================= */
 function spawn(n){
 
   const key = document.querySelector(`[data-note="${n.note}"]`);
@@ -1196,6 +1227,8 @@ function spawn(n){
 
 el.style.background = color;
 
+
+
   // 🌟【修正】ノーツと鍵盤のズレをなくすため、xOffset（左右のズレ補正）を完全に0にする
   let xOffset = 0;
 
@@ -1208,6 +1241,10 @@ const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
 
 // 補正なし（xOffset=0）で正確に代入
 el.style.left = exactX + "px";
+
+
+
+
 
   // テキスト
   const text = document.createElement("div");
@@ -1255,18 +1292,15 @@ function loop() {
     const p = 1 - ((n.hit - visualTime) / travelTime);
     const y = spawnY + p * (hitY - spawnY);
     n.el.style.top = y + "px";
-
+    
     const gameHeight = document.getElementById("gameArea").clientHeight;
     if (y > gameHeight + 50) {
       n.el.remove();
-      // 画面外に消える時に、紐づく同時押し線や囲みがあれば一緒に消去
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.remove();
-      
       const cid = `${n.chordId}-${n.hand}`;
       const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (surround) surround.remove();
-
       active = active.filter(x => x !== n);
       return;
     }
@@ -1279,51 +1313,58 @@ function loop() {
       const timePast = gameTime - n.hit;
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-      
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = opacity;
       
-      // 鍵盤を通り過ぎたら、同時押し線も一緒にフェードアウトさせる
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.style.opacity = opacity * 0.55;
-
-      // 🌟【追加】鍵盤を通り過ぎたら、和音の囲みも一緒にフェードアウトさせる
+      
       const cid = `${n.chordId}-${n.hand}`;
       const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (surround) {
         surround.style.opacity = opacity;
-        // 完全に透明になったら画面から削除する
-        if (opacity <= 0) {
-          surround.remove();
-        }
+        if (opacity <= 0) surround.remove();
       }
     } else {
       // ーーー 判定位置に近づく前（降下中） ーーー
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = "1";
 
-      // 🌟 両手同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
+      // ✨【追加】ジャストタイミングの約0.25秒前に手を鍵盤位置へ移動させる
+      if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
+        const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+        if (targetKey) {
+          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+          const keyRect = targetKey.getBoundingClientRect();
+          const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
+          
+          const handId = n.hand === "left" ? "leftHand" : "rightHand";
+          const handEl = document.getElementById(handId);
+          if (handEl) {
+            handEl.classList.add("active");
+            handEl.style.left = exactX + "px";
+            handEl.style.top = "475px"; // 鍵盤の下あたり
+          }
+        }
+      }
+
+      // 🌟 両手同時押し線を画面の中央付近から出現させる
       if (dist < 220 && !n.isLineDrawn) {
         const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
-        
         if (partner && !partner.isLineDrawn) {
           n.isLineDrawn = true;
           partner.isLineDrawn = true;
-
           const gameRect = document.getElementById("gameArea").getBoundingClientRect();
           const rect1 = n.el.getBoundingClientRect();
           const rect2 = partner.el.getBoundingClientRect();
-
           const x1 = rect1.left - gameRect.left + (rect1.width / 2);
           const x2 = rect2.left - gameRect.left + (rect2.width / 2);
           const leftX = Math.min(x1, x2);
           const lineWidth = Math.abs(x1 - x2);
-
           const lineEl = document.createElement("div");
           lineEl.className = "combo-line";
           lineEl.style.left = leftX + "px";
           lineEl.style.width = lineWidth + "px";
-          
           lineEl.dataset.chordId = n.chordId;
           document.getElementById("gameArea").appendChild(lineEl);
         }
@@ -1336,11 +1377,10 @@ function loop() {
         const rect1 = n.el.getBoundingClientRect();
         const currentY = rect1.top - gameRect.top + (rect1.height / 2);
         existingLine.style.top = currentY + "px";
-        
         if (dist < 25) {
-          existingLine.style.opacity = (dist / 25) * 0.55; 
+          existingLine.style.opacity = (dist / 25) * 0.55;
         } else {
-          existingLine.style.opacity = "0.55"; 
+          existingLine.style.opacity = "0.55";
         }
       }
 
@@ -1352,22 +1392,21 @@ function loop() {
           const isBlackKey = targetKey.classList.contains("black");
           const flashClass = isBlackKey ? "hit-black" : "hit";
           targetKey.classList.add(flashClass);
-          setTimeout(() => { targetKey.classList.remove(flashClass); }, 150);
+          setTimeout(() => {
+            targetKey.classList.remove(flashClass);
+          }, 150);
         }
       }
     }
 
-    // MISS処理（ここでヒットに失敗した同時押し線も削除）
+    // MISS処理
     if (!n.missed && n.hit + 0.15 < gameTime) {
       n.missed = true;
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.remove();
-      
-      // 🌟【追加】ミス時も囲みを即座に削除
       const cid = `${n.chordId}-${n.hand}`;
       const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (surround) surround.remove();
-
       n.el.remove();
     }
   });
@@ -1375,49 +1414,39 @@ function loop() {
   // ==========================================
   // ③ 和音の囲み（サークリング）ロジック
   // ==========================================
-  // まだ判定前の（降下中の）アクティブなノーツだけを集めてグループ化する
   const chords = {};
   active.forEach(n => {
-    // 🌟 既にヒット時間を過ぎてフェードアウト中のノーツは囲み計算から除外する
     if (gameTime > n.hit) return;
-
     const hand = n.hand;
     const cid = `${n.chordId}-${hand}`;
     if (!chords[cid]) chords[cid] = [];
     chords[cid].push(n);
   });
 
-  // 各和音グループについて、囲みを生成・更新
   Object.keys(chords).forEach(cid => {
     const notesInChord = chords[cid];
     if (notesInChord.length < 2) {
-      // 残りノーツが1つ以下になったら囲みを画面から消す
       const existingSurround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (existingSurround) existingSurround.remove();
       return;
     }
-
     const hand = notesInChord[0].hand;
     const handClass = hand === "right" ? "chord-surround-right" : "chord-surround-left";
     const handColor = hand === "right" ? "#ff4a4a" : "#4aa3ff";
-
     let surroundEl = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
     if (!surroundEl) {
       surroundEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       surroundEl.classList.add("chord-surround", handClass);
       surroundEl.dataset.chordGroup = cid;
-      surroundEl.style.transition = "opacity 0.05s linear"; // フェードを滑らかに
-      
+      surroundEl.style.transition = "opacity 0.05s linear";
       const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathEl.style.fill = `${handColor}20`; 
-      pathEl.style.stroke = handColor; 
+      pathEl.style.fill = `${handColor}20`;
+      pathEl.style.stroke = handColor;
       pathEl.style.strokeWidth = "3px";
       pathEl.style.strokeLinecap = "round";
       surroundEl.appendChild(pathEl);
       document.getElementById("gameArea").appendChild(surroundEl);
     }
-
-    // 全ノーツを囲むバウンディングボックス（境界）を計算
     const gRect = document.getElementById("gameArea").getBoundingClientRect();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     notesInChord.forEach(n => {
@@ -1427,18 +1456,15 @@ function loop() {
       maxX = Math.max(maxX, r.right);
       maxY = Math.max(maxY, r.bottom);
     });
-
     const padding = 15;
     minX -= (padding + gRect.left);
     minY -= (padding + gRect.top);
     maxX += (padding - gRect.left);
     maxY += (padding - gRect.top);
-
     surroundEl.setAttribute("width", (maxX - minX));
     surroundEl.setAttribute("height", (maxY - minY));
     surroundEl.style.left = minX + "px";
     surroundEl.style.top = minY + "px";
-
     const pathEl = surroundEl.querySelector("path");
     const cx = (maxX - minX) / 2;
     const cy = (maxY - minY) / 2;
@@ -1447,13 +1473,11 @@ function loop() {
     pathEl.setAttribute("d", `M ${cx}, ${cy} m ${-rx}, 0 a ${rx},${ry} 0 1,0 ${rx*2},0 a ${rx},${ry} 0 1,0 ${-rx*2},0`);
   });
 
-  // 画面に残ってしまった迷子の囲みを大掃除
   document.querySelectorAll(".chord-surround").forEach(surround => {
     const cid = surround.dataset.chordGroup;
     if (!chords[cid]) {
-      // 降下中グループに存在しないIDの透明なゴミ枠はフェードアウトさせるか削除
       if (surround.style.opacity === "" || parseFloat(surround.style.opacity) > 0) {
-        // フェードアウト中ならそのまま
+        // フェードアウト中
       } else {
         surround.remove();
       }
@@ -1470,7 +1494,6 @@ function loop() {
     showGoal();
     return;
   }
-
   requestAnimationFrame(loop);
 }
 
@@ -1595,23 +1618,38 @@ update();
 }
 
 /* ================= SUCCESS ================= */
+function success(best) {
+  // ✨ 手のタップ＆引き揚げ制御
+  const handId = best.hand === "left" ? "leftHand" : "rightHand";
+  const handEl = document.getElementById(handId);
+  if (handEl) {
+    handEl.classList.remove("tap");
+    void handEl.offsetWidth; // クラス再適用用のハック
+    handEl.classList.add("tap");
+    
+    clearTimeout(handEl.timer);
+    handEl.timer = setTimeout(() => {
+      handEl.classList.remove("tap");
+      
+      const rawTime = (performance.now() - startTime) / 1000 - 3;
+      const gameTime = rawTime * speed;
+      const hasIncoming = active.some(x => x.hand === best.hand && x.hit - gameTime < 0.4 && !x.missed);
+      
+      if (!hasIncoming) {
+        handEl.classList.remove("active");
+        handEl.style.top = "650px"; // 画面外に戻す
+      }
+    }, 180);
+  }
 
-function success(best){
-
-best.el.classList.add("note-suck");
-
-setTimeout(() => {
-  best.el.remove();
-}, 180);
-
-  active =
-    active.filter(n=>n!==best);
-
+  // 既存のノーツ消去処理
+  best.el.classList.add("note-suck");
+  setTimeout(() => {
+    best.el.remove();
+  }, 180);
+  active = active.filter(n => n !== best);
   hitCount++;
-
-  document.getElementById("hitCount")
-    .textContent = hitCount;
-
+  document.getElementById("hitCount").textContent = hitCount;
 }
 /* ================= INPUT(関数） ================= */
 
