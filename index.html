@@ -567,34 +567,30 @@ button:hover{
 .rightBird {
   transform: scaleX(1);  /* 左向き（内側） */
 }
-/* ✨ 手のスタイル設定を丸ごと置き換え */
+/* ✨ 手のスタイル設定を以下に丸ごと置き換え */
 .piano-hand {
   position: absolute;
   height: 100px;
-  z-index: 102; /* ノーツ(100)やテキスト(101)より手前に表示 */
+  z-index: 102;         /* ノーツより手前に表示 */
   pointer-events: none; /* クリックを邪魔しない */
-  top: 600px; /* 初期位置：画面外ではなく、鍵盤の下の少し見えやすい位置 */
-  left: 50%;
-  transform: translateX(-50%);
-  transition: left 0.1s ease-out, top 0.2s ease-out, transform 0.05s ease-out; /* 縦方向(top)の動きをゆっくりに */
-  opacity: 0; /* 最初は透明 */
+  
+  /* 基準を画面中央ではなく、ゲームエリアの左端(0)に変更 基準値をクリアにする */
+  top: 540px;           /* 初期位置：鍵盤の少し下（見えない位置） */
+  left: 0px;            /* JS側で正確なX座標を直接代入するため、初期値は0 */
+  transform: translate3d(0, 0, 0); /* 余計な移動をクリア */
+  
+  /* アニメーションの速度調整 */
+  transition: left 0.1s ease-out, top 0.15s ease-out, transform 0.05s ease-out, opacity 0.1s linear;
+  opacity: 0;           /* 最初は透明 */
 }
 
 .piano-hand.active {
-  opacity: 1; /* スッと現れる */
+  opacity: 1;           /* 弾く時にスッと不透明に */
 }
 
-/* 💡 #rightHand と #leftHand で初期位置を少し左右にずらす */
-#rightHand {
-  margin-left: 30px;
-}
-#leftHand {
-  margin-left: -30px;
-}
-
-/* 鍵盤を「叩いた瞬間」のバウンスエフェクト */
+/* 鍵盤を「叩いた瞬間」のバウンス（少し沈むような動きに調整） */
 .piano-hand.tap {
-  transform: translateX(-50%) scale(0.85); /* 瞬間的に少しキュッと小さく */
+  transform: scale(0.88);
 }
 
 
@@ -1333,34 +1329,40 @@ function loop() {
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = "1";
 
-      // ✨【修正】ジャストタイミングの約0.25秒前に手を鍵盤位置へ移動させ、出現位置(top)を設定
-      if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
-        const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
-        if (targetKey) {
-          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-          const keyRect = targetKey.getBoundingClientRect();
-          const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
-          
-          const handId = n.hand === "left" ? "leftHand" : "rightHand";
-          const handEl = document.getElementById(handId);
-          if (handEl) {
-            // 出現位置を一時的に上げ(top:500px)、そこからスライドイン
-            if (!handEl.classList.contains("active")) {
-                handEl.style.top = "500px"; 
-                // 次のフレームで active にすることで、正しい位置に出現してから上昇する
-                requestAnimationFrame(() => {
-                    handEl.classList.add("active");
-                    handEl.style.left = exactX + "px";
-                    handEl.style.top = "475px"; // 弾く位置まで上昇
-                });
-            } else {
-                // すでに active なら単に移動
-                handEl.style.left = exactX + "px";
-                handEl.style.top = "475px"; 
-            }
-          }
-        }
+// 💡 loop() 関数内の「手の移動ロジック」の部分を以下に差し替え
+
+if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
+  const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+  if (targetKey) {
+    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+    const keyRect = targetKey.getBoundingClientRect();
+    
+    // 鍵盤のX座標（中心）をゲームエリア基準で計算
+    const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
+    
+    const handId = n.hand === "left" ? "leftHand" : "rightHand";
+    const handEl = document.getElementById(handId);
+    if (handEl) {
+      // 🖐️ 手の横幅の半分（ここでは45pxと仮定）を引くことで、手の中心が鍵盤の中心にピタッと重なります
+      const handWidthOffset = 45; 
+      
+      handEl.style.left = (exactX - handWidthOffset) + "px";
+      
+      if (!handEl.classList.contains("active")) {
+        // まだ表示されていないなら、一瞬でその鍵盤のX座標に移動させてから、上にニュッと出す
+        handEl.style.top = "540px"; 
+        handEl.classList.add("active");
+        // 次のフレームで弾く位置まで上昇
+        requestAnimationFrame(() => {
+          handEl.style.top = "475px"; 
+        });
+      } else {
+        // すでに画面に出ている場合は、そのままスムーズに横移動
+        handEl.style.top = "475px"; 
       }
+    }
+  }
+}
 
       // 🌟 両手同時押し線を画面の中央付近から出現させる
       if (dist < 220 && !n.isLineDrawn) {
@@ -1651,7 +1653,7 @@ function success(best) {
       
       if (!hasIncoming) {
         handEl.classList.remove("active");
-        handEl.style.top = "600px"; // 画面外ではなく、初期位置(鍵盤下)に戻す
+        handEl.style.top = "540px"; // 画面外ではなく、初期位置(鍵盤下)に戻す
       }
     }, 200); // タイミングを少し遅らせて動きを見せる
   }
