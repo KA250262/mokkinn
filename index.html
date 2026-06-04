@@ -21,32 +21,28 @@ body{
   overflow:hidden;
 }
 
-#gameArea{
+/* 基準となる鍵盤の合計サイズに合わせて gameArea を横に引き伸ばす */
+#gameArea {
   position: relative;
-  width: 95vw;
-  max-width: 1200px;
-  height: 88vh;
-  margin:0 auto;
-  background:#222;
-  border:3px solid #555;
-  border-radius:20px;
-  overflow:hidden;
+  width: 1008px; /* 🌟フィットさせる魔法の数字（白鍵28px × 36鍵分などの合計幅に固定） */
+  max-width: 100%;
+  height: 70vh;  /* 🌟下部をカットするために、88vh から 70vh に縮小 */
+  margin: 0 auto;
+  background: #222;
+  border: 3px solid #555;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
-#keyboard{
-  position:absolute;
-
-  left:50%;
-  top: 470px;
-
+/* 鍵盤を gameArea の最下部にピッタリと張り付ける */
+#keyboard {
+  position: absolute;
+  left: 0;
+  bottom: 0;     /* 🌟top: 470px などの固定値をやめ、一番下に張り付け */
   display: flex;
-  width: 100%;
-
-  transform:translateX(-50%);
-
-  height:180px;
-
-  z-index:3;
+  width: 100%;   /* gameArea の横幅（1008px）と完全に一致します */
+  height: 150px; /* 鍵盤自体の高さ */
+  z-index: 3;
 }
 
 h1{
@@ -839,15 +835,16 @@ function getTime(){
 
 
 /* ================= CONFIG （設定）================= */
-const travelTime = 1.2;
-const hitY = 470;
-const spawnY = -40;
-const SPEED_MAP = {slow: 0.4, normal: 0.6, fast: 0.8 };
 const gameArea = document.getElementById("gameArea");
+const travelTime = 1.2;
+// 🌟 gameAreaEl ではなく gameArea に統一してエラーを防ぎます
+const hitY = gameArea.clientHeight - 130; 
+const spawnY = -50;
+const SPEED_MAP = {slow: 0.4, normal: 0.6, fast: 0.8 };
 
-// 🔑 エラーの原因だった数式はここから完全に削除し、安全に初期化します
+// 🌟 バグの原因を排除し、安全に初期化
 let gameWidth = gameArea.clientWidth; 
-let keyWidth = 0; 
+let keyWidth = 0;
 
 /* ================= KEYBOARD ================= */
 // 🔑 省略なしの正しい鍵盤配列リストです。このまま貼り付けてください
@@ -1095,7 +1092,6 @@ function stopGame(){
 
 
 
-/* ================= SPAWN ================= */
 function noteToSolfege(noteName){
     // ① オクターブ除去
     const pitch = noteName.replace(/[0-9]/g, "");
@@ -1165,69 +1161,43 @@ function noteToSolfege(noteName){
 }
 
 
-function spawn(n){
 
-  const key = document.querySelector(`[data-note="${n.note}"]`);
-  if(!key) return;
 
-  const g = document.getElementById("gameArea").getBoundingClientRect();
-  const k = key.getBoundingClientRect();
-
+function spawn(n) {
   const el = document.createElement("div");
   el.className = "note note-spawn";
+  
+  // 右手（赤）／左手（青）の色分け
+  const color = (n.hand === "right") ? "#ff4a4a" : "#4aa3ff";
+  el.style.backgroundColor = color;
 
+  // 🌟【新・位置計算】引き伸ばした画面に100%フィットさせる計算
+  // 画面全体の横幅（gameWidth）を鍵盤の総数（36鍵）で割り、ノートのMIDI位置を掛け算します。
+  // これにより、CSSの引き伸ばしと完全に1対1でシンクロします。
+  const totalKeys = 36; // 画面にある白鍵・黒鍵を合わせた総数（または白鍵の数に合わせて調整）
+  const minMidi = 48;   // ピアノの一番左の音のMIDI番号（環境に合わせて調整してください）
+  
+  // 鍵盤1個あたりの正確な横幅を割り出す
+  const perKeyWidth = gameWidth / totalKeys; 
+  // 左端からの正確なX座標を計算（+ perKeyWidth / 2 でノーツの中心を鍵盤の真ん中にセット）
+  const exactX = ((n.midi - minMidi) * perKeyWidth) + (perKeyWidth / 2);
 
-  setTimeout(() => {
-    el.classList.remove("note-spawn");
-  }, 250);
+  // 左右のズレ（xOffset）は完全に0にして代入
+  el.style.left = exactX + "px";
 
-
-  const isBlack = key.classList.contains("black");
-
-  let color;
-
-  if(n.hand === "left"){
-    color = isBlack ? "#1f4f7a" : "#4aa3ff";
-  }else{
-    color = isBlack ? "#7a1f1f" : "#ff4a4a";
-  }
-
-el.style.background = color;
-
-  // 🌟【修正】ノーツと鍵盤のズレをなくすため、xOffset（左右のズレ補正）を完全に0にする
-  let xOffset = 0;
-
-// 🌟【修正版】ブラウザの画面全体のズレ（スクロールや外枠の余白）の影響をなくす計算
-const gameRect = g; // gameArea の座標
-const keyRect = k;  // ターゲット鍵盤の座標
-
-// gameArea の左端を基準にして、鍵盤の真ん中の位置を正確に割り出す
-const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
-
-// 補正なし（xOffset=0）で正確に代入
-el.style.left = exactX + "px";
-
-  // テキスト
+  // テキスト（音名など）の追加
   const text = document.createElement("div");
   text.className = "note-text";
-  text.textContent = noteToSolfege(n.note);
-
+  text.innerText = n.note;
   el.appendChild(text);
 
+  // 画面に追加してactive配列に保存
   document.getElementById("gameArea").appendChild(el);
-
-
-  const dropOffset = 0;
-active.push({
-  el,
-  note:n.note,
-  hit:n.time,
-  chordId:n.chordId,
-  hand:n.hand,
-  missed:false,
-  dropOffset:0
-});
-
+  n.el = el;
+  n.isLineDrawn = false;
+  n.isKeyFlashed = false;
+  n.missed = false;
+  active.push(n);
 }
 
 
