@@ -39,7 +39,7 @@ body{
   position:absolute;
 
   left:50%;
-  top: 470px;
+  top: 400px;
 
   display: flex;
   width: 100%;
@@ -567,30 +567,31 @@ button:hover{
 .rightBird {
   transform: scaleX(1);  /* 左向き（内側） */
 }
-/* ✨ 手のスタイル設定を以下に丸ごと置き換え */
+/* ✨ スタイルシート内の .piano-hand の設定を以下に丸ごと置き換え */
 .piano-hand {
   position: absolute;
-  height: 100px;
-  z-index: 102;         /* ノーツより手前に表示 */
-  pointer-events: none; /* クリックを邪魔しない */
+  height: 85px;         /* 鍵盤のサイズに合わせて少し小ぶりに調整 */
+  z-index: 102;         /* 鍵盤やノーツより手前に出す */
+  pointer-events: none; /* クリック判定を邪魔しない */
   
-  /* 基準を画面中央ではなく、ゲームエリアの左端(0)に変更 基準値をクリアにする */
-  top: 540px;           /* 初期位置：鍵盤の少し下（見えない位置） */
-  left: 0px;            /* JS側で正確なX座標を直接代入するため、初期値は0 */
-  transform: translate3d(0, 0, 0); /* 余計な移動をクリア */
+  /* 初期位置：鍵盤（470px）の下に完全に隠す（ゲームエリアの高さは88vh≒約600〜700px） */
+  top: 650px;           
+  left: 0px;
   
-  /* アニメーションの速度調整 */
-  transition: left 0.1s ease-out, top 0.15s ease-out, transform 0.05s ease-out, opacity 0.1s linear;
-  opacity: 0;           /* 最初は透明 */
+  /* じわっと消えずに、キビキビ動かすためにtransitionを最適化 */
+  transition: left 0.08s ease-out, top 0.1s ease-out, transform 0.05s ease-out, opacity 0.05s linear;
+  opacity: 0;
 }
 
+/* 出現時：鍵盤のすぐ下（490px辺り）まで浮き上がらせる */
 .piano-hand.active {
-  opacity: 1;           /* 弾く時にスッと不透明に */
+  opacity: 1;
+  top: 490px; 
 }
 
-/* 鍵盤を「叩いた瞬間」のバウンス（少し沈むような動きに調整） */
+/* 叩いた瞬間：少しだけ上にピョコッと動く（または縮む） */
 .piano-hand.tap {
-  transform: scale(0.88);
+  transform: scale(0.88) translateY(-5px);
 }
 
 
@@ -631,18 +632,11 @@ button:hover{
 <div id="judge"></div>
 
 <div id="gameArea">
-
-  <img id="mascot" src="melokoro.png">
-  <div id="hitUI">
-  HIT:
-  <span id="hitCount">0</span>
-  /
-  <span id="totalCount">0</span>
-
-  <img id="rightHand" class="piano-hand" src="右手.png" alt="右手">
-  <img id="leftHand" class="piano-hand" src="左手.png" alt="左手">
-
-</div>
+ <img id="rightHand" class="piano-hand" src="右手.png" alt="右手">
+ <img id="leftHand" class="piano-hand" src="左手.png" alt="左手">
+ 
+ <img id="mascot" src="melokoro.png">
+ <div id="hitUI"> HIT: <span id="hitCount">0</span> / <span id="totalCount">0</span> </div>
 
 <div id="lineLayer"></div>
 
@@ -1268,24 +1262,21 @@ active.push({
 
 }
 
-// ✨ loop() 関数の始まりから終わりまで上書き
+// ✨ JavaScript内の loop() から success() の終わりまでを丸ごと上書き
+
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
   const gameTime = rawTime * speed;
   const PREVIEW_TIME = 0;
 
-  // ==========================================
   // ① ノーツ生成
-  // ==========================================
   while (index < notes.length && notes[index].time <= gameTime + travelTime + PREVIEW_TIME) {
     spawn(notes[index]);
     index++;
   }
 
-  // ==========================================
   // ② ノーツ更新＆同時押し線ロジック
-  // ==========================================
   active.forEach(n => {
     const visualTime = gameTime - n.dropOffset;
     const p = 1 - ((n.hit - visualTime) / travelTime);
@@ -1308,7 +1299,7 @@ function loop() {
     n.el.style.zIndex = Math.floor(1000 - dist);
 
     if (gameTime > n.hit) {
-      // ーーー 判定タイミングを過ぎた後（フェードアウト） ーーー
+      // ーーー 判定タイミングを過ぎた後 ーーー
       const timePast = gameTime - n.hit;
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
@@ -1325,46 +1316,51 @@ function loop() {
         if (opacity <= 0) surround.remove();
       }
     } else {
-      // ーーー 判定位置に近づく前（降下中） ーーー
+      // ーーー 降下中 ーーー
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = "1";
 
-// 💡 loop() 関数内の「手の移動ロジック」の部分を以下に差し替え
+     // loop() 関数内の「手の先回り移動ロジック」の部分を以下に差し替え
 
-if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
-  const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
-  if (targetKey) {
-    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-    const keyRect = targetKey.getBoundingClientRect();
-    
-    // 鍵盤のX座標（中心）をゲームエリア基準で計算
-    const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
-    
-    const handId = n.hand === "left" ? "leftHand" : "rightHand";
-    const handEl = document.getElementById(handId);
-    if (handEl) {
-      // 🖐️ 手の横幅の半分（ここでは45pxと仮定）を引くことで、手の中心が鍵盤の中心にピタッと重なります
-      const handWidthOffset = 45; 
-      
-      handEl.style.left = (exactX - handWidthOffset) + "px";
-      
-      if (!handEl.classList.contains("active")) {
-        // まだ表示されていないなら、一瞬でその鍵盤のX座標に移動させてから、上にニュッと出す
-        handEl.style.top = "540px"; 
-        handEl.classList.add("active");
-        // 次のフレームで弾く位置まで上昇
-        requestAnimationFrame(() => {
-          handEl.style.top = "475px"; 
-        });
-      } else {
-        // すでに画面に出ている場合は、そのままスムーズに横移動
-        handEl.style.top = "475px"; 
+      // 🖐️ 手の先回り移動ロジック
+      if (n.hit - gameTime < 0.35 && n.hit - gameTime > -0.1 && !n.missed) {
+        const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+        if (targetKey) {
+          const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+          const keyRect = targetKey.getBoundingClientRect();
+          
+          // 正確な鍵盤の中心X座標
+          const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
+          
+          const handId = n.hand === "left" ? "leftHand" : "rightHand";
+          const handEl = document.getElementById(handId);
+          if (handEl) {
+            const handWidthOffset = 45; // 手の画像の真ん中を合わせる補正値
+            handEl.style.left = (exactX - handWidthOffset) + "px";
+            
+            if (!handEl.classList.contains("active")) {
+                // まだ表示されていないなら、一瞬でその鍵盤のX座標に移動させてから、上にニュッと出す
+                handEl.style.top = "650px"; 
+                handEl.classList.add("active");
+                // 次のフレームで弾く位置まで上昇
+                requestAnimationFrame(() => {
+                    // ✨ 拡大、位置を下げ、透過率を設定
+                    handEl.style.transform = "scale(1.2)"; // 1.2倍に拡大
+                    handEl.style.top = "520px"; // 位置を下げる（490pxから520pxへ）
+                    handEl.style.opacity = "0.4"; // 透過率40%
+                });
+            } else {
+                // すでに画面に出ている場合は、そのままスムーズに横移動
+                // ✨ 拡大、位置を下げ、透過率を設定
+                handEl.style.transform = "scale(1.2)"; // 1.2倍に拡大
+                handEl.style.top = "520px"; // 位置を下げる（490pxから520pxへ）
+                handEl.style.opacity = "0.4"; // 透過率40%
+            }
+          }
+        }
       }
-    }
-  }
-}
 
-      // 🌟 両手同時押し線を画面の中央付近から出現させる
+      // 両手同時押し線
       if (dist < 220 && !n.isLineDrawn) {
         const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
         if (partner && !partner.isLineDrawn) {
@@ -1386,7 +1382,6 @@ if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
         }
       }
 
-      // 🌟 生成された線をノーツの降下に完全に同期させる
       const existingLine = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (existingLine) {
         const gameRect = document.getElementById("gameArea").getBoundingClientRect();
@@ -1400,7 +1395,7 @@ if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
         }
       }
 
-      // ③ ジャストの瞬間（鍵盤が光る処理：dist < 25）
+      // 鍵盤発光
       if (dist < 25 && !n.isKeyFlashed) {
         n.isKeyFlashed = true;
         const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
@@ -1427,9 +1422,7 @@ if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
     }
   });
 
-  // ==========================================
-  // ③ 和音の囲み（サークリング）ロジック
-  // ==========================================
+  // ③ 和音の囲みロジック
   const chords = {};
   active.forEach(n => {
     if (gameTime > n.hit) return;
@@ -1500,9 +1493,7 @@ if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
     }
   });
 
-  // ==========================================
-  // ④ 終了判定（GOAL）
-  // ==========================================
+  // ④ 終了判定
   if (index >= notes.length && active.length === 0) {
     document.querySelectorAll(".combo-line").forEach(l => l.remove());
     document.querySelectorAll(".chord-surround").forEach(s => s.remove());
@@ -1512,6 +1503,50 @@ if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
   }
   requestAnimationFrame(loop);
 }
+
+/* ================= SUCCESS ================= */
+function success(best) {
+  // 🎯 手をポンッと叩かせて、次のノーツがなければ引っ込める
+  const handId = best.hand === "left" ? "leftHand" : "rightHand";
+  const handEl = document.getElementById(handId);
+  if (handEl) {
+    handEl.classList.remove("tap");
+    void handEl.offsetWidth; // 強制再描画
+    handEl.classList.add("tap");
+    
+    clearTimeout(handEl.timer);
+    handEl.timer = setTimeout(() => {
+      handEl.classList.remove("tap");
+      
+      const rawTime = (performance.now() - startTime) / 1000 - 3;
+      const gameTime = rawTime * speed;
+      // 0.4秒以内に次の同じ手のノーツが降ってこないなら引っ込める
+      const hasIncoming = active.some(x => x.hand === best.hand && x.hit - gameTime < 0.4 && !x.missed);
+      
+      // success(best) 関数内の「setTimeout」の中にある引っ込み位置を修正
+
+      if (!hasIncoming) {
+        handEl.classList.remove("active");
+        // ✨ 引っ込み位置を修正（650pxへ）
+        handEl.style.top = "650px"; 
+        // ✨ 透過率と拡大を元に戻す
+        handEl.style.opacity = "0";
+        handEl.style.transform = "scale(1)";
+      }
+    }, 150);
+  }
+
+  // 既存のノーツ消去処理
+  best.el.classList.add("note-suck");
+  setTimeout(() => {
+    best.el.remove();
+  }, 180);
+  active = active.filter(n => n !== best);
+  hitCount++;
+  document.getElementById("hitCount").textContent = hitCount;
+}
+
+
 
 
 function showResult(){
@@ -1633,54 +1668,7 @@ update();
 
 }
 
-/* ================= SUCCESS ================= */
-function success(best) {
-  // ✨ 【修正】手のタップ＆引き揚げ制御。縮小動作を少し明確にし、引っ込むタイミングを調整
-  const handId = best.hand === "left" ? "leftHand" : "rightHand";
-  const handEl = document.getElementById(handId);
-  if (handEl) {
-    handEl.classList.remove("tap");
-    void handEl.offsetWidth; // クラス再適用用のハック
-    handEl.classList.add("tap");
-    
-    clearTimeout(handEl.timer);
-    handEl.timer = setTimeout(() => {
-      handEl.classList.remove("tap");
-      
-      const rawTime = (performance.now() - startTime) / 1000 - 3;
-      const gameTime = rawTime * speed;
-      const hasIncoming = active.some(x => x.hand === best.hand && x.hit - gameTime < 0.4 && !x.missed);
-      
-      if (!hasIncoming) {
-        handEl.classList.remove("active");
-        handEl.style.top = "540px"; // 画面外ではなく、初期位置(鍵盤下)に戻す
-      }
-    }, 200); // タイミングを少し遅らせて動きを見せる
-  }
 
-  // 既存のノーツ消去処理
-  best.el.classList.add("note-suck");
-  setTimeout(() => {
-    best.el.remove();
-  }, 180);
-  active = active.filter(n => n !== best);
-  hitCount++;
-  document.getElementById("hitCount").textContent = hitCount;
-}
-/* ================= INPUT(関数） ================= */
-
-document.getElementById("gameArea").addEventListener("touchstart", (e)=>{
-
-  const key = document.elementFromPoint(
-    e.touches[0].clientX,
-    e.touches[0].clientY
-  );
-
-  if(key && key.dataset.note){
-    hit(key.dataset.note);
-  }
-
-});
 /* ================= UI ================= */
 
 function update(){
