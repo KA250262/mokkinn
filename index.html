@@ -1250,9 +1250,14 @@ function loop() {
     const gameHeight = document.getElementById("gameArea").clientHeight;
     if (y > gameHeight + 50) {
       n.el.remove();
-      // 画面外に消える時に、紐づく同時押し線があれば一緒に消去
+      // 画面外に消える時に、紐づく同時押し線や囲みがあれば一緒に消去
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.remove();
+      
+      const cid = `${n.chordId}-${n.hand}`;
+      const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
+      if (surround) surround.remove();
+
       active = active.filter(x => x !== n);
       return;
     }
@@ -1266,22 +1271,30 @@ function loop() {
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
       
-      // 🌟【重要】横ブレの原因だった translateX(-50%) を完全に排除！
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = opacity;
       
       // 鍵盤を通り過ぎたら、同時押し線も一緒にフェードアウトさせる
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.style.opacity = opacity * 0.55;
+
+      // 🌟【追加】鍵盤を通り過ぎたら、和音の囲みも一緒にフェードアウトさせる
+      const cid = `${n.chordId}-${n.hand}`;
+      const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
+      if (surround) {
+        surround.style.opacity = opacity;
+        // 完全に透明になったら画面から削除する
+        if (opacity <= 0) {
+          surround.remove();
+        }
+      }
     } else {
       // ーーー 判定位置に近づく前（降下中） ーーー
-      // 🌟【重要】ここからも translateX(-50%) を排除し、配置を統一
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = "1";
 
       // 🌟 両手同時押し線を画面の中央付近（鍵盤の手前 220px 未満）から出現させる
       if (dist < 220 && !n.isLineDrawn) {
-        // 同じchordIdで、かつ「自分と違う手（右手と左手）」の相方を探す
         const partner = active.find(other => other !== n && other.chordId === n.chordId && other.hand !== n.hand);
         
         if (partner && !partner.isLineDrawn) {
@@ -1302,7 +1315,6 @@ function loop() {
           lineEl.style.left = leftX + "px";
           lineEl.style.width = lineWidth + "px";
           
-          // リアルタイム移動用のID紐付け
           lineEl.dataset.chordId = n.chordId;
           document.getElementById("gameArea").appendChild(lineEl);
         }
@@ -1316,7 +1328,6 @@ function loop() {
         const currentY = rect1.top - gameRect.top + (rect1.height / 2);
         existingLine.style.top = currentY + "px";
         
-        // 鍵盤の直前（25px未満）まで来たら、さらに薄くフェードアウト
         if (dist < 25) {
           existingLine.style.opacity = (dist / 25) * 0.55; 
         } else {
@@ -1342,6 +1353,12 @@ function loop() {
       n.missed = true;
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.remove();
+      
+      // 🌟【追加】ミス時も囲みを即座に削除
+      const cid = `${n.chordId}-${n.hand}`;
+      const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
+      if (surround) surround.remove();
+
       n.el.remove();
     }
   });
@@ -1349,9 +1366,12 @@ function loop() {
   // ==========================================
   // ③ 和音の囲み（サークリング）ロジック
   // ==========================================
-  // 画面上の全ノーツを chordId ごとにグループ化
+  // まだ判定前の（降下中の）アクティブなノーツだけを集めてグループ化する
   const chords = {};
   active.forEach(n => {
+    // 🌟 既にヒット時間を過ぎてフェードアウト中のノーツは囲み計算から除外する
+    if (gameTime > n.hit) return;
+
     const hand = n.hand;
     const cid = `${n.chordId}-${hand}`;
     if (!chords[cid]) chords[cid] = [];
@@ -1362,7 +1382,7 @@ function loop() {
   Object.keys(chords).forEach(cid => {
     const notesInChord = chords[cid];
     if (notesInChord.length < 2) {
-      // 単音は囲まない
+      // 残りノーツが1つ以下になったら囲みを画面から消す
       const existingSurround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (existingSurround) existingSurround.remove();
       return;
@@ -1372,17 +1392,16 @@ function loop() {
     const handClass = hand === "right" ? "chord-surround-right" : "chord-surround-left";
     const handColor = hand === "right" ? "#ff4a4a" : "#4aa3ff";
 
-    // 囲みの要素（SVG）を取得または生成
     let surroundEl = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
     if (!surroundEl) {
       surroundEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       surroundEl.classList.add("chord-surround", handClass);
       surroundEl.dataset.chordGroup = cid;
+      surroundEl.style.transition = "opacity 0.05s linear"; // フェードを滑らかに
       
-      // 囲むパス要素を追加
       const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathEl.style.fill = `${handColor}20`; // 囲み内を薄く塗る
-      pathEl.style.stroke = handColor; // 囲みの線
+      pathEl.style.fill = `${handColor}20`; 
+      pathEl.style.stroke = handColor; 
       pathEl.style.strokeWidth = "3px";
       pathEl.style.strokeLinecap = "round";
       surroundEl.appendChild(pathEl);
@@ -1400,26 +1419,36 @@ function loop() {
       maxY = Math.max(maxY, r.bottom);
     });
 
-    // 少し余白を持たせる
     const padding = 15;
     minX -= (padding + gRect.left);
     minY -= (padding + gRect.top);
     maxX += (padding - gRect.left);
     maxY += (padding - gRect.top);
 
-    // SVGのサイズと位置を設定
     surroundEl.setAttribute("width", (maxX - minX));
     surroundEl.setAttribute("height", (maxY - minY));
     surroundEl.style.left = minX + "px";
     surroundEl.style.top = minY + "px";
 
-    // パス（楕円形の囲み線）を更新
     const pathEl = surroundEl.querySelector("path");
     const cx = (maxX - minX) / 2;
     const cy = (maxY - minY) / 2;
     const rx = (maxX - minX) / 2;
     const ry = (maxY - minY) / 2;
     pathEl.setAttribute("d", `M ${cx}, ${cy} m ${-rx}, 0 a ${rx},${ry} 0 1,0 ${rx*2},0 a ${rx},${ry} 0 1,0 ${-rx*2},0`);
+  });
+
+  // 画面に残ってしまった迷子の囲みを大掃除
+  document.querySelectorAll(".chord-surround").forEach(surround => {
+    const cid = surround.dataset.chordGroup;
+    if (!chords[cid]) {
+      // 降下中グループに存在しないIDの透明なゴミ枠はフェードアウトさせるか削除
+      if (surround.style.opacity === "" || parseFloat(surround.style.opacity) > 0) {
+        // フェードアウト中ならそのまま
+      } else {
+        surround.remove();
+      }
+    }
   });
 
   // ==========================================
