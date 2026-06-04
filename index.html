@@ -1197,8 +1197,15 @@ el.style.background = color;
   // 🌟【修正】ノーツと鍵盤のズレをなくすため、xOffset（左右のズレ補正）を完全に0にする
   let xOffset = 0;
 
-  // 鍵盤の真ん中にぴったり合わせる
-  el.style.left = (k.left - g.left + k.width / 2 + xOffset) + "px";
+// 🌟【修正版】ブラウザの画面全体のズレ（スクロールや外枠の余白）の影響をなくす計算
+const gameRect = g; // gameArea の座標
+const keyRect = k;  // ターゲット鍵盤の座標
+
+// gameArea の左端を基準にして、鍵盤の真ん中の位置を正確に割り出す
+const exactX = (keyRect.left - gameRect.left) + (keyRect.width / 2);
+
+// 補正なし（xOffset=0）で正確に代入
+el.style.left = exactX + "px";
 
   // テキスト
   const text = document.createElement("div");
