@@ -567,31 +567,34 @@ button:hover{
 .rightBird {
   transform: scaleX(1);  /* 左向き（内側） */
 }
-/* 手のイラストの共通スタイル */
+/* ✨ 手のスタイル設定を丸ごと置き換え */
 .piano-hand {
   position: absolute;
-  height: 100px; /* 手のサイズ（鍵盤の大きさに合わせて調整してください） */
-  z-index: 50;   /* 鍵盤より手前、ノーツより後ろ、または最前面(102)などお好みで */
-  pointer-events: none; /* クリックを邪魔しないようにする */
-  
-  /* 初期位置は画面の下に隠しておく */
-  top: 650px; 
+  height: 100px;
+  z-index: 102; /* ノーツ(100)やテキスト(101)より手前に表示 */
+  pointer-events: none; /* クリックを邪魔しない */
+  top: 600px; /* 初期位置：画面外ではなく、鍵盤の下の少し見えやすい位置 */
   left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  
-  /* 移動を滑らかにする魔法のプロパティ */
-  transition: left 0.1s ease-out, top 0.1s ease-out, transform 0.05s ease-out;
+  transform: translateX(-50%);
+  transition: left 0.1s ease-out, top 0.2s ease-out, transform 0.05s ease-out; /* 縦方向(top)の動きをゆっくりに */
   opacity: 0; /* 最初は透明 */
 }
 
-/* アクティブ（弾いているとき）に表示するクラス */
 .piano-hand.active {
-  opacity: 1;
+  opacity: 1; /* スッと現れる */
+}
+
+/* 💡 #rightHand と #leftHand で初期位置を少し左右にずらす */
+#rightHand {
+  margin-left: 30px;
+}
+#leftHand {
+  margin-left: -30px;
 }
 
 /* 鍵盤を「叩いた瞬間」のバウンスエフェクト */
 .piano-hand.tap {
-  transform: translateX(-50%) scale(0.85); /* 瞬間的に少しキュッと小さくして叩いた感を出す */
+  transform: translateX(-50%) scale(0.85); /* 瞬間的に少しキュッと小さく */
 }
 
 
@@ -1269,7 +1272,7 @@ active.push({
 
 }
 
-
+// ✨ loop() 関数の始まりから終わりまで上書き
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
@@ -1330,7 +1333,7 @@ function loop() {
       n.el.style.transform = `scale(1)`;
       n.el.style.opacity = "1";
 
-      // ✨【追加】ジャストタイミングの約0.25秒前に手を鍵盤位置へ移動させる
+      // ✨【修正】ジャストタイミングの約0.25秒前に手を鍵盤位置へ移動させ、出現位置(top)を設定
       if (n.hit - gameTime < 0.25 && n.hit - gameTime > -0.1 && !n.missed) {
         const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
         if (targetKey) {
@@ -1341,9 +1344,20 @@ function loop() {
           const handId = n.hand === "left" ? "leftHand" : "rightHand";
           const handEl = document.getElementById(handId);
           if (handEl) {
-            handEl.classList.add("active");
-            handEl.style.left = exactX + "px";
-            handEl.style.top = "475px"; // 鍵盤の下あたり
+            // 出現位置を一時的に上げ(top:500px)、そこからスライドイン
+            if (!handEl.classList.contains("active")) {
+                handEl.style.top = "500px"; 
+                // 次のフレームで active にすることで、正しい位置に出現してから上昇する
+                requestAnimationFrame(() => {
+                    handEl.classList.add("active");
+                    handEl.style.left = exactX + "px";
+                    handEl.style.top = "475px"; // 弾く位置まで上昇
+                });
+            } else {
+                // すでに active なら単に移動
+                handEl.style.left = exactX + "px";
+                handEl.style.top = "475px"; 
+            }
           }
         }
       }
@@ -1619,7 +1633,7 @@ update();
 
 /* ================= SUCCESS ================= */
 function success(best) {
-  // ✨ 手のタップ＆引き揚げ制御
+  // ✨ 【修正】手のタップ＆引き揚げ制御。縮小動作を少し明確にし、引っ込むタイミングを調整
   const handId = best.hand === "left" ? "leftHand" : "rightHand";
   const handEl = document.getElementById(handId);
   if (handEl) {
@@ -1637,9 +1651,9 @@ function success(best) {
       
       if (!hasIncoming) {
         handEl.classList.remove("active");
-        handEl.style.top = "650px"; // 画面外に戻す
+        handEl.style.top = "600px"; // 画面外ではなく、初期位置(鍵盤下)に戻す
       }
-    }, 180);
+    }, 200); // タイミングを少し遅らせて動きを見せる
   }
 
   // 既存のノーツ消去処理
