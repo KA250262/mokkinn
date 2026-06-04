@@ -1430,8 +1430,11 @@ function loop() {
     document.querySelectorAll(".chord-surround").forEach(s => s.remove());
     running = false;
     showGoal();
+    return;
+  }
 
-
+  requestAnimationFrame(loop);
+}
 
 
 function showResult(){
