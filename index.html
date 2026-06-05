@@ -1269,11 +1269,6 @@ active.push({
 }
 
 
-
-
-
-// ✨ JavaScript内の loop() から success() の終わりまでを丸ごと上書き
-
 function loop() {
   if (!running) return;
   const rawTime = (performance.now() - startTime) / 1000 - 3;
@@ -1286,13 +1281,28 @@ function loop() {
     index++;
   }
 
-  // ② ノーツ更新＆同時押し線ロジック
+  // ② ノーツ更新＆同時押し線＆発光ロジック
   active.forEach(n => {
     const visualTime = gameTime - n.dropOffset;
     const p = 1 - ((n.hit - visualTime) / travelTime);
     const y = spawnY + p * (hitY - spawnY);
     n.el.style.top = y + "px";
-    
+
+    // 画面中央付近からフェード開始
+       const fadeStartY = 220;
+      const fadeEndY = hitY;
+
+   if (y > fadeStartY) {
+     const ratio =
+       (y - fadeStartY) /
+       (fadeEndY - fadeStartY);
+
+     n.el.style.opacity =
+       Math.max(0.15, 1 - ratio);
+   } else {
+     n.el.style.opacity = 1;
+    }
+
     const gameHeight = document.getElementById("gameArea").clientHeight;
     if (y > gameHeight + 50) {
       n.el.remove();
@@ -1314,13 +1324,11 @@ function loop() {
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
       if(!n.el.classList.contains("note-suck")){
-  n.el.style.transform = `scale(1)`;
-}
+        n.el.style.transform = `scale(1)`;
+      }
       n.el.style.opacity = opacity;
-      
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.style.opacity = opacity * 0.55;
-      
       const cid = `${n.chordId}-${n.hand}`;
       const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (surround) {
@@ -1328,83 +1336,58 @@ function loop() {
         if (opacity <= 0) surround.remove();
       }
     } else {
-      // ーーー 降下中 ーーー
-    if(!n.el.classList.contains("note-suck")){
-  n.el.style.transform = `scale(1)`;
-}
-      n.el.style.opacity = "1";
+  if(!n.el.classList.contains("note-suck")){
+    n.el.style.transform = `scale(1)`;
+  }
 
-     // loop() 関数内の「手の先回り移動ロジック」の部分を以下に差し替え
+  // 中央付近から薄くする
+  const fadeStartY = 220;
+  const fadeEndY = hitY;
+
+  if (y > fadeStartY) {
+    const ratio =
+      (y - fadeStartY) /
+      (fadeEndY - fadeStartY);
+
+    n.el.style.opacity = Math.max(0.1, 1 - ratio);
+  } else {
+    n.el.style.opacity = 1;
+  }
 
       // 🖐️ 手の先回り移動ロジック
       if (n.hit - gameTime < 0.35 && n.hit - gameTime > -0.1 && !n.missed) {
-        
-        
         const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
         if (targetKey) {
           const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-          
-        // 同じ和音グループを集める
- const chordNotes = active.filter(x =>
-  x.chordId === n.chordId &&
-  x.hand === n.hand
- );
-
- const xs = [];
-
- chordNotes.forEach(noteObj => {
-
-  const chordKey = document.querySelector(
-    `#keyboard [data-note="${noteObj.note}"]`
-  );
-
-  if(!chordKey) return;
-
-  const rect =
-    chordKey.getBoundingClientRect();
-
-  xs.push(
-    (rect.left - gameRect.left)
-    + rect.width / 2
-  );
-
- });
-
- // 和音の最低音と最高音の真ん中
- const exactX =
-  xs.length
-    ? (Math.min(...xs) + Math.max(...xs)) / 2
-    : 0;  
-
-
+          const chordNotes = active.filter(x => x.chordId === n.chordId && x.hand === n.hand);
+          const xs = [];
+          chordNotes.forEach(noteObj => {
+            const chordKey = document.querySelector(`#keyboard [data-note="${noteObj.note}"]`);
+            if(!chordKey) return;
+            const rect = chordKey.getBoundingClientRect();
+            xs.push((rect.left - gameRect.left) + rect.width / 2);
+          });
+          const exactX = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
           const handId = n.hand === "left" ? "leftHand" : "rightHand";
           const handEl = document.getElementById(handId);
           if (handEl) {
-           const handWidthOffset = 45;
-
- if(handEl.dataset.currentNote !== n.note){
-  handEl.style.left =
-    (exactX - handWidthOffset) + "px";
-
-  handEl.dataset.currentNote = n.note;
- }
+            const handWidthOffset = 45;
+            if(handEl.dataset.currentNote !== n.note){
+              handEl.style.left = (exactX - handWidthOffset) + "px";
+              handEl.dataset.currentNote = n.note;
+            }
             if (!handEl.classList.contains("active")) {
-                // まだ表示されていないなら、一瞬でその鍵盤のX座標に移動させてから、上にニュッと出す
-                handEl.style.top = "650px"; 
-                handEl.classList.add("active");
-                // 次のフレームで弾く位置まで上昇
-                requestAnimationFrame(() => {
-                    // ✨ 拡大、位置を下げ、透過率を設定
-                    handEl.style.transform = "scale(1.2)"; // 1.2倍に拡大
-                    handEl.style.top = "520px"; // 位置を下げる（490pxから520pxへ）
-                    handEl.style.opacity = "0.4"; // 透過率40%
-                });
+              handEl.style.top = "650px";
+              handEl.classList.add("active");
+              requestAnimationFrame(() => {
+                handEl.style.transform = "scale(1.2)";
+                handEl.style.top = "520px";
+                handEl.style.opacity = "0.4";
+              });
             } else {
-                // すでに画面に出ている場合は、そのままスムーズに横移動
-                // ✨ 拡大、位置を下げ、透過率を設定
-                handEl.style.transform = "scale(1.2)"; // 1.2倍に拡大
-                handEl.style.top = "520px"; // 位置を下げる（490pxから520pxへ）
-                handEl.style.opacity = "0.4"; // 透過率40%
+              handEl.style.transform = "scale(1.2)";
+              handEl.style.top = "520px";
+              handEl.style.opacity = "0.4";
             }
           }
         }
@@ -1445,36 +1428,48 @@ function loop() {
         }
       }
 
-      // 鍵盤発光
-      if (dist < 25 && !n.isKeyFlashed) {
+      // 🎯 鍵盤発光（0.8秒前から光り始め、叩いた後も余韻を残す）
+      const PREVIEW_WINDOW = 0.8; 
+      if (n.hit - gameTime <= PREVIEW_WINDOW && !n.isKeyFlashed) {
         n.isKeyFlashed = true;
         const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
         if (targetKey) {
-          const isBlackKey = targetKey.classList.contains("black");
-          const flashClass = isBlackKey ? "hit-black" : "hit";
-          targetKey.classList.add(flashClass);
+          // ① まずは予告の淡い光をつける
+          targetKey.classList.add("preview-hit");
+          
+          // ② 実際に叩くジャストのタイミングが来たら処理を実行
           setTimeout(() => {
-            targetKey.classList.remove(flashClass);
-          }, 150);
+            // 予告の光を消すと同時に、本番の強い光に切り替える
+            targetKey.classList.remove("preview-hit");
+            
+            const isBlackKey = targetKey.classList.contains("black");
+            const flashClass = isBlackKey ? "hit-black" : "hit";
+            targetKey.classList.add(flashClass);
+            
+            // 💡【変更】光る時間を 150 から 400（0.4秒）に伸ばして、しっかり光を残す
+            setTimeout(() => { 
+              targetKey.classList.remove(flashClass); 
+            }, 400); 
+          }, (n.hit - gameTime) * 1000); 
         }
-      }
-    }
+      }}
 
     // MISS処理
     if (!n.missed && n.hit + 0.15 < gameTime) {
       n.missed = true;
+      const targetKey = document.querySelector(`#keyboard [data-note="${n.note}"]`);
+      if (targetKey) targetKey.classList.remove("preview-hit");
+
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
       if (line) line.remove();
       const cid = `${n.chordId}-${n.hand}`;
       const surround = document.querySelector(`.chord-surround[data-chord-group="${cid}"]`);
       if (surround) surround.remove();
       n.el.remove();
-
       active = active.filter(x => x !== n);
-
       return;
     }
-  });
+  }); // 👈 active.forEach の正しい閉じ
 
   // ③ 和音の囲みロジック
   const chords = {};
@@ -1529,28 +1524,11 @@ function loop() {
     surroundEl.style.left = minX + "px";
     surroundEl.style.top = minY + "px";
     const pathEl = surroundEl.querySelector("path");
-
-   const width  = maxX - minX;
-   const height = maxY - minY;
-   const r = 10;
-
-   pathEl.setAttribute(
-    "d",
-    `
-    M ${r},0
-    H ${width-r}
-    Q ${width},0 ${width},${r}
-    V ${height-r}
-    Q ${width},${height} ${width-r},${height}
-    H ${r}
-    Q 0,${height} 0,${height-r}
-    V ${r}
-    Q 0,0 ${r},0
-    Z
-    `
-   );
-
-  }); 
+    const width  = maxX - minX;
+    const height = maxY - minY;
+    const r = 10;
+    pathEl.setAttribute("d", ` M ${r},0 H ${width-r} Q ${width},0 ${width},${r} V ${height-r} Q ${width},${height} ${width-r},${height} H ${r} Q 0,${height} 0,${height-r} V ${r} Q 0,0 ${r},0 Z `);
+  });
 
   document.querySelectorAll(".chord-surround").forEach(surround => {
     const cid = surround.dataset.chordGroup;
@@ -1563,8 +1541,17 @@ function loop() {
     }
   });
 
-  // ④ 終了判定
-  if (index >= notes.length && active.length === 0) {
+  // ④ 終了判定 ＆ 残った枠の強制消去（安全装置）
+  const remainingNotes = document.querySelectorAll(".note");
+  
+  // 💡 画面にノーツが1つもなければ、バグで残った和音の枠と同時押し線をすべて強制消去する
+  if (remainingNotes.length === 0) {
+    document.querySelectorAll(".chord-surround").forEach(s => s.remove());
+    document.querySelectorAll(".combo-line").forEach(l => l.remove());
+  }
+
+  // 曲全体の終了判定
+  if (index >= notes.length && active.length === 0 && remainingNotes.length === 0) {
     document.querySelectorAll(".combo-line").forEach(l => l.remove());
     document.querySelectorAll(".chord-surround").forEach(s => s.remove());
     running = false;
@@ -1572,7 +1559,7 @@ function loop() {
     return;
   }
   requestAnimationFrame(loop);
-}
+} // 👈 function loop() の閉じ括弧
 
 /* ================= SUCCESS ================= */
 function success(best) {
@@ -1614,7 +1601,31 @@ function success(best) {
   active = active.filter(n => n !== best);
   hitCount++;
   document.getElementById("hitCount").textContent = hitCount;
+  
+
+      // 和音枠の後始末
+  const cid = `${best.chordId}-${best.hand}`;
+
+  setTimeout(() => {
+  const remain = active.filter(
+    n => n.chordId === best.chordId &&
+         n.hand === best.hand
+  );
+
+  if (remain.length < 2) {
+    document
+      .querySelectorAll(
+        `.chord-surround[data-chord-group="${cid}"]`
+      )
+      .forEach(el => el.remove());
+   }
+ }, 0);
+
+
 }
+
+
+
 
 
 
