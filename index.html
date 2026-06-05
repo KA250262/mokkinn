@@ -60,7 +60,7 @@ h1{
 
   position:absolute;
 
-  top:200px;
+  top:50px;
   left:50%;
 
   transform:translateX(-50%);
@@ -307,24 +307,25 @@ button:hover{
   transition: all 0.15s ease-out;
 }
 
+.note-suck{
+  animation: suckToLine 0.25s ease-in forwards;
+}
 
-/* 修正前：translateY(20px) や横方向のズレを無くし、その場で綺麗に消す */
 @keyframes suckToLine {
   0% {
     transform: scale(1);
+    filter: blur(0px);
     opacity: 1;
   }
+
   100% {
-    transform: scale(0.6);
+    transform: scale(0.1);
+    filter: blur(6px);
     opacity: 0;
   }
 }
 
 
-.note-suck {
-  animation: suckToLine 0.18s ease-in forwards;
-  pointer-events: none;
-}
 
 .note-text{
   position:absolute; 
@@ -1312,7 +1313,9 @@ function loop() {
       const timePast = gameTime - n.hit;
       const fadeDuration = 0.10;
       const opacity = Math.max(0, 1 - (timePast / fadeDuration));
-      n.el.style.transform = `scale(1)`;
+      if(!n.el.classList.contains("note-suck")){
+  n.el.style.transform = `scale(1)`;
+}
       n.el.style.opacity = opacity;
       
       const line = document.querySelector(`.combo-line[data-chord-id="${n.chordId}"]`);
@@ -1326,7 +1329,9 @@ function loop() {
       }
     } else {
       // ーーー 降下中 ーーー
-      n.el.style.transform = `scale(1)`;
+    if(!n.el.classList.contains("note-suck")){
+  n.el.style.transform = `scale(1)`;
+}
       n.el.style.opacity = "1";
 
      // loop() 関数内の「手の先回り移動ロジック」の部分を以下に差し替え
@@ -1514,7 +1519,7 @@ function loop() {
       maxX = Math.max(maxX, r.right);
       maxY = Math.max(maxY, r.bottom);
     });
-    const padding = 7;
+    const padding = 4;
     minX -= (padding + gRect.left);
     minY -= (padding + gRect.top);
     maxX += (padding - gRect.left);
@@ -1605,7 +1610,7 @@ function success(best) {
   best.el.classList.add("note-suck");
   setTimeout(() => {
     best.el.remove();
-  }, 180);
+  }, 250);
   active = active.filter(n => n !== best);
   hitCount++;
   document.getElementById("hitCount").textContent = hitCount;
