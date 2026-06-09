@@ -153,13 +153,11 @@ body{
 }
 
 
-
 /* スコアの文字サイズ調整 */
 #hitCount, #score-display {
   font-size: 25px;
   color: rgb(12, 46, 2);
 }
-
 
 
 /* hitしたら鍵盤光る */
@@ -168,7 +166,7 @@ body{
   box-shadow: inset 0 0 15px rgba(255, 51, 153, 0.8), 0 0 15px #ff3399; 
 }
 
-/* 光る上の鍵盤ガイド */
+/* 光る鍵盤(上）ガイド */
 .guide{
   box-shadow: 0 0 8px rgba(120,220,255,0.5);
 }
@@ -372,6 +370,36 @@ body{
       rgba(74,163,255,0)
     );
 }
+
+/* 手の代わりにバー追従 */
+.hand-bar{
+  position:absolute;
+  height:20px;
+  border-radius:10px;
+  pointer-events:none;
+  z-index:25;
+
+    opacity:1 !important;
+  border:2px solid white;
+  transition:
+    left 0.08s ease-out,
+    top 0.08s ease-out,
+    opacity 0.1s linear;
+}
+
+.left-bar{
+  background:#7fdfff;
+  z-index: 50;
+}
+
+.right-bar{
+  background:#ff9ed6;
+  z-index: 50;
+}
+
+
+
+
 
 
 
@@ -579,6 +607,8 @@ body{
 .rightBird {
   transform: scaleX(1);  /* 左向き（内側） */
 }
+
+
 /* ✨ スタイルシート内の .piano-hand の設定を以下に丸ごと置き換え */
 .piano-hand {
   display: none !important;
@@ -670,6 +700,9 @@ body{
   <div class="white-keys"></div>
   <div class="black-keys"></div>
 </div>
+
+<div id="leftBar" class="hand-bar left-bar"></div>
+<div id="rightBar" class="hand-bar right-bar"></div>
 
   <!-- ⑥手（最前面） -->
   <img id="rightHand" class="piano-hand">
@@ -1068,6 +1101,7 @@ if (isBlack) {
   });
 
 }
+
 /* ================= AUTO LOAD (CLEAN VERSION) ================= */
 
 window.addEventListener("load", () => {
@@ -1564,6 +1598,20 @@ active.push({
 });
 }
 
+  // バーの追従
+const leftBar = document.getElementById("leftBar");
+const rightBar = document.getElementById("rightBar");
+
+console.log(leftBar, rightBar);
+
+// バーの長さ
+const BAR_WIDTH = 200;
+
+leftBar.style.width = BAR_WIDTH + "px";
+rightBar.style.width = BAR_WIDTH + "px";
+
+
+
 
 let last = performance.now();
 
@@ -1633,33 +1681,70 @@ if (!n.missed &&
       active = active.filter(x => x !== n);
       return;
     }
-/*
-// =========================
-// 手の追従
-// =========================
 
+// =========================
+// 手の追従（和音の真ん中を計算する修正版）
+// =========================
 if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
+
+  const leftBar = document.getElementById("leftBar");
+  const rightBar = document.getElementById("rightBar");
+
+  const BAR_WIDTH = 280;
+  leftBar.style.width = BAR_WIDTH + "px";
+  rightBar.style.width = BAR_WIDTH + "px";
 
   const handId = n.hand === "left" ? "leftHand" : "rightHand";
   const handEl = document.getElementById(handId);
+  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
 
-  if (handEl) {
-    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-    const keyRect = n.keyBottom?.getBoundingClientRect(); // ← ここを修正！
+  // =========================
+  // ① 同じタイミング・同じ手のノーツのX座標をすべて集める
+  // =========================
+  let xs = [];
 
-    if (keyRect) {
-      const x = (keyRect.left - gameRect.left) + keyRect.width / 2;
-      handEl.style.left = (x - 45) + "px";
-      handEl.style.top = "520px";
-      handEl.style.opacity = "0.4";
+  // 現在画面上にある（active）ノーツの中から、同じ chordId かつ 同じ手のものをすべて抽出
+  const chordNotes = active.filter(x => x.chordId === n.chordId && x.hand === n.hand && !x.missed);
+
+  chordNotes.forEach(cn => {
+    const r = cn.keyBottom?.getBoundingClientRect();
+    if (r) {
+      // 鍵盤の中心のX座標をゲームエリア基準で計算
+      const x = (r.left - gameRect.left) + r.width / 2;
+      xs.push(x);
     }
+  });
 
+  // データが無い（すでに消えているなど）場合はスキップ
+  if (xs.length === 0) return;
+
+  // =========================
+  // ② すべての音の「平均中心値」をだす
+  // =========================
+  const centerX = xs.reduce((sum, v) => sum + v, 0) / xs.length;
+
+  // =========================
+  // ③ 手・バーの追従位置を更新
+  // =========================
+  if (handEl) {
+    handEl.style.top = "520px";
+    handEl.style.opacity = "0.4";
     handEl.classList.add("active");
-    
   }
 
+  if (n.hand === "right") {
+    rightBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
+    rightBar.style.top = "480px";
+    rightBar.style.opacity = "0.7";
+    leftBar.style.opacity = "0"; // 右手操作時は左手を隠す（必要に応じて）
+  } 
+  else if (n.hand === "left") {
+    leftBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
+    leftBar.style.top = "480px";
+    leftBar.style.opacity = "0.7";
+    rightBar.style.opacity = "0"; // 左手操作時は右手を隠す（必要に応じて）
+  }
 }
-*/
 
   }); // ← forEach の正しい閉じ
 
