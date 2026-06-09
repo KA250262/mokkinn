@@ -1,33 +1,1853 @@
-    time: x.time,
-    chordId: x.chordId,
-    hand: x.hand
-  }))
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メロころ♪</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+
+<script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+
+<style>
+
+body{
+  margin:0;
+  padding:0;
+  background: #fff176;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+  overflow:hidden;
+}
+
+#gameArea {
+  position:relative;
+  width: 100%;
+  height: 60vh;
+  background-image: url("melokoro.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+#mascot{
+  position:absolute;
+  width:100%;
+  height:70%;
+  left:0;
+  top:0;
+  object-fit:contain;
+  object-position:top;
+  pointer-events:none;
+  z-index:1;
+}
+
+
+#keyboard-top {
+  position: relative;
+  margin-top: 40px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 120px; 
+  z-index: 10;
+}
+
+#keyboard-bottom {
+  position: relative;
+  margin-top: 70px;   
+  height: 140px;
+  z-index: 10;
+}
+
+
+#ui {
+  display: flex;
+  gap: 5px;            
+  padding: 4px 10px;   
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  max-width: 98%;
+}
+/* uiグループ内整列 */
+.controls-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center; 
+  gap: 20px;
+  white-space: nowrap;
+}
+
+
+/* 曲選択ボタン（花） */
+.flowerBtn{
+  display: flex;
+  align-items: center;
+  border:none;
+  background:none;
+  font-size:36px;
+  cursor:pointer;
+  transition:0.2s;
+  justify-content: center;
+  height: 28px; /* 大きさ調整 */
+}
+/*お花の位置 */
+#flowerBar{
+  position:absolute;
+  top:10px;
+  left:100px;
+  transform:translateX(-50%);/*結局これが良い */
+  display:flex;
+  gap:20px;
+  z-index:200;
+}
+/*お花押すと出るメニューの位置と枠 */
+#songMenu {
+    position: absolute;
+    top: 60px; 
+    left: 100px;   /* 上記flowerBar と揃える */
+    background: rgba(0, 0, 0, 0.9); 
+    border: 2px solid #ff7ac8;
+    border-radius: 10px; 
+    z-index: 999; 
+    display: none; 
+    flex-direction: column; 
+    gap: 8px; 
+    width: 220px; 
+}
+/*メニューボタン*/
+.menuSongBtn {
+    /* レイアウト */
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: center;
+
+    /* 見た目 */
+    background: #ff7ac8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+
+    /* 長いタイトル対策 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menuSongBtn:hover {
+    background: #ff3399;
+}
+
+
+
+/* スコアの文字サイズ調整 */
+#hitCount, #score-display {
+  font-size: 25px;
+  color: rgb(12, 46, 2);
+}
+
+
+
+/* hitしたら鍵盤光る */
+.hit {
+  background: #ff3399 !important; 
+  box-shadow: inset 0 0 15px rgba(255, 51, 153, 0.8), 0 0 15px #ff3399; 
+}
+
+/* 光る上の鍵盤ガイド */
+.guide{
+  box-shadow: 0 0 8px rgba(120,220,255,0.5);
+}
+.guide-active {
+  animation: guideGlow 0.25s ease-out;
+}
+
+
+.guide-right{
+  animation: guideRight 0.25s ease-out;
+}
+
+.guide-left{
+  animation: guideLeft 0.25s ease-out;
+}
+
+@keyframes guideRight{
+  0%{
+    transform: scaleY(1);
+
+    box-shadow:
+      inset 0 0 35px #ff4db8,
+      inset 0 0 60px #ff80d5;
+  }
+
+  50%{
+    transform: scaleY(0.92);
+
+    box-shadow:
+      inset 0 0 50px #ff4db8,
+      inset 0 0 80px #ff80d5;
+  }
+
+  100%{
+    transform: scaleY(1);
+    box-shadow:none;
+  }
+}
+@keyframes guideLeft{
+  0%{
+    transform: scaleY(1);
+
+    box-shadow:
+      inset 0 0 35px #33cfff,
+      inset 0 0 60px #8ae8ff;
+  }
+
+  50%{
+    transform: scaleY(0.92);
+
+    box-shadow:
+      inset 0 0 50px #33cfff,
+      inset 0 0 80px #8ae8ff;
+  }
+
+  100%{
+    transform: scaleY(1);
+    box-shadow:none;
+  }
+}
+
+.key {
+  position: absolute;
+  flex: 1;
+  min-width: 12px;
+  top:30px;
+  width: 28px;
+  height: 105px; 
+  margin-top: 25px; 
+  background: white;
+  border: 1px solid #333;
+
+  border-radius: 2px 2px 6px 6px; 
+  transition: background 0.1s ease, box-shadow 0.1s ease;
+  z-index: 10;
+}
+
+.black {
+  position: absolute;
+  width: 22px;
+  top:43px;
+  height: 70px; 
+  margin-top: 0;
+  background: #222;
+  border: 2px solid white;
+
+  border-radius: 5px 5px 4px 4px; 
+  z-index: 20;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
+}
+
+
+
+/* 下の鍵盤に浮き上がるnotes */
+.note {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8c0, #ffd860);
+  border: 1px solid rgba(255,255,255,0.9);
+
+  opacity: 0;
+  transform: none;
+  transition: opacity 0.15s ease;
+  z-index: 50; 
+}
+
+.note-active {
+  opacity: 1;
+  transform: none;
+}
+
+.note-text{
+  position:absolute; 
+  top:50%; 
+  left:50%; 
+  transform:translate(-50%, -50%); 
+  font-size:10px; 
+  white-space: nowrap; 
+  font-weight:900; 
+  color:white; 
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7); 
+  z-index:300; 
+}
+
+
+.note-hit {
+  box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
+  filter: brightness(1.8);
+  transition: all 0.15s ease-out;
+}
+
+.note-suck{
+  animation: suckToLine 0.25s ease-in forwards;
+}
+
+@keyframes suckToLine {
+  0% {
+    transform: scale(1);
+    filter: blur(0px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.1);
+    filter: blur(6px);
+    opacity: 0;
+  }
+}
+
+#notes-layer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;     /* ← keyboard-bottom と完全一致 */
+  z-index: 50;
+  pointer-events: none;
+}
+
+.note-spawn {
+  animation: noteSpawn 0.1s ease-out; 
+}
+
+@keyframes noteSpawn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+
+
+
+
+@keyframes comboBounce {
+
+  0%{
+    transform:scale(1);
+  }
+
+  30%{
+    transform:scale(1.03) rotate(-1deg);
+  }
+
+  60%{
+    transform:scale(1.03) rotate(1deg);
+  }
+
+  100%{
+    transform:scale(1);
+  }
+
+}
+
+@keyframes bubblePop {
+
+  0%{
+    transform:translateX(-50%) scale(1);
+    opacity:1;
+  }
+
+  50%{
+    transform:translateX(-50%) scale(1.3);
+    opacity:1;
+  }
+
+  100%{
+    transform:translateX(-50%) scale(2.2);
+    opacity:0;
+  }
+
+}
+
+.bubble-out {
+  animation: bubblePop 0.12s ease-out forwards;
+}
+
+
+
+
+
+.hit{
+  background:#7CFF6B !important;
+}
+
+.hit-flash{
+  position:absolute;
+  left:50%;
+  transform:translateX(-100%);
+
+  width:90%;
+  height:24px;
+
+  border-radius:20px;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(255,255,255,0.95),
+      rgba(120,220,255,0.7),
+      rgba(120,220,255,0)
+    );
+  pointer-events:none;
+  animation:flashAnim 0.10s ease-out forwards;
+  z-index:500;
+}
+
+
+.hit {
+  background: #ffffff !important;
+  box-shadow: inset 0 0 15px rgba(51, 255, 51, 0.8), 0 0 15px #33ff33;
+  transition: background 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), box-shadow 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) !important;
+}
+
+
+.hit-black {
+  background: #ffff00 !important;
+  box-shadow: inset 0 0 15px rgba(255, 255, 0, 0.8), 0 0 15px #ffff00;
+  transition: background 0.35s cubic-bezier(0.1, 0.8, 0.3, 1), box-shadow 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) !important;
+}
+
+
+.combo-line {
+  position: absolute;
+  height: 12px; 
+  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important;
+  box-shadow:
+  0 0 12px #ffffff,
+  0 0 20px #ffffff,
+  0 0 30px #ff7ac8;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0.7; 
+  transition: opacity 0.05s linear;
+}
+
+.chord-surround {
+  position: absolute;
+  pointer-events: none;
+  z-index: 90; 
+ 
+}
+
+
+.chord-surround-right {
+  filter: drop-shadow(0 0 8px #ff4a4a) !important;
+}
+
+
+.chord-surround-left {
+  filter: drop-shadow(0 0 8px #4aa3ff) !important;
+}
+
+@keyframes lineFlash {
+  0% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(0); }
+}
+
+@keyframes flashFade {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+
+
+
+
+
+
+#score{
+  color:gold;
+  display:inline-block;
+  transition:0.1s;
+}
+
+#judgeLine {
+  position: absolute;
+  bottom: 220px;     
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #fff;
+  z-index: 9 ;
+}
+
+
+
+#debug{
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  font-size: 14px;
+  text-align: left;
+  border-radius: 8px;
+  color: white;
+   
+}
+/* 画面全体オーバーレイ */
+#goalOverlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  background: rgba(0,0,0,0.2);
+}
+
+/* シーン全体 */
+.goalScene {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 小鳥 */
+.bird {
+  font-size: 40px;
+  transform-origin: center;
+  animation: wing 0.4s infinite alternate;
+}
+
+/* 左右でちょいズレ */
+.leftBird {
+  transform: scaleX(-1); /* 右向き（内側） */
+}
+
+.rightBird {
+  transform: scaleX(1);  /* 左向き（内側） */
+}
+/* ✨ スタイルシート内の .piano-hand の設定を以下に丸ごと置き換え */
+.piano-hand {
+  display: none !important;
+  position: absolute;
+  height: 200px;         /* 鍵盤のサイズに合わせて少し小ぶりに調整 */
+  z-index: 30;         /* 鍵盤やノーツより手前に出す */
+  pointer-events: none; /* クリック判定を邪魔しない */
+  
+  /* 初期位置：鍵盤（470px）の下に完全に隠す（ゲームエリアの高さは88vh≒約600〜700px） */
+  top: 650px;           
+  left: 0px;
+  
+  /* じわっと消えずに、キビキビ動かすためにtransitionを最適化 */
+  transition: left 0.08s ease-out, top 0.1s ease-out, transform 0.05s ease-out, opacity 0.05s linear;
+  opacity: 0;
+}
+
+
+/* 叩いた瞬間：少しだけ上にピョコッと動く（または縮む） */
+.piano-hand.tap {
+  transform: scale(0.88) translateY(-5px);
+}
+
+
+/* GOALテープ */
+.tape {
+  background: gold;
+  color: #222;
+  font-weight: bold;
+  padding: 6px 16px;
+  border-radius: 6px;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* 登場 */
+@keyframes popIn {
+  0%   { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* フワフワ浮遊 */
+@keyframes float {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* 羽ばたき */
+@keyframes wing {
+  0%   { transform: translateY(0px) rotate(-5deg); }
+  100% { transform: translateY(-2px) rotate(5deg); }
+  
+}
+#lineLayer{
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:90;
+}
+
+</style>
+</head>
+<body>
+<div data-midi="60"></div>
+
+<div id="gameArea">
+
+  <div id="flowerBar">
+      <button class="flowerBtn" onclick="toggleSongMenu()">🌸</button>
+  </div>
+
+  <div id="songMenu"></div>
+
+  <!-- ①背景系 -->
+  <img id="mascot">
+
+  <!-- ③判定ライン -->
+  <div id="judgeLine"></div>
+
+  <!-- ⑤鍵盤（固定） -->
+  <div id="keyboard-top"></div> 
+<div id="keyboard-bottom">
+  <div id="notes-layer"></div>
+
+  <div class="white-keys"></div>
+  <div class="black-keys"></div>
+</div>
+
+  <!-- ⑥手（最前面） -->
+  <img id="rightHand" class="piano-hand">
+  <img id="leftHand" class="piano-hand">
+
+  <div id="lineLayer"></div>
+
+</div>
+
+
+<div id="ui">
+ <div class="controls-container">
+
+  <!-- グループ1（🌸＋速度） -->
+  <div class="group">
+    <button id="slow-btn">ゆっくり</button>
+    <button id="normal-btn">ふつう</button>
+    <button id="fast-btn">はやい</button>
+  </div>
+
+  <!-- グループ2（再生・停止・一時停止） -->
+  <div class="group">
+    <button id="play-btn">再生</button>
+    <button id="stop-btn">停止</button>
+    <button id="pause-btn">一時停止</button>
+  </div>
+
+  <!-- その他 -->
+  <div id="judge"></div>
+  <span id="hitCount">221</span>
+  <div id="totalCount"></div>
+  <span id="score-display">62</span>
+  <button onclick="startMic()">マイク開始</button>
+
+ </div>
+
+</div>
+
+<div id="debug"></div>
+
+<span id="speedLabel"></span>
+
+
+  
+<div id="goalOverlay" class="hidden">
+  <div class="goalScene">
+    
+    <div class="bird leftBird">🐦</div>
+
+    <div class="tape">GOAL</div>
+
+    <div class="bird rightBird">🐦</div>
+
+  </div>
+</div>
+
+<script>
+
+/* ===== グローバル（ここが全部の土台）===== */
+let prevRMS = 0;
+let baseline = 0;
+let prevSpectrum = [];
+let latestRMS = 0;
+let latestSpectrum = [];
+let lastHitDetect = 0;
+let usedNotes = new Set();
+let score = 0;
+let running = false;
+let paused = false;
+let pauseStart = 0;
+let pausedTime = 0;
+
+/* ===== ボタンのイベント登録（ここがベスト）===== */
+document.getElementById("play-btn").onclick = startGame;
+document.getElementById("stop-btn").onclick = stopGame;
+document.getElementById("pause-btn").onclick = pauseGame;
+
+function pauseGame(){
+  if (!running) return;
+
+  if (!paused){
+    // 一時停止に入る
+    paused = true;
+    pauseStart = performance.now();
+  } else {
+    // 再開する
+    paused = false;
+    pausedTime += performance.now() - pauseStart;
+    requestAnimationFrame(loop);
+  }
+}
+
+
+
+
+async function startMic() {
+
+  const stream =
+    await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+  const audioContext =
+    new AudioContext();
+
+  const source =
+    audioContext.createMediaStreamSource(
+      stream
+    );
+
+  const analyzer =
+    Meyda.createMeydaAnalyzer({
+      audioContext: audioContext,
+      source: source,
+      bufferSize: 512,
+      featureExtractors: [
+        "rms",
+        "amplitudeSpectrum",
+        "spectralCentroid"
+      ],
+
+      callback: (features) => {
+
+        const currentRMS =
+          features.rms || 0;
+
+        const spectrum =
+          features.amplitudeSpectrum || [];
+
+        const centroid =
+          features.spectralCentroid || 0;
+
+        latestRMS = currentRMS;
+        latestSpectrum = spectrum;
+
+        /* ================= baseline ================= */
+
+        baseline =
+          baseline * 0.95 +
+          currentRMS * 0.05;
+
+        /* ================= flux ================= */
+
+        let flux = 0;
+
+        if(
+          prevSpectrum.length &&
+          prevSpectrum.length === spectrum.length
+        ){
+
+          for(let i = 0; i < spectrum.length; i++){
+
+            flux += Math.abs(
+              spectrum[i] - prevSpectrum[i]
+            );
+
+          }
+
+        }
+
+        /* ================= delta ================= */
+
+        const delta =
+          currentRMS - prevRMS;
+
+        const now =
+          performance.now();
+
+        /* ================= DEBUG ================= */
+
+        const debug =
+          document.getElementById("debug");
+
+        if(debug){
+
+          debug.textContent =
+
+            "RMS : "
+            + currentRMS.toFixed(3)
+
+            + " / Δ : "
+            + delta.toFixed(3)
+
+            + " / base : "
+            + baseline.toFixed(3)
+
+            + " / flux : "
+            + flux.toFixed(3)
+
+            + " / centroid : "
+            + centroid.toFixed(0);
+
+        }
+
+        /* ================= HIT DETECT ================= */
+
+        const attackMode =
+          currentRMS > 0.015 &&
+          currentRMS > baseline * 2 &&
+          (
+            flux > 0.15 ||
+            delta > baseline * 1.2
+          );
+        if(
+          attackMode &&
+          now - lastHitDetect > 300
+        ){
+          console.log("押された！");
+          hitNearest();
+          lastHitDetect = now;
+        }
+
+        /* ================= SAVE ================= */
+
+        prevRMS = currentRMS;
+
+        prevSpectrum = [...spectrum];
+
+      }
+
+    });
+
+  analyser = analyzer;
+
+  analyser.start();
+
+} // startMic end
+/* ================= AUDIO （音）================= */
+let mic;
+let analyser;
+
+const synth = new Tone.PolySynth(
+  Tone.Synth,
+  {
+    oscillator:{
+      type:"triangle"
+    }
+  }
+).toDestination();
+
+
+/* ================= STATE （ゲーム状態）================= */
+
+let notes = [];
+let active = [];
+let index = 0;
+
+let combo = 0;
+
+let hitCount = 0;
+let totalCount = 0;
+
+let whiteIndex = 0;
+
+let splitNote = 60;
+let speed = 0.5;
+
+/* ================= TIMING （時間）=================== */
+
+let startTime = 0;
+
+function getTime(){
+
+  const rawTime =
+    (performance.now() - startTime - pausedTime)
+    / 1000
+    - 3;
+
+  return rawTime * speed;
+}
+
+// HTMLからすべてのコントロールボタンを取得
+const buttons = document.querySelectorAll('.control-btn');
+
+// 再生・一時停止・ストップの各ボタン要素（IDなどで個別にも取得しておく）
+const playButton = document.getElementById('play-btn');
+const pauseButton = document.getElementById('pause-btn');
+const stopButton = document.getElementById('stop-btn');
+
+// 全てのボタンの色を一旦元に戻す共通の関数
+function changeButtonColor(activeButton) {
+  buttons.forEach(btn => {
+    btn.classList.remove('active'); // 一旦すべての active クラスを消す
+  });
+  
+  if (activeButton) {
+    activeButton.classList.add('active'); // 押されたボタンだけに active をつける
+  }
+}
+
+/* ================= 各ボタンのイベント ================= */
+
+// 1. 再生ボタンが押されたとき
+playButton.addEventListener('click', () => {
+  changeButtonColor(playButton); // 再生ボタンの色を変える
+  
+  // ここに再生の処理（isPlaying = true など）を書く
+});
+
+// 2. 一時停止ボタンが押されたとき
+pauseButton.addEventListener('click', () => {
+  changeButtonColor(pauseButton); // 一時停止ボタンの色を変える
+  
+  // ここに一時停止の処理を書く
+});
+
+// 3. ストップボタンが押されたとき
+stopButton.addEventListener('click', () => {
+  // ストップボタンは押した瞬間だけ色が変わればいい（ or 全ての色を消す）ので
+  // 今回は「全部のボタンの色を元に戻す（未選択状態にする）」にします
+  changeButtonColor(null); 
+  
+  // ここにストップの処理（時間を最初に戻すなど）を書く
+});
+
+
+/* ================= CONFIG （設定）================= */
+const travelTime = 3.0; // 1.2秒だと一瞬で通り過ぎて早すぎるので、2.5〜3.0秒くらいがオススメです
+const hitY = 300;       // ★上の段の鍵盤の頭（120px付近）を判定ラインにする
+const spawnY = -50;     // ★画面の一番上（見えない上空 -50px）から降らせる
+const SPEED_MAP = {slow: 0.4, normal: 0.6, fast: 0.8 };
+const gameArea = document.getElementById("gameArea");
+
+
+let gameWidth = gameArea.clientWidth; 
+let keyWidth = 0; 
+
+/* ================= KEYBOARD ================= */
+
+const keys = ["C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1", "B1", "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2", "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3", "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4", "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5", "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6", "C7" ];
+
+  renderKeyboard("keyboard-top");
+  renderKeyboard("keyboard-bottom");
+
+
+
+function renderKeyboard(id) {
+
+  const kb = document.getElementById(id);
+
+  console.log(
+  "notes-layer:",
+  document.getElementById("notes-layer")
 );
-VM3078:1 
-(index)
-note
-time
-chordId
-hand
-0	'E5'	0.25	0	'right'
-1	'D5'	0.3125	1	'right'
-2	'C#5'	0.375	2	'right'
-3	'B4'	0.4375	3	'right'
-4	'A4'	0.5	4	'right'
-5	'A3'	0.5	4	'left'
-6	'B4'	0.5625	5	'right'
-7	'C#5'	0.625	6	'right'
-8	'C#4'	0.625	6	'left'
-9	'E4'	0.625	6	'left'
-10	'D5'	0.6875	7	'right'
-11	'E5'	0.75	8	'right'
-12	'C#4'	0.75	8	'left'
-13	'E4'	0.75	8	'left'
-14	'F#5'	0.8125	9	'right'
-15	'G#5'	0.875	10	'right'
-16	'C#4'	0.875	10	'left'
-17	'E4'	0.875	10	'left'
-18	'A5'	0.9375	11	'right'
-19	'A5'	1	12	'right'
-Array(20)
-undefined
+
+  if (!kb) return;
+
+  kb.querySelectorAll(".key,.black")
+    .forEach(e => e.remove());
+
+  const whiteNotes = keys.filter(n => !n.includes("#"));
+  const whiteWidth = window.innerWidth / whiteNotes.length;
+
+  let whiteIndex = 0;
+
+  keys.forEach(note => {
+
+    const isBlack = note.includes("#");
+
+    const key = document.createElement("div");
+
+    key.dataset.note = note;
+
+if (isBlack) {
+
+  key.className = "black";
+
+  key.style.left =
+    (whiteIndex * whiteWidth - 11) + "px";
+
+  // 上鍵盤だけ黒鍵の色変更
+  if (id === "keyboard-top") {
+    key.style.background = "#444";
+  }
+
+} else {
+
+  key.className = "key";
+
+  key.style.left =
+    (whiteIndex * whiteWidth) + "px";
+
+  key.style.width =
+    whiteWidth + "px";
+
+  // 上鍵盤だけ白鍵にする
+  if (id === "keyboard-top") {
+    key.style.background = "#ffffff";
+  }
+
+  whiteIndex++;
+}
+
+    kb.appendChild(key);
+
+  });
+
+}
+/* ================= AUTO LOAD (CLEAN VERSION) ================= */
+
+window.addEventListener("load", () => {
+  initApp();
+
+  document.getElementById("play-btn").addEventListener("click", () => {
+    startGame();
+  });
+});
+
+function initApp() {
+  // 1. UI系の初期化（重要）
+  initSongMenu();
+  renderKeyboard("keyboard-top");
+  renderKeyboard("keyboard-bottom");
+
+  // 2. MIDIロード（1本化）
+  loadInitialMidi();
+}
+
+function loadInitialMidi() {
+  // 優先：保存データ
+  const saved = localStorage.getItem("savedMidi");
+
+  if (saved) {
+    try {
+      const obj = JSON.parse(saved);
+      const uint = new Uint8Array(obj.data);
+
+      loadMidi(uint.buffer, obj.name);
+      return;
+    } catch (e) {
+      console.warn("saved MIDI破損:", e);
+    }
+  }
+
+  // フォールバック：固定曲
+  loadMidiFromUrl("./songs/55.mid", "55.mid");
+}
+
+/* ================= COLOR UTIL ================= */
+function getNoteColor(note){
+
+  if(note.hand === "left"){
+    return "#4aa3ff"; // 青系
+  }
+
+  return "#ff4a4a";   // 赤系（右手）
+}
+
+/* ================= MIDI URL LOAD ================= */
+
+async function loadMidiFromUrl(url, fileName){
+
+  const res = await fetch(url);
+
+  const buf = await res.arrayBuffer();
+
+  loadMidi(buf, fileName);
+
+  console.log("MIDI読込成功");
+}
+
+/* ================= MIDI LOAD ================= */
+
+function loadMidi(buffer, fileName){
+  chordSpawnIndex = {};
+  const midi = new Midi(buffer);
+
+  const keySig = midi.header.keySignatures?.[0];
+window.currentKey = keySig?.key || "C";
+const keyFix = {
+  "D#":"Eb",
+  "Eb":"Eb",
+  "C#":"Db",
+  "Db":"Db",
+  "F#":"Gb",
+  "Gb":"Gb",
+  "G#":"Ab",
+  "Ab":"Ab",
+  "A#":"Bb",
+  "Bb":"Bb"
+};
+
+window.currentKey = keyFix[keySig?.key] || "C";
+console.log("調性:", window.currentKey);
+
+console.log(midi.header);
+console.log("KeySignatures:", midi.header.keySignatures);
+console.log(
+  JSON.stringify(midi.header.keySignatures, null, 2)
+); 
+
+notes = [];
+  usedNotes.clear();
+
+
+// ================= MIDI展開 =================
+let playableTrackCount = 0; // 音符のあるトラックを数えるカウンター
+
+midi.tracks.forEach(t => {
+  if (t.notes.length === 0) return; // 音データがないトラックは無視
+
+  t.notes.forEach(n => {
+    notes.push({
+      time: n.time,
+      note: n.name,
+      midi: n.midi,
+      // 最初の音符入りトラックなら右手(right)、それ以外(2番目以降)なら左手(left)
+      hand: (playableTrackCount === 0) ? "right" : "left"
+    });
+    usedNotes.add(n.name);
+  });
+
+  playableTrackCount++; // 次の音符入りトラックへ
+});
+
+
+  // ================= 時間順ソート =================
+  notes.sort((a, b) => a.time - b.time);
+
+// ================= 和音グループ化 =================
+
+let currentChordId = 0;
+for (let i = 0; i < notes.length; i++) {
+  if (i > 0 && Math.abs(notes[i].time - notes[i - 1].time) > 0.01) {
+    currentChordId++;
+  }
+  notes[i].chordId = currentChordId;
+}
+
+  // ================= UI更新 =================
+  totalCount = notes.length;
+
+  document.getElementById("totalCount").textContent = totalCount;
+
+  console.log("MIDI OK:", notes.length);
+  console.log("splitNote:", splitNote);
+
+  paintKeyboard();
+
+
+}
+
+
+function paintKeyboard(){
+
+  document
+    .querySelectorAll(".key,.black")
+    .forEach(key=>{
+
+      const isTop =
+        key.closest("#keyboard-top");
+
+      if(key.classList.contains("black")){
+
+        key.style.background =
+          isTop ? "#444" : "#222";
+
+      }else{
+
+        key.style.background =
+          isTop
+            ? "#fafafa"
+            : "repeating-linear-gradient(90deg,#d8b184 0px,#d8b184 4px,#c89b6d 4px,#c89b6d 8px)";
+
+      }
+
+      key.style.opacity = "1";
+    });
+}
+
+/* ================= START ================= */
+async function startGame(){
+  running = false;
+  paused = false;
+
+  // ノーツ消去
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  score = 0;
+  combo = 0;
+  hitCount = 0;
+  update();
+
+  await Tone.start();
+  if (!analyser) await startMic();
+
+  if (!notes.length){
+    alert("MIDIを読み込んでね");
+    return;
+  }
+
+  index = 0;
+  pausedTime = 0;
+  startTime = performance.now();
+
+  running = true;
+
+  countdown(3);
+}
+
+
+
+
+
+/* ================= COUNTDOWN ================= */
+
+function countdown(n){
+  const judge = document.getElementById("judge");
+
+  if(n <= 0){
+
+    startTime = performance.now();
+    judge.textContent = "START!";
+
+    setTimeout(()=>{
+      judge.textContent = "";
+      judge.style.opacity = "0";
+    }, 800);
+
+    // ★★★ ここで loop を開始するだけでいい ★★★
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  judge.style.opacity = "1";
+  judge.textContent = n;
+
+  setTimeout(()=>{
+    countdown(n-1);
+  }, 1000);
+}
+
+
+/* ================= STOP ================= */
+
+function stopGame(){
+  running = false;
+  paused = false;
+
+  // ノーツ消去
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  // ガイド消去
+  document.querySelectorAll(".guide-active")
+    .forEach(el => el.classList.remove("guide-active"));
+
+
+  hitCount = 0;
+
+  document.getElementById("hitCount")
+  .textContent = 0;
+
+  document
+  .querySelectorAll(".combo-line")
+  .forEach(e=>e.remove());
+
+  document
+  .querySelectorAll(".chord-surround")
+  .forEach(e=>e.remove());
+
+
+}
+
+
+
+
+function noteToSolfege(noteName){
+    // ① オクターブ除去
+    const pitch = noteName.replace(/[0-9]/g, "");
+
+    // ② 異名同音を統一
+    const normalize = {
+        "C":"C",
+        "C#":"C#","Db":"C#",
+        "D":"D",
+        "D#":"D#","Eb":"D#",
+        "E":"E","Fb":"E",
+        "F":"F","E#":"F",
+        "F#":"F#","Gb":"F#",
+        "G":"G",
+        "G#":"G#","Ab":"G#",
+        "A":"A",
+        "A#":"A#","Bb":"A#",
+        "B":"B","Cb":"B"
+    };
+
+    const p = normalize[pitch];
+    if(!p) return pitch;
+
+    // ③ 調性（メジャー）
+    const key = window.currentKey || "C";
+
+    const majorScale = {
+        C:  ["C","D","E","F","G","A","B"],
+        G:  ["C","D","E","F#","G","A","B"],
+        D:  ["C#","D","E","F#","G","A","B"],
+        A:  ["C#","D","E","F#","G#","A","B"],
+        E:  ["C#","D#","E","F#","G#","A","B"],
+        B:  ["C#","D#","E","F#","G#","A#","B"],
+        F:  ["C","D","E","F","G","A","A#"],
+        Bb: ["C","D","D#","F","G","A","A#"],
+        Eb: ["C","D","D#","F","G","G#","A#"],
+        Ab: ["C","C#","D#","F","G","G#","A#"]
+    };
+
+    const solfege = ["ド","レ","ミ","ファ","ソ","ラ","シ"];
+
+    const scale = majorScale[key];
+
+    // ④ スケール内 → ドレミ
+    const idx = scale.indexOf(p);
+    if(idx !== -1){
+        return solfege[idx];
+    }
+
+    // ⑤ スケール外 → カタカナ臨時音
+    const kana = {
+        "C":"ド",
+        "C#":"ド♯",
+        "D":"レ",
+        "D#":"レ♯",
+        "E":"ミ",
+        "F":"ファ",
+        "F#":"ファ♯",
+        "G":"ソ",
+        "G#":"ソ♯",
+        "A":"ラ",
+        "A#":"ラ♯",
+        "B":"シ"
+    };
+
+    return kana[p] || p;
+}
+
+/* ================= SPAWN ================= */
+function spawn(n){
+
+  // ★ 下の鍵盤
+  const keyBottom =
+    document.querySelector(`#keyboard-bottom [data-note="${n.note}"]`);
+
+  // ★ 上の鍵盤（ガイド用）
+  const keyTop =
+    document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
+
+  if(!keyBottom) return;
+
+  const g = document.getElementById("gameArea").getBoundingClientRect();
+  const k = keyBottom.getBoundingClientRect();
+
+  const isBlack =
+  keyBottom.classList.contains("black");
+
+  const el = document.createElement("div");
+  el.className = "note note-spawn";
+
+   let color =
+    n.hand === "left"
+      ? (isBlack ? "#1f4f7a" : "#4aa3ff")
+      : (isBlack ? "#7a1f1f" : "#ff4a4a");
+
+  el.style.background = color;
+
+  const text = document.createElement("div");
+  text.className = "note-text";
+  text.textContent = noteToSolfege(n.note);
+
+  el.appendChild(text);
+  const exactX =
+    (k.left - g.left) + (k.width / 2);
+el.style.top =
+  (keyBottom.offsetTop + (isBlack ? 35 : 70)) + "px";
+
+el.style.left =
+  (keyBottom.offsetLeft + keyBottom.offsetWidth / 2 - 11) + "px";
+
+
+  document.getElementById("notes-layer").appendChild(el);
+
+  active.push({
+    el,
+    note: n.note,
+    keyBottom,
+    keyTop,      // ← ★ 追加
+    hit: n.time,
+    hand: n.hand,
+    chordId: n.chordId,
+    missed: false
+  });
+}
+
+
+
+
+
+function loop() {
+
+  if (!running) return;
+  if (paused) return;
+
+  const now = performance.now();
+  const gameTime = getTime();
+
+  // ★ ノーツ生成（このままでOK）
+  while (index < notes.length && notes[index].time <= gameTime) {
+    spawn(notes[index]);
+    index++;
+  }
+
+  active.forEach(n => {
+    if (n.removed) return;
+
+    /// ★ ノーツを鍵盤の位置に固定
+const isBlack =
+  n.keyBottom.classList.contains("black");
+
+n.el.style.top =
+  (n.keyBottom.offsetTop + (isBlack ? 35 : 70)) + "px";
+
+n.el.style.left =
+  (n.keyBottom.offsetLeft + n.keyBottom.offsetWidth / 2 - 11) + "px";
+
+    // ★ ガイド処理（浮き上がり）
+    if (!n.guideShown && gameTime >= n.hit - 0.15) {
+      n.el.classList.add("note-active");
+      if(n.hand === "left"){
+  n.keyTop?.classList.add("guide-left");
+}else{
+  n.keyTop?.classList.add("guide-right");
+}
+      n.guideShown = true;
+    }
+
+    // =========================
+    // MISS処理
+    // =========================
+    if (!n.missed && gameTime - n.hit > 0.15) {
+      n.missed = true;
+
+      n.keyTop?.classList.remove(
+  "guide-left",
+  "guide-right"
+);
+      n.el?.remove();
+
+      active = active.filter(x => x !== n);
+      return;
+    }
+
+    // =========================
+// 手の追従
+// =========================
+if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
+
+  const handId = n.hand === "left" ? "leftHand" : "rightHand";
+  const handEl = document.getElementById(handId);
+
+  if (handEl) {
+    const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+    const keyRect = n.keyBottom?.getBoundingClientRect(); // ← ここを修正！
+
+    if (keyRect) {
+      const x = (keyRect.left - gameRect.left) + keyRect.width / 2;
+      handEl.style.left = (x - 45) + "px";
+      handEl.style.top = "520px";
+      handEl.style.opacity = "0.4";
+    }
+
+    handEl.classList.add("active");
+  }
+}
+
+
+  }); // ← forEach の正しい閉じ
+
+  // ③ 終了判定
+  if (index >= notes.length && active.length === 0) {
+    running = false;
+    showGoal();
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+
+
+
+
+
+
+function togglePause(){
+
+  const btn = document.getElementById("pauseBtn");
+
+  if(!paused){
+
+    paused = true;
+    pauseStart = performance.now();
+    btn.textContent = "▶";
+
+  }else{
+
+    paused = false;
+
+    pausedTime += performance.now() - pauseStart;
+
+    btn.textContent = "⏸";
+
+    if (loopRunning) return;
+loopRunning = true;
+requestAnimationFrame(loop);
+  }
+}
+
+
+
+
+/* ================= SUCCESS ================= */
+function success(best) {
+if (best.done) return; 
+ best.done = true;
+  const handId = best.hand === "left" ? "leftHand" : "rightHand";
+  const handEl = document.getElementById(handId);
+  if (handEl) {
+    handEl.classList.remove("tap");
+    void handEl.offsetWidth; // 強制再描画
+    handEl.classList.add("tap");
+    
+    clearTimeout(handEl.timer);
+    handEl.timer = setTimeout(() => {
+      handEl.classList.remove("tap");
+    const now = getTime();
+
+const hasIncoming = active.some(x =>
+  x.hand === best.hand &&
+  x.hit - now < 0.4 &&
+  !x.missed
+);
+      
+      // success(best) 関数内の「setTimeout」の中にある引っ込み位置を修正
+
+      if (!hasIncoming) {
+        handEl.classList.remove("active");
+        // ✨ 引っ込み位置を修正（650pxへ）
+        handEl.style.top = "650px"; 
+        // ✨ 透過率と拡大を元に戻す
+        handEl.style.opacity = "0";
+        handEl.style.transform = "scale(1)";
+      }
+    }, 150);
+  }
+
+best.el.classList.add("note-suck");
+
+best.removed = true; // ←重要
+
+setTimeout(() => {
+  best.el?.remove();
+}, 250);
+
+active = active.filter(n => n !== best);
+  hitCount++;
+  document.getElementById("hitCount").textContent = hitCount;
+  
+}
+
+
+
+function showResult(){
+  const judge = document.getElementById("judge");
+
+  judge.textContent = "FINISH!";
+  judge.style.color = "gold";
+  judge.style.transform = "scale(1.5)";
+  judge.style.opacity = "1";
+
+  setTimeout(() => {
+    judge.textContent = "";
+    judge.style.transform = "scale(1)";
+    judge.style.opacity = "0.7";
+  }, 2000);
+}
+
+/* ================= hitnearest ================= */
+function hitNearest(){
+
+  const hitRange = 40;
+
+  let bestDist = 999;
+
+  // 一番近いノーツを探す
+  active.forEach(n => {
+    if (n.done) return false;
+
+    const rect = n.el.getBoundingClientRect();
+    const game = document.getElementById("gameArea").getBoundingClientRect();
+
+    const y = rect.top - game.top;
+
+    const dist = Math.abs(y - hitY);
+
+    if(dist < bestDist){
+      bestDist = dist;
+    }
+
+  });
+
+  if(bestDist > hitRange) return;
+
+  let judge = "GOOD";
+
+  if(bestDist < 15){
+    judge = "PERFECT";
+  }
+
+  // 一番近いノーツと同じタイミングのものを全部消す
+  active
+    .filter(n => {
+
+      const rect = n.el.getBoundingClientRect();
+      const game = document.getElementById("gameArea").getBoundingClientRect();
+
+      const y = rect.top - game.top;
+
+      const dist = Math.abs(y - hitY);
+
+      return Math.abs(dist - bestDist) < 12;
+
+    })
+    .forEach(n => success(n));
+
+  showJudge(judge);
+}
+
+
+/* ================= HIT ================= */
+function hit(note){
+  // 鍵盤を光らせる
+  const key = document.querySelector(`#keyboard-bottom [data-note="${note}"]`);
+  if (key) {
+    key.classList.add("hit");
+    setTimeout(() => key.classList.remove("hit"), 100);
+  }
+
+  // ノーツ判定（最も近いノーツを1つだけ取る）
+  const t = getTime();
+  const JUDGE_WINDOW = 0.6;
+
+  let best = null;
+  let bestDiff = 999;
+
+  active.forEach(n => {
+    if (n.note !== note) return;
+
+    const diff = n.hit - t;
+    if (Math.abs(diff) > JUDGE_WINDOW) return;
+
+    const absDiff = Math.abs(diff);
+    if (absDiff < bestDiff) {
+      bestDiff = absDiff;
+      best = n;
+    }
+  });
+
+  // ノーツが見つかったら消してスコア加算
+  if (best) {
+    success(best, note);   // ← ノーツ削除
+    score += 300;          // ← スコア加算（固定）
+    combo++;               // ← コンボ増加
+  }
+
+  update(); // ← スコア表示更新
+}
+
+
+
+
+/* ================= UI ================= */
+
+function update(){
+
+  document.getElementById("hitCount")
+    .textContent = hitCount;
+
+  document.getElementById("totalCount")
+    .textContent = totalCount;
+
+}
+
+function setSpeed(mode){
+
+  const SPEED_MAP = {
+    slow: 0.15,
+    normal: 0.25,
+    fast: 0.35
+  };
+
+  speed = SPEED_MAP[mode];
+
+  const label =
+    mode === "slow" ? "ゆっくり" :
+    mode === "normal" ? "ふつう" :
+    "はやい";
+
+  document.getElementById("speedLabel")
+    .textContent = label;
+}
+
+/* ================= JUDGE ================= */
+
+function showJudge(text){
+return;
+  const j =
+    document.getElementById("judge");
+
+  j.textContent = text;
+
+  /* ★追加 */
+  j.style.transform = "scale(1.4)";
+  j.style.opacity = "1";
+
+  if(text === "PERFECT"){
+    j.style.color = "gold";
+  }else if(text === "GOOD"){
+    j.style.color = "cyan";
+  }else{
+    j.style.color = "red";
+  }
+
+  clearTimeout(j.timer);
+
+  j.timer = setTimeout(()=>{
+
+    j.textContent = "";
+    j.style.transform = "scale(1)";
+    j.style.opacity = "0.7";
+
+  },500);
+
+}
+function showGoal() {
+const el = document.getElementById("hitCount");
+if (el) el.textContent = hitCount;
+
+  setTimeout(() => {
+    el.style.display = "none";
+  }, 2500);
+}
+
+
+
+
+function loadSong(fileName){
+
+  loadMidiFromUrl(
+    "./songs/" + fileName,
+    fileName
+  );
+
+}
+
+const songList = [
+    { file: "55.mid", title: "バイエル 55番" },
+    { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
+    { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー マリオネット" },
+    { file: "コナン.mid", title: "コナン メインテーマ" },
+    { file: "カントリーロード.mid", title: "カントリーロード" },
+    { file: "Turkishi.mid", title: "トルコ行進曲" },
+    { file: "革命.mid", title: "ショパン 革命" }
+];
+
+
+function initSongMenu() {
+    const menu = document.getElementById("songMenu");
+    if (!menu) return;
+    
+    menu.innerHTML = "";
+
+    songList.forEach(song => {
+        const btn = document.createElement("button");
+        btn.className = "menuSongBtn";
+        btn.textContent = song.title;
+        
+        btn.onclick = () => {
+            loadSong(song.file);
+            menu.style.display = "none";
+        };
+        
+        menu.appendChild(btn);
+    });
+
+    console.log("メニューの作成が完了しました！ボタン数:", songList.length);
+}
+initSongMenu();
+
+
+function toggleSongMenu() {
+  const menu = document.getElementById("songMenu");
+  if (menu.style.display === "block") {
+    menu.style.display = "none";
+  } else {
+    menu.style.display = "block";
+  }
+}
+
+
+</script>
+
+</body>
+</html>
+
