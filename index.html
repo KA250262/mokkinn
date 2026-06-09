@@ -265,12 +265,12 @@ body{
 /* 下の鍵盤に浮き上がるnotes */
 .note {
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff8c0, #ffd860);
   border: 1px solid rgba(255,255,255,0.9);
-
+  will-change: transform;
   opacity: 0;
   transform: none;
   transition: opacity 0.15s ease;
@@ -329,16 +329,49 @@ body{
   pointer-events: none;
 }
 
-.note-spawn {
-  animation: noteSpawn 0.1s ease-out; 
+.note-spawn{
+  animation: noteSpawn 0.12s ease-out;
 }
 
-@keyframes noteSpawn {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
+@keyframes noteSpawn{
+  0%{
+    opacity:0;
+    transform:scale(0.7);
+  }
+  100%{
+    opacity:1;
+    transform:scale(1);
+  }
 }
 
-
+/* 下鍵盤のノーツ残像 */
+.note-trail{
+  position:absolute;
+  height:8px;
+  border-radius:999px;
+  pointer-events:none;
+  z-index:40;
+  opacity:0.5;
+  transform-origin:left center;
+  filter: blur(3px);
+  box-shadow: 0 0 8px currentColor;
+}
+.note-trail-right{
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,74,74,0.8),
+      rgba(255,74,74,0)
+    );
+}
+.note-trail-left{
+  background:
+    linear-gradient(
+      90deg,
+      rgba(74,163,255,0.8),
+      rgba(74,163,255,0)
+    );
+}
 
 
 
@@ -1139,13 +1172,18 @@ midi.tracks.forEach(t => {
   if (t.notes.length === 0) return; // 音データがないトラックは無視
 
   t.notes.forEach(n => {
-    notes.push({
-      time: n.time,
-      note: n.name,
-      midi: n.midi,
-      // 最初の音符入りトラックなら右手(right)、それ以外(2番目以降)なら左手(left)
-      hand: (playableTrackCount === 0) ? "right" : "left"
-    });
+
+notes.push({
+  time: n.time,
+  note: n.name,
+  midi: n.midi,
+  duration: n.duration,
+  hand: (playableTrackCount === 0)
+    ? "right"
+    : "left"
+});
+
+
     usedNotes.add(n.name);
   });
 
@@ -1375,6 +1413,10 @@ function noteToSolfege(noteName){
 
 /* ================= SPAWN ================= */
 function spawn(n){
+  console.log(
+  n.note,
+  n.duration
+);
 
   // ★ 下の鍵盤
   const keyBottom =
@@ -1413,33 +1455,133 @@ el.style.top =
   (keyBottom.offsetTop + (isBlack ? 35 : 70)) + "px";
 
 el.style.left =
-  (keyBottom.offsetLeft + keyBottom.offsetWidth / 2 - 11) + "px";
+  (keyBottom.offsetLeft +
+   keyBottom.offsetWidth / 2 -
+   15) + "px";
+document.getElementById("notes-layer").appendChild(el);
+
+const idx = notes.indexOf(n);
+
+let next =
+  notes
+    .slice(idx + 1)
+    .find(x => x.hand === n.hand);
+
+if(
+  next &&
+  next.note === n.note &&
+  next.time - n.time < 0.3
+){
+  return;
+}
+
+if(next){
+
+  const nextKey =
+    document.querySelector(
+      `#keyboard-bottom [data-note="${next.note}"]`
+    );
+
+  if(nextKey){
+
+    const x1 =
+      keyBottom.offsetLeft +
+      keyBottom.offsetWidth / 2;
+
+    const y1 =
+      keyBottom.offsetTop +
+      (isBlack ? 35 : 80);
+
+    const x2 =
+      nextKey.offsetLeft +
+      nextKey.offsetWidth / 2;
+
+    const y2 =
+      nextKey.offsetTop +
+      (nextKey.classList.contains("black")
+        ? 35
+        : 70);
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    const angle =
+      Math.atan2(dy, dx) *
+      180 / Math.PI;
+
+    const beak = document.createElement("div");
+
+beak.style.position = "absolute";
+beak.style.pointerEvents = "none";
+beak.style.zIndex = "25";
+
+beak.style.width = "0";
+beak.style.height = "0";
+
+beak.style.borderTop = "8px solid transparent";
+beak.style.borderBottom = "8px solid transparent";
+
+beak.style.borderRight =
+  n.hand === "left"
+    ? "5px solid rgba(74,163,255,0.7)"
+    : "5px solid rgba(255,74,74,0.7)";
+
+beak.style.left = (x1 - 12) + "px";
+beak.style.top  = (y1 - 8) + "px";
+
+beak.style.transformOrigin = "right center";
+beak.style.transform =
+  `rotate(${angle}deg)`;
+
+document
+  .getElementById("notes-layer")
+  .appendChild(beak);
+
+setTimeout(() => {
+  beak.style.transition =
+    "opacity 0.15s";
+  beak.style.opacity = "0";
+}, 80);
+
+setTimeout(() => {
+  beak.remove();
+}, 250);
 
 
-  document.getElementById("notes-layer").appendChild(el);
+  }
+}
 
-  active.push({
-    el,
-    note: n.note,
-    keyBottom,
-    keyTop,      // ← ★ 追加
-    hit: n.time,
-    hand: n.hand,
-    chordId: n.chordId,
-    missed: false
-  });
+active.push({
+  el,
+  note: n.note,
+  keyBottom,
+  keyTop,
+  hit: n.time,
+  hand: n.hand,
+  chordId: n.chordId,
+  duration: n.duration,
+  missed: false
+});
 }
 
 
-
-
+let last = performance.now();
 
 function loop() {
+
 
   if (!running) return;
   if (paused) return;
 
   const now = performance.now();
+ 
+  console.log(
+    "FPS",
+    Math.round(1000 / (now - last))
+  );
+
+  last = now;
+  
   const gameTime = getTime();
 
   // ★ ノーツ生成（このままでOK）
@@ -1456,7 +1598,7 @@ const isBlack =
   n.keyBottom.classList.contains("black");
 
 n.el.style.top =
-  (n.keyBottom.offsetTop + (isBlack ? 35 : 70)) + "px";
+  (n.keyBottom.offsetTop + (isBlack ? 35 : 80)) + "px";
 
 n.el.style.left =
   (n.keyBottom.offsetLeft + n.keyBottom.offsetWidth / 2 - 11) + "px";
@@ -1475,7 +1617,11 @@ n.el.style.left =
     // =========================
     // MISS処理
     // =========================
-    if (!n.missed && gameTime - n.hit > 0.15) {
+    const stayTime =
+  Math.max(n.duration || 0.15, 0.15);
+
+if (!n.missed &&
+    gameTime - n.hit > stayTime) {
       n.missed = true;
 
       n.keyTop?.classList.remove(
@@ -1487,10 +1633,11 @@ n.el.style.left =
       active = active.filter(x => x !== n);
       return;
     }
-
-    // =========================
+/*
+// =========================
 // 手の追従
 // =========================
+
 if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
 
   const handId = n.hand === "left" ? "leftHand" : "rightHand";
@@ -1508,9 +1655,11 @@ if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
     }
 
     handEl.classList.add("active");
+    
   }
-}
 
+}
+*/
 
   }); // ← forEach の正しい閉じ
 
