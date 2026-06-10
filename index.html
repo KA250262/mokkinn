@@ -21,6 +21,16 @@ body{
   text-align:center;
   font-family:sans-serif;
   overflow:hidden;
+  transition: background-color 0.05s ease, filter 0.05s ease;
+}
+
+/* 1拍目に一瞬だけ付与されるクラス */
+body.beat-flash {
+  background-color: #fff176;
+  filter: brightness(1.15) ;
+
+  /* パターンB: 背景の明るさだけをガクッと落としたい場合（画像はうっすら残る） */
+  /* filter: brightness(0.2) !important; */
 }
 
 #gameArea {
@@ -736,9 +746,10 @@ body{
 
   <!-- その他 -->
   <div id="judge"></div>
-  <span id="hitCount">221</span>
-  <div id="totalCount"></div>
-  <span id="score-display">62</span>
+  
+  <span id="score-display">0 / 0</span>
+  <span id="hitCount" style="display: none;"></span>  
+  <div id="totalCount" style="display: none;"></div> 
   <button onclick="startMic()">マイク開始</button>
 
  </div>
@@ -1286,6 +1297,7 @@ async function startGame(){
   score = 0;
   combo = 0;
   hitCount = 0;
+  totalCount = notes.length;
   update();
 
   await Tone.start();
@@ -1352,11 +1364,10 @@ function stopGame(){
   document.querySelectorAll(".guide-active")
     .forEach(el => el.classList.remove("guide-active"));
 
-
-  hitCount = 0;
-
-  document.getElementById("hitCount")
-  .textContent = 0;
+const scoreDisplay = document.getElementById("score-display");
+  if (scoreDisplay) {
+    scoreDisplay.textContent = "0 / 0"; 
+  }
 
   document
   .querySelectorAll(".combo-line")
@@ -1562,17 +1573,20 @@ function spawn(n){
     }
   }
 
-  active.push({
-    el,
-    note: n.note,
-    keyBottom, // 下鍵盤（新・ガイド用）
-    keyTop,    // 上鍵盤（新・メイン判定用）
-    hit: n.time,
-    hand: n.hand,
-    chordId: n.chordId,
-    duration: n.duration,
-    missed: false
-  });
+active.push({
+  el,
+  note: n.note,
+  keyBottom,
+  keyTop,
+  hit: n.time,
+  hand: n.hand,
+  chordId: n.chordId,
+  duration: n.duration,
+  missed: false,
+
+  guideShown:false,
+  guideRemoved:false
+});
 }
 
   // バーの追従
@@ -1609,6 +1623,39 @@ function loop() {
   
   const gameTime = getTime();
 
+// ==========================================
+  // ★ 1拍目に背景を鼓動（0.5秒消灯）させる処理
+  // ==========================================
+  // アプリで定義されているBPM変数（例: bpm）を使って1拍の長さを計算
+  // もし変数名が違う場合は、お使いのBPM変数名（tempoなど）に変えてください
+  const currentBpm = typeof bpm !== 'undefined' ? bpm : 120; 
+  const secondsPerBeat = 60 / currentBpm; // 1拍あたりの秒数
+  
+  // 現在が通算で何拍目付近かを計算
+  const currentBeatIndex = Math.floor(gameTime / secondsPerBeat); 
+  
+  // 4拍子として、それが「1拍目」のタイミングかどうか（0, 4, 8, 12... 拍目）
+  if (currentBeatIndex % 4 === 0 && gameTime > 0.05) {
+    // 1回の拍の中で、最初の0.05秒間だけトリガーを引く（何度も実行されるのを防ぐ）
+    const beatProgress = gameTime % secondsPerBeat;
+    if (beatProgress < 0.05 && !window.hasFlashedThisBeat) {
+      
+      const bodyEl = document.body;
+      bodyEl.classList.add('beat-flash'); // 暗くするクラスを追加
+      window.hasFlashedThisBeat = true;
+
+      // 0.16秒後に元に戻す
+      setTimeout(() => {
+        bodyEl.classList.remove('beat-flash');
+      }, 160);
+    }
+  }
+
+  // 1拍の判定時間を過ぎたらフラグをリセット
+  if (gameTime % secondsPerBeat >= 0.05) {
+    window.hasFlashedThisBeat = false;
+  }
+
   // ★ ノーツ生成（このままでOK）
   while (index < notes.length && notes[index].time <= gameTime) {
     spawn(notes[index]);
@@ -1641,6 +1688,24 @@ active.forEach(n => {
       }
       n.guideShown = true;
     }
+
+// ==========================================
+// ガイド消灯（MIDI長さ反映）
+// ==========================================
+if (
+  n.guideShown &&
+  !n.guideRemoved &&
+  gameTime >= n.hit + n.duration
+){
+  n.keyBottom?.classList.remove(
+    "guide-left",
+    "guide-right"
+  );
+
+  n.guideRemoved = true;
+}
+
+
 
     // ==========================================
     // MISS処理（変更なし）
@@ -1805,7 +1870,9 @@ setTimeout(() => {
 
 active = active.filter(n => n !== best);
   hitCount++;
-  document.getElementById("hitCount").textContent = hitCount;
+  
+  // 画面の「 0 / 0 」を最新の数字（1 / 242 など）に更新する関数を呼び出す
+  update();
   
 }
 
@@ -1829,54 +1896,26 @@ function showResult(){
 /* ================= hitnearest ================= */
 function hitNearest(){
 
-  const hitRange = 40;
+  const now = getTime();
 
-  let bestDist = 999;
+  const candidates = active.filter(n =>
+    n.guideShown &&
+    !n.done
+  );
 
-  // 一番近いノーツを探す
-  active.forEach(n => {
-    if (n.done) return false;
+  if(candidates.length === 0) return;
 
-    const rect = n.el.getBoundingClientRect();
-    const game = document.getElementById("gameArea").getBoundingClientRect();
+  const best = candidates[0];
 
-    const y = rect.top - game.top;
-
-    const dist = Math.abs(y - hitY);
-
-    if(dist < bestDist){
-      bestDist = dist;
-    }
-
-  });
-
-  if(bestDist > hitRange) return;
-
-  let judge = "GOOD";
-
-  if(bestDist < 15){
-    judge = "PERFECT";
-  }
-
-  // 一番近いノーツと同じタイミングのものを全部消す
   active
-    .filter(n => {
-
-      const rect = n.el.getBoundingClientRect();
-      const game = document.getElementById("gameArea").getBoundingClientRect();
-
-      const y = rect.top - game.top;
-
-      const dist = Math.abs(y - hitY);
-
-      return Math.abs(dist - bestDist) < 12;
-
-    })
+    .filter(n =>
+      n.chordId === best.chordId &&
+      n.hand === best.hand
+    )
     .forEach(n => success(n));
 
-  showJudge(judge);
+  showJudge("GOOD");
 }
-
 
 /* ================= HIT ================= */
 function hit(note){
@@ -1919,18 +1958,23 @@ function hit(note){
 
 
 
-
 /* ================= UI ================= */
 
 function update(){
 
-  document.getElementById("hitCount")
-    .textContent = hitCount;
+  // ★ 変数（totalCount）ではなく、曲のデータ（notes.length）を直接カウントします
+  // もし曲が読み込まれていればその数、まだなら 0 を表示します
+  const total = (typeof notes !== 'undefined' && notes.length) ? notes.length : 0;
 
-  document.getElementById("totalCount")
-    .textContent = totalCount;
+  // まとめて1つの要素に表示
+  const scoreDisplay = document.getElementById("score-display");
+  if (scoreDisplay) {
+    scoreDisplay.textContent = `${hitCount} / ${total}`;
+  }
 
 }
+
+
 
 function setSpeed(mode){
 
@@ -1983,6 +2027,7 @@ return;
   },500);
 
 }
+
 function showGoal() {
 const el = document.getElementById("hitCount");
 if (el) el.textContent = hitCount;
