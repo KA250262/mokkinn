@@ -693,9 +693,13 @@ body{
   <div id="judgeLine"></div>
 
   <!-- ⑤鍵盤（固定） -->
-  <div id="keyboard-top"></div> 
-<div id="keyboard-bottom">
+<div id="keyboard-top">
   <div id="notes-layer"></div>
+  <div class="white-keys"></div>
+  <div class="black-keys"></div>
+</div> 
+
+<div id="keyboard-bottom"></div>
 
   <div class="white-keys"></div>
   <div class="black-keys"></div>
@@ -1113,12 +1117,11 @@ window.addEventListener("load", () => {
 });
 
 function initApp() {
-  // 1. UI系の初期化（重要）
   initSongMenu();
-  renderKeyboard("keyboard-top");
+  // 先に bottom、後に top をレンダリング（ノーツレイヤーがある方を後にすると要素が消えないため）
   renderKeyboard("keyboard-bottom");
+  renderKeyboard("keyboard-top");
 
-  // 2. MIDIロード（1本化）
   loadInitialMidi();
 }
 
@@ -1253,28 +1256,20 @@ for (let i = 0; i < notes.length; i++) {
 
 
 function paintKeyboard(){
-
   document
     .querySelectorAll(".key,.black")
     .forEach(key=>{
 
-      const isTop =
-        key.closest("#keyboard-top");
+      // ★機能が入れ替わるので、bottom を特別な見た目にする
+      const isBottom = key.closest("#keyboard-bottom");
 
       if(key.classList.contains("black")){
-
-        key.style.background =
-          isTop ? "#444" : "#222";
-
-      }else{
-
-        key.style.background =
-          isTop
+        key.style.background = isBottom ? "#444" : "#222";
+      } else {
+        key.style.background = isBottom
             ? "#fafafa"
             : "repeating-linear-gradient(90deg,#d8b184 0px,#d8b184 4px,#c89b6d 4px,#c89b6d 8px)";
-
       }
-
       key.style.opacity = "1";
     });
 }
@@ -1447,31 +1442,26 @@ function noteToSolfege(noteName){
 
 /* ================= SPAWN ================= */
 function spawn(n){
-  console.log(
-  n.note,
-  n.duration
-);
+  console.log(n.note, n.duration);
 
-  // ★ 下の鍵盤
-  const keyBottom =
-    document.querySelector(`#keyboard-bottom [data-note="${n.note}"]`);
-
-  // ★ 上の鍵盤（ガイド用）
+  // ★ 機能を入れ替え：top がメイン（判定・ノーツ表示）、bottom が予告ガイド用
   const keyTop =
     document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
 
-  if(!keyBottom) return;
+  const keyBottom =
+    document.querySelector(`#keyboard-bottom [data-note="${n.note}"]`);
+
+  if(!keyTop) return;
 
   const g = document.getElementById("gameArea").getBoundingClientRect();
-  const k = keyBottom.getBoundingClientRect();
+  const k = keyTop.getBoundingClientRect();
 
-  const isBlack =
-  keyBottom.classList.contains("black");
+  const isBlack = keyTop.classList.contains("black");
 
   const el = document.createElement("div");
   el.className = "note note-spawn";
 
-   let color =
+  let color =
     n.hand === "left"
       ? (isBlack ? "#1f4f7a" : "#4aa3ff")
       : (isBlack ? "#7a1f1f" : "#ff4a4a");
@@ -1483,119 +1473,106 @@ function spawn(n){
   text.textContent = noteToSolfege(n.note);
 
   el.appendChild(text);
-  const exactX =
-    (k.left - g.left) + (k.width / 2);
-el.style.top =
-  (keyBottom.offsetTop + (isBlack ? 35 : 70)) + "px";
 
-el.style.left =
-  (keyBottom.offsetLeft +
-   keyBottom.offsetWidth / 2 -
-   15) + "px";
-document.getElementById("notes-layer").appendChild(el);
+  // ★ 基準をすべて keyTop に変更
+  el.style.top =
+    (keyTop.offsetTop + (isBlack ? 35 : 70)) + "px";
 
-const idx = notes.indexOf(n);
+  el.style.left =
+    (keyTop.offsetLeft + keyTop.offsetWidth / 2 - 15) + "px";
+    
+  document.getElementById("notes-layer").appendChild(el);
 
-let next =
-  notes
-    .slice(idx + 1)
-    .find(x => x.hand === n.hand);
+  const idx = notes.indexOf(n);
 
-if(
-  next &&
-  next.note === n.note &&
-  next.time - n.time < 0.3
-){
-  return;
-}
+  let next =
+    notes
+      .slice(idx + 1)
+      .find(x => x.hand === n.hand);
 
-if(next){
-
-  const nextKey =
-    document.querySelector(
-      `#keyboard-bottom [data-note="${next.note}"]`
-    );
-
-  if(nextKey){
-
-    const x1 =
-      keyBottom.offsetLeft +
-      keyBottom.offsetWidth / 2;
-
-    const y1 =
-      keyBottom.offsetTop +
-      (isBlack ? 35 : 80);
-
-    const x2 =
-      nextKey.offsetLeft +
-      nextKey.offsetWidth / 2;
-
-    const y2 =
-      nextKey.offsetTop +
-      (nextKey.classList.contains("black")
-        ? 35
-        : 70);
-
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-
-    const angle =
-      Math.atan2(dy, dx) *
-      180 / Math.PI;
-
-    const beak = document.createElement("div");
-
-beak.style.position = "absolute";
-beak.style.pointerEvents = "none";
-beak.style.zIndex = "25";
-
-beak.style.width = "0";
-beak.style.height = "0";
-
-beak.style.borderTop = "8px solid transparent";
-beak.style.borderBottom = "8px solid transparent";
-
-beak.style.borderRight =
-  n.hand === "left"
-    ? "5px solid rgba(74,163,255,0.7)"
-    : "5px solid rgba(255,74,74,0.7)";
-
-beak.style.left = (x1 - 12) + "px";
-beak.style.top  = (y1 - 8) + "px";
-
-beak.style.transformOrigin = "right center";
-beak.style.transform =
-  `rotate(${angle}deg)`;
-
-document
-  .getElementById("notes-layer")
-  .appendChild(beak);
-
-setTimeout(() => {
-  beak.style.transition =
-    "opacity 0.15s";
-  beak.style.opacity = "0";
-}, 80);
-
-setTimeout(() => {
-  beak.remove();
-}, 250);
-
-
+  if(
+    next &&
+    next.note === n.note &&
+    next.time - n.time < 0.3
+  ){
+    return;
   }
-}
 
-active.push({
-  el,
-  note: n.note,
-  keyBottom,
-  keyTop,
-  hit: n.time,
-  hand: n.hand,
-  chordId: n.chordId,
-  duration: n.duration,
-  missed: false
-});
+  if(next){
+    // ★ 次の鍵盤も top から探す
+    const nextKey =
+      document.querySelector(
+        `#keyboard-top [data-note="${next.note}"]`
+      );
+
+    if(nextKey){
+      // ★ 現在の keyTop の中心座標
+      const x1 =
+        keyTop.offsetLeft + keyTop.offsetWidth / 2;
+
+      const y1 =
+        keyTop.offsetTop + (isBlack ? 35 : 80);
+
+      // ★ 次の keyTop の中心座標
+      const x2 =
+        nextKey.offsetLeft + nextKey.offsetWidth / 2;
+
+      const y2 =
+        nextKey.offsetTop +
+        (nextKey.classList.contains("black") ? 35 : 70);
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+      const beak = document.createElement("div");
+
+      beak.style.position = "absolute";
+      beak.style.pointerEvents = "none";
+      beak.style.zIndex = "25";
+
+      beak.style.width = "0";
+      beak.style.height = "0";
+
+      beak.style.borderTop = "8px solid transparent";
+      beak.style.borderBottom = "8px solid transparent";
+
+      beak.style.borderRight =
+        n.hand === "left"
+          ? "5px solid rgba(74,163,255,0.7)"
+          : "5px solid rgba(255,74,74,0.7)";
+
+      beak.style.left = (x1 - 12) + "px";
+      beak.style.top  = (y1 - 8) + "px";
+
+      beak.style.transformOrigin = "right center";
+      beak.style.transform = `rotate(${angle}deg)`;
+
+      document.getElementById("notes-layer").appendChild(beak);
+
+      setTimeout(() => {
+        beak.style.transition = "opacity 0.15s";
+        beak.style.opacity = "0";
+      }, 80);
+
+      setTimeout(() => {
+        beak.remove();
+      }, 250);
+    }
+  }
+
+  active.push({
+    el,
+    note: n.note,
+    keyBottom, // 下鍵盤（新・ガイド用）
+    keyTop,    // 上鍵盤（新・メイン判定用）
+    hit: n.time,
+    hand: n.hand,
+    chordId: n.chordId,
+    duration: n.duration,
+    missed: false
+  });
 }
 
   // バーの追従
@@ -1638,115 +1615,107 @@ function loop() {
     index++;
   }
 
-  active.forEach(n => {
+active.forEach(n => {
     if (n.removed) return;
 
-    /// ★ ノーツを鍵盤の位置に固定
-const isBlack =
-  n.keyBottom.classList.contains("black");
+    // ==========================================
+    // ① ノーツを【上の鍵盤（keyTop）】の位置に固定
+    // ==========================================
+    const isBlack = n.keyTop.classList.contains("black");
 
-n.el.style.top =
-  (n.keyBottom.offsetTop + (isBlack ? 35 : 80)) + "px";
+    n.el.style.top =
+      (n.keyTop.offsetTop + (isBlack ? 35 : 80)) + "px";
 
-n.el.style.left =
-  (n.keyBottom.offsetLeft + n.keyBottom.offsetWidth / 2 - 11) + "px";
+    n.el.style.left =
+      (n.keyTop.offsetLeft + n.keyTop.offsetWidth / 2 - 11) + "px";
 
-    // ★ ガイド処理（浮き上がり）
+    // ==========================================
+    // ② ガイド処理（【下の鍵盤（keyBottom）】を光らせる）
+    // ==========================================
     if (!n.guideShown && gameTime >= n.hit - 0.15) {
       n.el.classList.add("note-active");
-      if(n.hand === "left"){
-  n.keyTop?.classList.add("guide-left");
-}else{
-  n.keyTop?.classList.add("guide-right");
-}
+      if (n.hand === "left") {
+        n.keyBottom?.classList.add("guide-left");  // 下の鍵盤を光らせる
+      } else {
+        n.keyBottom?.classList.add("guide-right"); // 下の鍵盤を光らせる
+      }
       n.guideShown = true;
     }
 
-    // =========================
-    // MISS処理
-    // =========================
-    const stayTime =
-  Math.max(n.duration || 0.15, 0.15);
+    // ==========================================
+    // MISS処理（変更なし）
+    // ==========================================
+    const stayTime = Math.max(n.duration || 0.15, 0.15);
 
-if (!n.missed &&
-    gameTime - n.hit > stayTime) {
+    if (!n.missed && gameTime - n.hit > stayTime) {
       n.missed = true;
 
-      n.keyTop?.classList.remove(
-  "guide-left",
-  "guide-right"
-);
+      // 下の鍵盤のガイドを消去
+      n.keyBottom?.classList.remove("guide-left", "guide-right");
       n.el?.remove();
 
       active = active.filter(x => x !== n);
       return;
     }
 
-// =========================
-// 手の追従（和音の真ん中を計算する修正版）
-// =========================
-if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
+    // ==========================================
+    // ③ 手・バーの追従（【上の鍵盤（keyTop）】の和音中央を計算）
+    // ==========================================
+    if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
 
-  const leftBar = document.getElementById("leftBar");
-  const rightBar = document.getElementById("rightBar");
+      const leftBar = document.getElementById("leftBar");
+      const rightBar = document.getElementById("rightBar");
 
-  const BAR_WIDTH = 280;
-  leftBar.style.width = BAR_WIDTH + "px";
-  rightBar.style.width = BAR_WIDTH + "px";
+      const BAR_WIDTH = 280;
+      leftBar.style.width = BAR_WIDTH + "px";
+      rightBar.style.width = BAR_WIDTH + "px";
 
-  const handId = n.hand === "left" ? "leftHand" : "rightHand";
-  const handEl = document.getElementById(handId);
-  const gameRect = document.getElementById("gameArea").getBoundingClientRect();
+      const handId = n.hand === "left" ? "leftHand" : "rightHand";
+      const handEl = document.getElementById(handId);
+      const gameRect = document.getElementById("gameArea").getBoundingClientRect();
 
-  // =========================
-  // ① 同じタイミング・同じ手のノーツのX座標をすべて集める
-  // =========================
-  let xs = [];
+      // 同じタイミング・同じ手のノーツのX座標を【上の鍵盤】からすべて集める
+      let xs = [];
+      const chordNotes = active.filter(x => x.chordId === n.chordId && x.hand === n.hand && !x.missed);
 
-  // 現在画面上にある（active）ノーツの中から、同じ chordId かつ 同じ手のものをすべて抽出
-  const chordNotes = active.filter(x => x.chordId === n.chordId && x.hand === n.hand && !x.missed);
+      chordNotes.forEach(cn => {
+        const r = cn.keyTop?.getBoundingClientRect(); // ★基準を keyTop に変更
+        if (r) {
+          // 上鍵盤の中心のX座標をゲームエリア基準で計算
+          const x = (r.left - gameRect.left) + r.width / 2;
+          xs.push(x);
+        }
+      });
 
-  chordNotes.forEach(cn => {
-    const r = cn.keyBottom?.getBoundingClientRect();
-    if (r) {
-      // 鍵盤の中心のX座標をゲームエリア基準で計算
-      const x = (r.left - gameRect.left) + r.width / 2;
-      xs.push(x);
+      // データが無い場合はスキップ
+      if (xs.length === 0) return;
+
+      // すべての音の「平均中心値」を計算
+      const centerX = xs.reduce((sum, v) => sum + v, 0) / xs.length;
+
+      // イラスト（手）の更新
+      if (handEl) {
+        handEl.style.top = "520px";
+        handEl.style.opacity = "0.4";
+        handEl.classList.add("active");
+      }
+
+      // トラックバーの追従（左右分離）
+      if (n.hand === "right") {
+        rightBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
+        rightBar.style.top = "480px";
+        rightBar.style.opacity = "0.7";
+        leftBar.style.opacity = "0"; 
+      } 
+      else if (n.hand === "left") {
+        leftBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
+        leftBar.style.top = "480px";
+        leftBar.style.opacity = "0.7";
+        rightBar.style.opacity = "0"; 
+      }
     }
+
   });
-
-  // データが無い（すでに消えているなど）場合はスキップ
-  if (xs.length === 0) return;
-
-  // =========================
-  // ② すべての音の「平均中心値」をだす
-  // =========================
-  const centerX = xs.reduce((sum, v) => sum + v, 0) / xs.length;
-
-  // =========================
-  // ③ 手・バーの追従位置を更新
-  // =========================
-  if (handEl) {
-    handEl.style.top = "520px";
-    handEl.style.opacity = "0.4";
-    handEl.classList.add("active");
-  }
-
-  if (n.hand === "right") {
-    rightBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
-    rightBar.style.top = "480px";
-    rightBar.style.opacity = "0.7";
-    leftBar.style.opacity = "0"; // 右手操作時は左手を隠す（必要に応じて）
-  } 
-  else if (n.hand === "left") {
-    leftBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
-    leftBar.style.top = "480px";
-    leftBar.style.opacity = "0.7";
-    rightBar.style.opacity = "0"; // 左手操作時は右手を隠す（必要に応じて）
-  }
-}
-
-  }); // ← forEach の正しい閉じ
 
   // ③ 終了判定
   if (index >= notes.length && active.length === 0) {
