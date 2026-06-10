@@ -13,6 +13,10 @@
 
 <style>
 
+html {
+  transform-origin: top left;
+}
+
 body{
   margin:0;
   padding:0;
@@ -1117,24 +1121,40 @@ if (isBlack) {
 
 }
 
-/* ================= AUTO LOAD (CLEAN VERSION) ================= */
+let scaleTimer;
+
+function applyScale() {
+  if (window.innerWidth > 768) {
+    document.documentElement.style.transform = "scale(1)";
+    return;
+  }
+
+  const scale = window.innerWidth / 1920;
+  document.documentElement.style.transform = `scale(${scale})`;
+}
+
+function applyScaleDebounced() {
+  clearTimeout(scaleTimer);
+  scaleTimer = setTimeout(applyScale, 100);
+}
 
 window.addEventListener("load", () => {
+  applyScale();   // ★初回必須
   initApp();
-
-  document.getElementById("play-btn").addEventListener("click", () => {
-    startGame();
-  });
 });
+
+window.addEventListener("resize", applyScaleDebounced);
+window.addEventListener("orientationchange", applyScaleDebounced);
 
 function initApp() {
   initSongMenu();
-  // 先に bottom、後に top をレンダリング（ノーツレイヤーがある方を後にすると要素が消えないため）
+
   renderKeyboard("keyboard-bottom");
   renderKeyboard("keyboard-top");
 
   loadInitialMidi();
 }
+
 
 function loadInitialMidi() {
   // 優先：保存データ
