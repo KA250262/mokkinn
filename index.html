@@ -836,7 +836,6 @@ function pauseGame(){
 
 
 async function startMic() {
-    console.log("startMic: start");
     try {
         if (!navigator.mediaDevices?.getUserMedia) {
             throw new Error("getUserMedia非対応ブラウザ");
@@ -850,13 +849,12 @@ async function startMic() {
                 autoGainControl: false
             }
         });
-        console.log("startMic: stream取得成功", stream);
 
         // 2. AudioContext と Source の生成
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContext.createMediaStreamSource(stream);
 
-        // 3. 送っていただいた「Meyda アナライザー」の初期化と開始
+        // 3. Meyda アナライザーの初期化と開始
         const analyzer = Meyda.createMeydaAnalyzer({
             audioContext: audioContext,
             source: source,
@@ -901,7 +899,6 @@ async function startMic() {
                                    (flux > 0.15 || delta > baseline * 1.2);
 
                 if (attackMode && now - lastHitDetect > 300) {
-                    console.log("押された！");
                     hitNearest();
                     lastHitDetect = now;
                 }
@@ -914,12 +911,9 @@ async function startMic() {
 
         analyser = analyzer;
         analyser.start();
-        console.log("startMic: Meydaアナライザー準備完了・開始");
         return true;
 
     } catch (e) {
-        console.error("startMic error:", e);
-        // ⭐ alertを削除しました
         return false;
     }
 } // startMic end
