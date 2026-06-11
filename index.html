@@ -839,181 +839,95 @@ function pauseGame(){
 }
 
 
-
-
 async function startMic() {
-  console.log("startMic: start");
+    console.log("startMic: start");
+    try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            throw new Error("getUserMedia非対応ブラウザ");
+        }
+        
+        // 1. マイクのストリームを取得（エコーキャンセルなどは無効化）
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }
+        });
+        console.log("startMic: stream取得成功", stream);
 
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("getUserMedia非対応ブラウザ");
+        // 2. AudioContext と Source の生成
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+
+        // 3. 送っていただいた「Meyda アナライザー」の初期化と開始
+        const analyzer = Meyda.createMeydaAnalyzer({
+            audioContext: audioContext,
+            source: source,
+            bufferSize: 512,
+            featureExtractors: ["rms", "amplitudeSpectrum", "spectralCentroid"],
+            callback: (features) => {
+                const currentRMS = features.rms || 0;
+                const spectrum = features.amplitudeSpectrum || [];
+                const centroid = features.spectralCentroid || 0;
+
+                latestRMS = currentRMS;
+                latestSpectrum = spectrum;
+
+                /* ================= baseline ================= */
+                baseline = baseline * 0.95 + currentRMS * 0.05;
+
+                /* ================= flux ================= */
+                let flux = 0;
+                if (prevSpectrum.length && prevSpectrum.length === spectrum.length) {
+                    for (let i = 0; i < spectrum.length; i++) {
+                        flux += Math.abs(spectrum[i] - prevSpectrum[i]);
+                    }
+                }
+
+                /* ================= delta ================= */
+                const delta = currentRMS - prevRMS;
+                const now = performance.now();
+
+                /* ================= DEBUG ================= */
+                const debug = document.getElementById("debug");
+                if (debug) {
+                    debug.textContent = "RMS : " + currentRMS.toFixed(3) + 
+                                        " / Δ : " + delta.toFixed(3) + 
+                                        " / base : " + baseline.toFixed(3) + 
+                                        " / flux : " + flux.toFixed(3) + 
+                                        " / centroid : " + centroid.toFixed(0);
+                }
+
+                /* ================= HIT DETECT ================= */
+                const attackMode = currentRMS > 0.015 && 
+                                   currentRMS > baseline * 2 && 
+                                   (flux > 0.15 || delta > baseline * 1.2);
+
+                if (attackMode && now - lastHitDetect > 300) {
+                    console.log("押された！");
+                    hitNearest();
+                    lastHitDetect = now;
+                }
+
+                /* ================= SAVE ================= */
+                prevRMS = currentRMS;
+                prevSpectrum = [...spectrum];
+            }
+        });
+
+        analyser = analyzer;
+        analyser.start();
+        console.log("startMic: Meydaアナライザー準備完了・開始");
+        return true;
+
+    } catch (e) {
+        console.error("startMic error:", e);
+        alert("マイクエラー: " + e.message);
+        return false;
     }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-      }
-    });
-
-    console.log("startMic: stream取得成功", stream);
-
-    // 既存のanalyser構造に合わせる
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    const source = audioCtx.createMediaStreamSource(stream);
-    const analyserNode = audioCtx.createAnalyser();
-
-    source.connect(analyserNode);
-
-    analyserNode.fftSize = 2048;
-
-    analyser = analyserNode;
-
-    console.log("startMic: analyser準備完了");
-
-    return true;
-
-  } catch (e) {
-    console.error("startMic error:", e);
-    alert("マイクエラー: " + e.message);
-    return false;
-  }
-
-
-
-
-  const stream =
-    await navigator.mediaDevices.getUserMedia({
-      audio: true
-    });
-
-  const audioContext =
-    new AudioContext();
-
-  const source =
-    audioContext.createMediaStreamSource(
-      stream
-    );
-
-  const analyzer =
-    Meyda.createMeydaAnalyzer({
-      audioContext: audioContext,
-      source: source,
-      bufferSize: 512,
-      featureExtractors: [
-        "rms",
-        "amplitudeSpectrum",
-        "spectralCentroid"
-      ],
-
-      callback: (features) => {
-
-        const currentRMS =
-          features.rms || 0;
-
-        const spectrum =
-          features.amplitudeSpectrum || [];
-
-        const centroid =
-          features.spectralCentroid || 0;
-
-        latestRMS = currentRMS;
-        latestSpectrum = spectrum;
-
-        /* ================= baseline ================= */
-
-        baseline =
-          baseline * 0.95 +
-          currentRMS * 0.05;
-
-        /* ================= flux ================= */
-
-        let flux = 0;
-
-        if(
-          prevSpectrum.length &&
-          prevSpectrum.length === spectrum.length
-        ){
-
-          for(let i = 0; i < spectrum.length; i++){
-
-            flux += Math.abs(
-              spectrum[i] - prevSpectrum[i]
-            );
-
-          }
-
-        }
-
-        /* ================= delta ================= */
-
-        const delta =
-          currentRMS - prevRMS;
-
-        const now =
-          performance.now();
-
-        /* ================= DEBUG ================= */
-
-        const debug =
-          document.getElementById("debug");
-
-        if(debug){
-
-          debug.textContent =
-
-            "RMS : "
-            + currentRMS.toFixed(3)
-
-            + " / Δ : "
-            + delta.toFixed(3)
-
-            + " / base : "
-            + baseline.toFixed(3)
-
-            + " / flux : "
-            + flux.toFixed(3)
-
-            + " / centroid : "
-            + centroid.toFixed(0);
-
-        }
-
-        /* ================= HIT DETECT ================= */
-
-        const attackMode =
-          currentRMS > 0.015 &&
-          currentRMS > baseline * 2 &&
-          (
-            flux > 0.15 ||
-            delta > baseline * 1.2
-          );
-        if(
-          attackMode &&
-          now - lastHitDetect > 300
-        ){
-          console.log("押された！");
-          hitNearest();
-          lastHitDetect = now;
-        }
-
-        /* ================= SAVE ================= */
-
-        prevRMS = currentRMS;
-
-        prevSpectrum = [...spectrum];
-
-      }
-
-    });
-
-  analyser = analyzer;
-
-  analyser.start();
-
 } // startMic end
+
 /* ================= AUDIO （音）================= */
 let mic;
 let analyser;
