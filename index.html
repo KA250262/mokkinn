@@ -796,7 +796,6 @@ body.mobile #keyboard-top {
 
 <script>
 
-console.log = function() {}; // これ以降の console.log をすべて無視する
 
 /* ===== グローバル（ここが全部の土台）===== */
 let prevRMS = 0;
@@ -920,7 +919,7 @@ async function startMic() {
 
     } catch (e) {
         console.error("startMic error:", e);
-        alert("マイクエラー: " + e.message);
+        // ⭐ alertを削除しました
         return false;
     }
 } // startMic end
@@ -1267,19 +1266,12 @@ function paintKeyboard(){
 /* ================= START ================= */
 
 async function startGame() {
-  console.log("notes:", notes?.length);
-console.log("running:", running);
-console.log("loaded:", window.midiLoaded);
-
-  alert("startGame開始");
-
   // =========================
   // ① MIDIチェック（最優先）
   // =========================
-if (!notes || notes.length === 0) {
-  alert("MIDI未ロード or 読み込み中");
-  return;
-}
+  if (!notes || notes.length === 0) {
+    return;
+  }
 
   // =========================
   // ② 状態リセット
@@ -1297,22 +1289,19 @@ if (!notes || notes.length === 0) {
 
   update();
 
-  alert("初期化OK");
-
   // =========================
   // ③ 音・マイク初期化（非ブロッキング寄り）
   // =========================
   try {
     await Tone.start();
-    alert("Tone OK");
   } catch (e) {
-    console.log("Tone error:", e);
+    // エラー時のログも削除
   }
 
   if (!analyser) {
-    startMic()
-      .then(() => console.log("Mic OK"))
-      .catch(e => console.log("Mic error:", e));
+    startMic().catch(e => {
+      // エラー時のログも削除
+    });
   }
 
   // =========================
@@ -1325,8 +1314,6 @@ if (!notes || notes.length === 0) {
   } else {
     document.body.classList.remove("mobile");
   }
-
-  alert("レイアウトOK");
 
   // =========================
   // ⑤ ゲーム開始準備
@@ -1350,7 +1337,6 @@ function countdown(n){
   const judge = document.getElementById("judge");
 
   if(n <= 0){
-
     startTime = performance.now();
     judge.textContent = "START!";
 
@@ -1636,11 +1622,6 @@ function loop() {
   if (paused) return;
 
   const now = performance.now();
- 
-  console.log(
-    "FPS",
-    Math.round(1000 / (now - last))
-  );
 
   last = now;
   
