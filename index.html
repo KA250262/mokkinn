@@ -37,6 +37,27 @@ body.beat-flash {
   /* filter: brightness(0.2) !important; */
 }
 
+body.mobile {
+  transform: none !important;
+  overflow-x: hidden;
+}
+
+body.mobile #keyboard-top,
+body.mobile #keyboard-bottom {
+  width: 100vw;
+  position: fixed;
+}
+
+body.mobile #keyboard-bottom {
+  bottom: 0;
+}
+
+body.mobile #keyboard-top {
+  top: 0;
+}
+
+
+
 #gameArea {
   position:relative;
   width: 100%;
@@ -1355,6 +1376,17 @@ async function startGame() {
 
   alert("startGame開始");
 
+  // =========================
+  // ① MIDIチェック（最優先）
+  // =========================
+  if (!notes || !notes.length) {
+    alert("MIDIを読み込んでね");
+    return;
+  }
+
+  // =========================
+  // ② 状態リセット
+  // =========================
   running = false;
   paused = false;
 
@@ -1368,47 +1400,51 @@ async function startGame() {
 
   update();
 
-  alert("②スコアOK");
+  alert("初期化OK");
 
+  // =========================
+  // ③ 音・マイク初期化（非ブロッキング寄り）
+  // =========================
   try {
-
     await Tone.start();
     alert("Tone OK");
-
-    if (!analyser) {
-      alert("startMic開始");
-
-      const ok = await startMic(); // ★ここが重要
-
-      alert("startMic結果: " + ok);
-
-      if (!ok) {
-        alert("マイクなしで続行");
-      }
-    }
-
   } catch (e) {
-    alert("エラー: " + e);
-    return;
+    console.log("Tone error:", e);
   }
 
-  alert("③ここまでOK");
-
-  if (!notes.length) {
-    alert("MIDIを読み込んでね");
-    return;
+  if (!analyser) {
+    startMic()
+      .then(() => console.log("Mic OK"))
+      .catch(e => console.log("Mic error:", e));
   }
 
+  // =========================
+  // ④ スマホ別レイアウト切替
+  // =========================
+  const isMobile = window.innerWidth <= 768;
+
+  if (isMobile) {
+    document.body.classList.add("mobile");
+  } else {
+    document.body.classList.remove("mobile");
+  }
+
+  alert("レイアウトOK");
+
+  // =========================
+  // ⑤ ゲーム開始準備
+  // =========================
   index = 0;
   pausedTime = 0;
   startTime = performance.now();
 
   running = true;
 
+  // =========================
+  // ⑥ カウントダウン
+  // =========================
   countdown(3);
 }
-
-
 
 
 /* ================= COUNTDOWN ================= */
