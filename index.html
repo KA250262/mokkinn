@@ -794,9 +794,9 @@ let paused = false;
 let pauseStart = 0;
 let pausedTime = 0;
 
-/* ===== ボタンのイベント登録（ここがベスト）===== */
 document.getElementById("play-btn").addEventListener("click", () => {
   alert("押された");
+  startGame();
 });
 document.getElementById("stop-btn").onclick = stopGame;
 document.getElementById("pause-btn").onclick = pauseGame;
