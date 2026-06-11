@@ -797,6 +797,7 @@ let pausedTime = 0;
 /* ===== ボタンのイベント登録（ここがベスト）===== */
 document.getElementById("play-btn").addEventListener("click", () => {
   alert("押された");
+  startGame();
 });
 document.getElementById("stop-btn").onclick = stopGame;
 document.getElementById("pause-btn").onclick = pauseGame;
@@ -1309,6 +1310,10 @@ function paintKeyboard(){
 
 /* ================= START ================= */
 async function startGame(){
+  function startGame() {
+
+  alert("startGame開始");
+  
   running = false;
   paused = false;
 
