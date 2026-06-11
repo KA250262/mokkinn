@@ -1320,22 +1320,34 @@ async function startGame() {
   active.forEach(n => n.el?.remove());
   active = [];
 
+  alert("①初期化OK");
+
   score = 0;
   combo = 0;
   hitCount = 0;
   totalCount = notes.length;
+
+  alert("②スコアOK");
+
   update();
 
-  await Tone.start();
+  alert("③update OK");
 
-  if (!analyser) {
-    await startMic();
+  try {
+    await Tone.start();
+    alert("④Tone OK");
+
+    if (!analyser) {
+      alert("⑤startMic前");
+      await startMic();
+      alert("⑥startMic後");
+    }
+
+  } catch (e) {
+    alert("エラー: " + e);
   }
 
-  if (!notes.length){
-    alert("MIDIを読み込んでね");
-    return;
-  }
+  alert("⑦ここまでOK");
 
   index = 0;
   pausedTime = 0;
