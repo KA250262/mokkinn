@@ -1217,7 +1217,9 @@ function initApp() {
   renderKeyboard("keyboard-bottom");
   renderKeyboard("keyboard-top");
 
-  loadInitialMidi();
+  loadInitialMidi().then(() => {
+  console.log("MIDI準備完了");
+});
 }
 
 
@@ -1373,16 +1375,19 @@ function paintKeyboard(){
 /* ================= START ================= */
 
 async function startGame() {
+  console.log("notes:", notes?.length);
+console.log("running:", running);
+console.log("loaded:", window.midiLoaded);
 
   alert("startGame開始");
 
   // =========================
   // ① MIDIチェック（最優先）
   // =========================
-  if (!notes || !notes.length) {
-    alert("MIDIを読み込んでね");
-    return;
-  }
+if (!notes || notes.length === 0) {
+  alert("MIDI未ロード or 読み込み中");
+  return;
+}
 
   // =========================
   // ② 状態リセット
