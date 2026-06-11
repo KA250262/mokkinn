@@ -1309,15 +1309,26 @@ function paintKeyboard(){
 }
 
 /* ================= START ================= */
-async function startGame(){
-  function startGame() {
+
+async function startGame() {
 
   alert("startGame開始");
-  
+
+  await Tone.start();
+  alert("Tone OK");
+
+  if (!analyser) {
+    alert("startMic前");
+    await startMic();
+    alert("startMic後");
+  }
+
+  alert("全部OK");
+}
+
   running = false;
   paused = false;
 
-  // ノーツ消去
   active.forEach(n => n.el?.remove());
   active = [];
 
@@ -1328,7 +1339,10 @@ async function startGame(){
   update();
 
   await Tone.start();
-  if (!analyser) await startMic();
+
+  if (!analyser) {
+    await startMic();
+  }
 
   if (!notes.length){
     alert("MIDIを読み込んでね");
