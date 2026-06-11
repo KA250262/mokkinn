@@ -821,6 +821,47 @@ function pauseGame(){
 
 
 async function startMic() {
+  console.log("startMic: start");
+
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("getUserMedia非対応ブラウザ");
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+
+    console.log("startMic: stream取得成功", stream);
+
+    // 既存のanalyser構造に合わせる
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyserNode = audioCtx.createAnalyser();
+
+    source.connect(analyserNode);
+
+    analyserNode.fftSize = 2048;
+
+    analyser = analyserNode;
+
+    console.log("startMic: analyser準備完了");
+
+    return true;
+
+  } catch (e) {
+    console.error("startMic error:", e);
+    alert("マイクエラー: " + e.message);
+    return false;
+  }
+
+
+
 
   const stream =
     await navigator.mediaDevices.getUserMedia({
@@ -1320,34 +1361,43 @@ async function startGame() {
   active.forEach(n => n.el?.remove());
   active = [];
 
-  alert("①初期化OK");
-
   score = 0;
   combo = 0;
   hitCount = 0;
   totalCount = notes.length;
 
-  alert("②スコアOK");
-
   update();
 
-  alert("③update OK");
+  alert("②スコアOK");
 
   try {
+
     await Tone.start();
-    alert("④Tone OK");
+    alert("Tone OK");
 
     if (!analyser) {
-      alert("⑤startMic前");
-      await startMic();
-      alert("⑥startMic後");
+      alert("startMic開始");
+
+      const ok = await startMic(); // ★ここが重要
+
+      alert("startMic結果: " + ok);
+
+      if (!ok) {
+        alert("マイクなしで続行");
+      }
     }
 
   } catch (e) {
     alert("エラー: " + e);
+    return;
   }
 
-  alert("⑦ここまでOK");
+  alert("③ここまでOK");
+
+  if (!notes.length) {
+    alert("MIDIを読み込んでね");
+    return;
+  }
 
   index = 0;
   pausedTime = 0;
@@ -1357,7 +1407,6 @@ async function startGame() {
 
   countdown(3);
 }
-
 
 
 
