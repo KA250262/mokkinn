@@ -1108,23 +1108,21 @@ function initApp() {
 
 
 function loadInitialMidi() {
-  // 優先：保存データ
-  const saved = localStorage.getItem("savedMidi");
-
-  if (saved) {
-    try {
-      const obj = JSON.parse(saved);
-      const uint = new Uint8Array(obj.data);
-
-      loadMidi(uint.buffer, obj.name);
-      return;
-    } catch (e) {
-      console.warn("saved MIDI破損:", e);
+    // 優先：保存データ
+    const saved = localStorage.getItem("savedMidi");
+    if (saved) {
+        try {
+            const obj = JSON.parse(saved);
+            const uint = new Uint8Array(obj.data);
+            loadMidi(uint.buffer, obj.name);
+            return Promise.resolve(); // ⭐ Promiseを返してthenに繋げられるようにする
+        } catch (e) {
+            console.warn("saved MIDI破損:", e);
+        }
     }
-  }
-
-  // フォールバック：固定曲
-  loadMidiFromUrl("./songs/55.mid", "55.mid");
+    
+    // フォールバック：固定曲（非同期処理のfetchをしっかり return する）
+    return loadMidiFromUrl("./songs/55.mid", "55.mid"); // ⭐ ここに「return」を追記
 }
 
 /* ================= COLOR UTIL ================= */
