@@ -210,16 +210,18 @@ body.mobile #keyboard-top {
     background: #ff3399;
 }
 
+/* 既存の #songListRow のスタイルを以下のように書き換える */
 #songListRow {
-    position: absolute;
-    top: 10px;
-    left: 150px;
-    right: 10px;
+    position: relative; /* absoluteから変更 */
+    width: 100%;
     display: flex;
     gap: 5px;
     overflow-x: auto;
     white-space: nowrap;
-    padding-bottom: 5px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1); /* 見やすくするための背景 */
+    margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .songBtn {
@@ -373,6 +375,13 @@ body.mobile #keyboard-top {
         transform: scale(1);
     }
 }
+
+/* #ui 内にスライダー用のスタイルを追加 */
+#speed-slider {
+    width: 100px;
+    vertical-align: middle;
+}
+
 
 .note-hit {
     box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
@@ -596,9 +605,6 @@ body.mobile #keyboard-top {
   <div id="flowerBar">
       <button class="flowerBtn" onclick="toggleSongMenu()">🌸</button>
   </div>
-<div id="songListRow">
-    </div>
-
   <div id="songMenu"></div>
   <img id="mascot">
 
@@ -607,6 +613,7 @@ body.mobile #keyboard-top {
     <div class="white-keys"></div>
     <div class="black-keys"></div>
   </div> 
+</div> <div id="songListRow"></div>
 </div>
 
 <div id="leftBar" class="hand-bar left-bar"></div>
@@ -617,23 +624,21 @@ body.mobile #keyboard-top {
 <div id="lineLayer"></div>
 
 <div id="ui">
- <div class="controls-container">
   <div class="group">
-    <button id="slow-btn">ゆっくり</button>
-    <button id="normal-btn">ふつう</button>
-    <button id="fast-btn">はやい</button>
+    <label for="speed-slider">速度:</label>
+    <input type="range" id="speed-slider" min="0.1" max="0.4" step="0.05" value="0.25">
+    <span id="speedLabel">ふつう</span>
   </div>
+
   <div class="group">
     <button id="play-btn">再生</button>
     <button id="stop-btn">停止</button>
     <button id="pause-btn">一時停止</button>
   </div>
+
   <div id="judge"></div>
   <span id="score-display">0 / 0</span>
-  <span id="hitCount" style="display: none;"></span>  
-  <div id="totalCount" style="display: none;"></div> 
   <button onclick="startMic()">マイク開始</button>
- </div>
 </div>
 
 <div id="debug"></div>
@@ -746,7 +751,6 @@ function getTime(){
   return rawTime * speed;
 }
 
-const buttons = document.querySelectorAll('.control-btn');
 const playButton = document.getElementById('play-btn');
 const pauseButton = document.getElementById('pause-btn');
 const stopButton = document.getElementById('stop-btn');
@@ -1254,12 +1258,19 @@ function update(){
   }
 }
 
-function setSpeed(mode){
-  const SPEED_MAP = { slow: 0.15, normal: 0.25, fast: 0.35 };
-  speed = SPEED_MAP[mode];
-  const label = mode === "slow" ? "ゆっくり" : mode === "normal" ? "ふつう" : "はやい";
-  document.getElementById("speedLabel").textContent = label;
-}
+// スライダーの制御
+document.getElementById("speed-slider").addEventListener("input", (e) => {
+    speed = parseFloat(e.target.value);
+    
+    // ラベルの更新
+    let label = "ふつう";
+    if (speed <= 0.15) label = "ゆっくり";
+    else if (speed >= 0.35) label = "はやい";
+    document.getElementById("speedLabel").textContent = label;
+});
+
+// 古い setSpeed 関数は不要なので中身を空にしておくか削除してください
+function setSpeed(mode) {}
 
 function showGoal() {
   const el = document.getElementById("hitCount");
