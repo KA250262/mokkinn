@@ -142,8 +142,10 @@ body.mobile #keyboard-top {
 
 #ui {
   display: flex;
+  flex-direction: row;     /* 横並びを強制 */
+  align-items: center;     /* 縦中央揃え */
   gap: 5px;            
-  padding: 4px 10px;   
+  padding: 4px 8px;   
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(6px);
   border-radius: 20px;
@@ -152,7 +154,22 @@ body.mobile #keyboard-top {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  max-width: 98%;
+  width: 95%;              /* パーセント指定で収まりを良くする */
+  white-space: nowrap;     /* 改行させない */
+  overflow-x: auto;        /* はみ出た場合は横スクロール */
+}
+
+/* スマホの時だけスライダーを少し小さくする */
+@media (max-width: 600px) {
+  #speed-slider {
+    width: 60px; /* 100pxから60pxへ短縮 */
+  }
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+  }
 }
 
 .controls-container {
@@ -641,10 +658,6 @@ body.mobile #keyboard-top {
 <div data-midi="60"></div>
 
 <div id="gameArea">
-  <div id="flowerBar">
-      <button class="flowerBtn" onclick="toggleSongMenu()">🌸</button>
-  </div>
-  <div id="songMenu"></div>
   <img id="mascot">
 
   <div id="keyboard-top">
@@ -682,7 +695,6 @@ body.mobile #keyboard-top {
 
 
 <div id="debug"></div>
-<span id="speedLabel"></span>
   
 <div id="goalOverlay" class="hidden">
   <div class="goalScene">
