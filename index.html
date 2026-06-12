@@ -46,7 +46,7 @@ body.mobile #keyboard-top {
   position:relative;
   width: 100%;
   height: 60vh;
-  background-image: url("melokoro.png");
+  background-image: linear-gradient(rgba(0, 77, 64, 0.7), rgba(0, 77, 64, 0.7)), url("melokoro.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -107,9 +107,9 @@ body.mobile #keyboard-top {
 /* 【1行目・奥】：すべての黒鍵を一番上にぴったり固定 */
 #keyboard-top .black {
     position: absolute;
-    top: 25px !important;
+    top: 35px !important;
     width: 26px;
-    height: 65px !important;
+    height: 75px !important;
     background: #222;
     border: 2px solid #fffae8;
     border-radius: 5px 5px 4px 4px;
@@ -291,9 +291,10 @@ body.mobile #keyboard-top {
 
 /* 鍵盤を自分で直接タップ・マイク入力でヒットした時の光（ネオングリーン） */
 .hit {
-    background: #7CFF6B !important; 
-    box-shadow: inset 0 0 20px rgba(124, 255, 107, 0.8), 0 0 20px #7CFF6B !important;
-    transition: background 0.1s ease, box-shadow 0.1s ease !important;
+    background: #7CFF6B !important; /* お好みの強い色に変更可能 */
+    box-shadow: none !important;    /* 発光をオフ */
+    opacity: 1 !important;          /* 透け感をなくす */
+    filter: none !important;        /* ぼかしを除去 */
 }
 
 /* 自動演奏時のガイド：左手（青） */
@@ -308,35 +309,35 @@ body.mobile #keyboard-top {
     z-index: 25 !important;
 }
 
-/* 右手ガイド：赤ピンクに光りながら、真ん中を中心に「ぷにっ」と縮む */
+/* 右手ガイド：影なしで色を塗りつぶして「ぷにっ」と縮む */
 @keyframes guideRight {
     0% { 
         transform: scaleY(1); 
-        box-shadow: inset 0 0 20px #ff4db8, 0 0 15px #ff4db8;
+        background: #ff4db8; /* 塗りつぶし */
     }
     50% { 
         transform: scaleY(0.88); 
-        box-shadow: inset 0 0 35px #ff4db8, 0 0 25px #ff80d5;
+        background: #ff80d5; /* 縮んだ時に少し明るい色にするなど */
     }
     100% { 
         transform: scaleY(1); 
-        box-shadow: inset 0 0 10px #ff4db8;
+        background: #ff4db8;
     }
 }
 
-/* 左手ガイド：水色に光りながら、真ん中を中心に「ぷにっ」と縮む */
+/* 左手ガイド：影なしで色を塗りつぶして「ぷにっ」と縮む */
 @keyframes guideLeft {
     0% { 
         transform: scaleY(1); 
-        box-shadow: inset 0 0 20px #33cfff, 0 0 15px #33cfff;
+        background: #33cfff; /* 塗りつぶし */
     }
     50% { 
         transform: scaleY(0.88); 
-        box-shadow: inset 0 0 35px #33cfff, 0 0 25px #8ae8ff;
+        background: #8ae8ff; /* 縮んだ時に少し明るい色にするなど */
     }
     100% { 
         transform: scaleY(1); 
-        box-shadow: inset 0 0 10px #33cfff;
+        background: #33cfff;
     }
 }
 
@@ -383,9 +384,9 @@ body.mobile #keyboard-top {
     transform: translate(-50%, -50%); 
     font-size: 10px; 
     white-space: nowrap; 
-    font-weight: 900; 
+    font-weight: 800; 
     color: white; 
-    text-shadow: 0 1px 2px rgba(0,0,0,0.7); 
+    text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
     z-index: 300; 
 }
 
@@ -652,6 +653,27 @@ body.mobile #keyboard-top {
   z-index:90;
 }
 
+
+/* 予兆用の透き通った光（ヒットまで残す） */
+.pre-hit {
+    background: rgba(255, 255, 255, 0.5) !important; /* 透き通った白 */
+    border: 2px solid rgba(255, 255, 255, 0.8) !important;
+    z-index: 20 !important;
+}
+
+/* ガイド用（くっきりした光） */
+.guide-left, .guide-right {
+    z-index: 30 !important; /* 予兆より上に重ねる */
+}
+
+/* 選択中のボタン用のスタイル */
+.songBtn.selected {
+    background: #ff3399 !important; /* より濃いピンクに */
+    border: 2px solid #ffffff !important; /* 白枠で強調 */
+    box-shadow: 0 0 10px #ff3399;
+}
+
+
 </style>
 </head>
 <body>
@@ -797,6 +819,7 @@ let whiteIndex = 0;
 let splitNote = 60;
 let speed = 0.5;
 let startTime = 0;
+let currentSongName = ""; // 今選んでいる曲名
 
 function getTime(){
   const rawTime = (performance.now() - startTime - pausedTime) / 1000 - 3;
@@ -1092,7 +1115,7 @@ function spawn(n){
 
   active.push({
     el, note: n.note, keyTop, hit: n.time, hand: n.hand, chordId: n.chordId, duration: n.duration,
-    missed: false, guideShown: false, guideRemoved: false
+    missed: false, guideShown: false, guideRemoved: false,preShown: false,
   });
 }
 
@@ -1104,16 +1127,17 @@ rightBar.style.width = BAR_WIDTH + "px";
 
 let last = performance.now();
 
+
 function loop() {
   if (!running || paused) return;
   const now = performance.now();
   last = now;
   const gameTime = getTime();
 
-  const currentBpm = typeof bpm !== 'undefined' ? bpm : 120; 
-  const secondsPerBeat = 60 / currentBpm; 
-  const currentBeatIndex = Math.floor(gameTime / secondsPerBeat); 
-  
+  const currentBpm = typeof bpm !== 'undefined' ? bpm : 120;
+  const secondsPerBeat = 60 / currentBpm;
+  const currentBeatIndex = Math.floor(gameTime / secondsPerBeat);
+
   if (currentBeatIndex % 4 === 0 && gameTime > 0.05) {
     const beatProgress = gameTime % secondsPerBeat;
     if (beatProgress < 0.05 && !window.hasFlashedThisBeat) {
@@ -1136,17 +1160,21 @@ function loop() {
   active.forEach(n => {
     if (n.removed) return;
 
+    // --- ノーツの位置更新 ---
     const isBlack = n.keyTop.classList.contains("black");
-   if (isBlack) {
-        // 黒鍵ノーツは今まで通り
-        n.el.style.top = (n.keyTop.offsetTop + 35) + "px";
+    if (isBlack) {
+      n.el.style.top = (n.keyTop.offsetTop + 35) + "px";
     } else {
-        // 白鍵ノーツは「-15px」することで上にずらす（数値は調整してください）
-        n.el.style.top = (n.keyTop.offsetTop + 80 - 35) + "px"; 
+      n.el.style.top = (n.keyTop.offsetTop + 80 - 35) + "px";
     }
-    // ==========================================
-    // ⭐ 改定：上の鍵盤（keyTop）をガイド発光・変形させる
-    // ==========================================
+
+    // --- 1. 予兆（pre-hit）の判定：0.2秒前から光り始める ---
+    if (!n.preShown && gameTime >= n.hit - 0.2) {
+      n.keyTop?.classList.add("pre-hit");
+      n.preShown = true;
+    }
+
+    // --- 2. ガイド発光の判定：0.15秒前から光る（くっきりした光） ---
     if (!n.guideShown && gameTime >= n.hit - 0.15) {
       n.el.classList.add("note-active");
       if (n.hand === "left") {
@@ -1157,20 +1185,23 @@ function loop() {
       n.guideShown = true;
     }
 
-    if (n.guideShown && !n.guideRemoved && gameTime >= n.hit + n.duration){
-      n.keyTop?.classList.remove("guide-left", "guide-right");
+    // --- 3. 一括削除：音符終了（hit + duration）時に予兆もガイドも全て消す ---
+    if (n.guideShown && !n.guideRemoved && gameTime >= n.hit + n.duration) {
+      n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
       n.guideRemoved = true;
     }
 
+    // --- ミス判定・削除 ---
     const stayTime = Math.max(n.duration || 0.15, 0.15);
     if (!n.missed && gameTime - n.hit > stayTime) {
       n.missed = true;
-      n.keyTop?.classList.remove("guide-left", "guide-right");
+      n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
       n.el?.remove();
       active = active.filter(x => x !== n);
       return;
     }
 
+    // --- 手のバー表示ロジック ---
     if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
       const BAR_WIDTH = 280;
       leftBar.style.width = BAR_WIDTH + "px";
@@ -1202,12 +1233,12 @@ function loop() {
         rightBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
         rightBar.style.top = "480px";
         rightBar.style.opacity = "0.7";
-        leftBar.style.opacity = "0"; 
+        leftBar.style.opacity = "0";
       } else if (n.hand === "left") {
         leftBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
         leftBar.style.top = "480px";
         leftBar.style.opacity = "0.7";
-        rightBar.style.opacity = "0"; 
+        rightBar.style.opacity = "0";
       }
     }
   });
@@ -1219,6 +1250,8 @@ function loop() {
   }
   requestAnimationFrame(loop);
 }
+
+
 
 function success(best) {
   if (best.done) return; 
@@ -1338,7 +1371,7 @@ const songList = [
     { file: "55.mid", title: "バイエル 55番" },
     { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
     { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー マリオネット" },
-    { file: "コナン.mid", title: "コナン メインテーマ" },
+    { file: "コナン.mid", title: "コナン" },
     { file: "カントリーロード.mid", title: "カントリーロード" },
     { file: "Turkishi.mid", title: "トルコ行進曲" },
     { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
