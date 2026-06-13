@@ -89,8 +89,7 @@ body.mobile #keyboard-top {
     background: #fffae8;
     border: 1px solid #333;
     border-radius: 2px 2px 6px 6px;
-    /* 💡 z-indexを黒鍵より低く固定 */
-    z-index: 50 !important;
+    z-index: 10 !important;
     transition: background 0.15s ease, box-shadow 0.15s ease;
     transform-origin: center center !important;
     
@@ -113,8 +112,8 @@ body.mobile #keyboard-top {
     background: #222;
     border: 2px solid #fffae8;
     border-radius: 5px 5px 4px 4px;
-    /* 💡 z-indexを大きくし、アニメーション中でも手前を維持 */
-    z-index: 100 !important; 
+
+    z-index: 20 !important; 
     transition: background 0.15s ease, box-shadow 0.15s ease;
     transform-origin: center center !important;
     
@@ -180,64 +179,6 @@ body.mobile #keyboard-top {
   white-space: nowrap;
 }
 
-/* 曲選択ボタン（花） */
-.flowerBtn{
-  display: flex;
-  align-items: center;
-  border:none;
-  background:none;
-  font-size:36px;
-  cursor:pointer;
-  transition:0.2s;
-  justify-content: center;
-  height: 28px;
-}
-
-#flowerBar{
-  position:absolute;
-  top:10px;
-  left:100px;
-  transform:translateX(-50%);
-  display:flex;
-  gap:20px;
-  z-index:200;
-}
-
-#songMenu {
-    position: absolute;
-    top: 60px; 
-    left: 100px;
-    background: rgba(0, 0, 0, 0.9); 
-    border: 2px solid #ff7ac8;
-    border-radius: 10px; 
-    z-index: 999; 
-    display: none; 
-    flex-direction: column; 
-    gap: 8px; 
-    width: 220px; 
-}
-
-.menuSongBtn {
-    display: block;
-    width: 100%;
-    padding: 10px 12px;
-    text-align: center;
-    background: #ff7ac8;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.menuSongBtn:hover {
-    background: #ff3399;
-}
-
 /* 既存の #songListRow のスタイルを以下のように書き換える */
 #songListRow {
     position: relative; /* absoluteから変更 */
@@ -293,6 +234,7 @@ body.mobile #keyboard-top {
 .hit {
     background: #7CFF6B !important; /* お好みの強い色に変更可能 */
     box-shadow: none !important;    /* 発光をオフ */
+    z-index: 100 !important; /* 常に最前面へ */
     opacity: 1 !important;          /* 透け感をなくす */
     filter: none !important;        /* ぼかしを除去 */
 }
@@ -367,14 +309,14 @@ body.mobile #keyboard-top {
     border: 1px solid rgba(255,255,255,0.9);
     will-change: transform;
     opacity: 0;
-    transform: none;
-    transition: opacity 0.15s ease;
+    transform: scale(0.8);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out; 
     z-index: 201 !important;
 }
 
 .note-active {
     opacity: 1;
-    transform: none;
+    transform: scale(1);
 }
 
 .note-text {
@@ -382,12 +324,17 @@ body.mobile #keyboard-top {
     top: 50%; 
     left: 50%; 
     transform: translate(-50%, -50%); 
-    font-size: 10px; 
+    font-size: 15px; 
     white-space: nowrap; 
     font-weight: 800; 
     color: white; 
     text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
     z-index: 300; 
+}
+
+/* ファ以外に適用される大きめのフォント */
+.large-text {
+    font-size: 25px !important;
 }
 
 .note-spawn {
@@ -405,11 +352,7 @@ body.mobile #keyboard-top {
     }
 }
 
-/* #ui 内にスライダー用のスタイルを追加 */
-#speed-slider {
-    width: 100px;
-    vertical-align: middle;
-}
+
 
 
 .note-hit {
@@ -453,6 +396,13 @@ body.mobile #keyboard-top {
 
 .note-trail-left {
     background: linear-gradient(90deg, rgba(74,163,255,0.8), rgba(74,163,255,0));
+}
+
+
+/* #ui 内にスライダー用のスタイルを追加 */
+#speed-slider {
+    width: 100px;
+    vertical-align: middle;
 }
 
 .hand-bar{
@@ -527,16 +477,18 @@ body.mobile #keyboard-top {
   z-index:500;
 }
 
-.combo-line {
-  position: absolute;
-  height: 12px; 
-  background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important;
-  box-shadow: 0 0 12px #ffffff, 0 0 20px #ffffff, 0 0 30px #ff7ac8;
-  pointer-events: none;
-  z-index: 20;
-  opacity: 0.7; 
-  transition: opacity 0.05s linear;
+/*
+.combo-line { 
+    position: absolute; 
+    height: 12px; 
+    background: linear-gradient(90deg, transparent 0%, #ffffff 20%, #ffffff 80%, transparent 100%) !important; 
+    box-shadow: 0 0 12px #ffffff, 0 0 20px #ffffff, 0 0 30px #ff7ac8; 
+    pointer-events: none; 
+    z-index: 20; 
+    opacity: 0.7; 
+    transition: opacity 0.05s linear; 
 }
+*/
 
 .chord-surround {
   position: absolute;
@@ -564,6 +516,7 @@ body.mobile #keyboard-top {
 }
 
 #debug{
+  display: none !important;
   position: fixed;
   right: 10px;
   bottom: 10px;
@@ -643,22 +596,30 @@ body.mobile #keyboard-top {
   100% { transform: translateY(-2px) rotate(5deg); }
 }
 
-#lineLayer{
-  position:absolute;
-  left:0;
-  top:0;
-  width:100%;
-  height:100%;
-  pointer-events:none;
-  z-index:90;
+/* #lineLayer {
+    position:absolute; 
+    left:0; 
+    top:0; 
+    width:100%; 
+    height:100%; 
+    pointer-events:none; 
+    z-index:90; 
+} 
+*/
+
+/* 白鍵：透け感のある光 */
+.key.pre-hit {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 2px solid rgba(255, 255, 255, 0.8) !important;
+    z-index: 50 !important; /* 既存のz-indexを維持 */
 }
 
-
-/* 予兆用の透き通った光（ヒットまで残す） */
-.pre-hit {
-    background: rgba(255, 255, 255, 0.5) !important; /* 透き通った白 */
-    border: 2px solid rgba(255, 255, 255, 0.8) !important;
-    z-index: 20 !important;
+/* 黒鍵：鮮やかな蛍光色（HIT時と同じ色） */
+.black.pre-hit {
+    background: #7CFF6B !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 10px #7CFF6B, 0 0 20px #7CFF6B;
+    z-index: 150 !important; /* 常に白鍵より手前に出す */
 }
 
 /* ガイド用（くっきりした光） */
@@ -672,7 +633,20 @@ body.mobile #keyboard-top {
     border: 2px solid #ffffff !important; /* 白枠で強調 */
     box-shadow: 0 0 10px #ff3399;
 }
-
+/* ゴール表示用クラス */
+.goal-visible {
+    display: flex !important;
+}
+/* 中央の線や枠を強制的に消す */
+.combo-line, 
+.chord-surround, 
+.chord-surround-left, 
+.chord-surround-right, 
+#lineLayer {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
 
 </style>
 </head>
@@ -695,7 +669,7 @@ body.mobile #keyboard-top {
 
 <img id="rightHand" class="piano-hand">
 <img id="leftHand" class="piano-hand">
-<div id="lineLayer"></div>
+``<div id="lineLayer"></div>``
 
 <div id="ui">
   <div class="group">
@@ -704,11 +678,12 @@ body.mobile #keyboard-top {
     <span id="speedLabel">ふつう</span>
   </div>
 
-  <div class="group">
-    <button id="play-btn" class="icon-btn">▶</button>
-    <button id="stop-btn" class="icon-btn">■</button>
-    <button id="pause-btn" class="icon-btn">⏸</button>
-  </div>
+<div class="group">
+  <button id="rewind-btn" class="icon-btn">⏪</button>
+  <button id="play-btn" class="icon-btn">▶</button>
+  <button id="stop-btn" class="icon-btn">■</button>
+  <button id="pause-btn" class="icon-btn">⏸</button>
+</div>
 
   <div id="judge"></div>
   <span id="score-display">0 / 0</span>
@@ -720,9 +695,9 @@ body.mobile #keyboard-top {
   
 <div id="goalOverlay" class="hidden">
   <div class="goalScene">
-    <div class="bird leftBird">🐦</div>
+    <div class="bird leftBird">🚩</div>
     <div class="tape">GOAL</div>
-    <div class="bird rightBird">🐦</div>
+    <div class="bird rightBird">🐇</div>
   </div>
 </div>
 
@@ -740,9 +715,17 @@ let paused = false;
 let pauseStart = 0;
 let pausedTime = 0;
 
+const buttons = [
+    document.getElementById("play-btn"),
+    document.getElementById("stop-btn"),
+    document.getElementById("pause-btn")
+];
+
+// イベントリスナーの設定は別途行います
 document.getElementById("play-btn").addEventListener("click", () => { startGame(); });
 document.getElementById("stop-btn").onclick = stopGame;
 document.getElementById("pause-btn").onclick = pauseGame;
+
 
 function pauseGame(){
   if (!running) return;
@@ -818,6 +801,7 @@ let totalCount = 0;
 let whiteIndex = 0;
 let splitNote = 60;
 let speed = 0.5;
+let timeSignature = 4; // デフォルトは4拍子
 let startTime = 0;
 let currentSongName = ""; // 今選んでいる曲名
 
@@ -929,6 +913,7 @@ async function loadMidiFromUrl(url, fileName){
 function loadMidi(buffer, fileName){
   chordSpawnIndex = {};
   const midi = new Midi(buffer);
+    timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
   const keySig = midi.header.keySignatures?.[0];
   const keyFix = { "D#":"Eb", "Eb":"Eb", "C#":"Db", "Db":"Db", "F#":"Gb", "Gb":"Gb", "G#":"Ab", "Ab":"Ab", "A#":"Bb", "Bb":"Bb" };
   window.currentKey = keyFix[keySig?.key] || "C";
@@ -1034,6 +1019,32 @@ function stopGame(){
   paintKeyboard();
 }
 
+// 10秒戻るボタンのイベント設定
+document.getElementById("rewind-btn").onclick = rewindGame;
+
+function rewindGame() {
+  if (!running) return;
+
+  const rewindSeconds = 10;
+  const rewindAmount = rewindSeconds * 1000;
+
+  // 1. 経過時間を戻す
+  pausedTime = Math.max(0, pausedTime - rewindAmount);
+
+  // 2. 現在の音楽時間(ゲーム内時間)を計算
+  const currentTime = (performance.now() - startTime - pausedTime) / 1000 - 3;
+  
+  // 3. ノーツのインデックスを巻き戻った時間に合わせて再設定
+  // 画面上のノーツが重複しないよう、一度古いものをクリアします
+  active.forEach(n => n.el?.remove());
+  active = [];
+  
+  // 指定時間以前のノーツを通過済みとみなすためインデックスを検索
+  index = notes.findIndex(n => n.time > currentTime);
+  if (index === -1) index = notes.length;
+}
+
+
 function noteToSolfege(noteName){
     const pitch = noteName.replace(/[0-9]/g, "");
     const normalize = {
@@ -1075,43 +1086,24 @@ function spawn(n){
   let color = n.hand === "left" ? (isBlack ? "#1f4f7a" : "#4aa3ff") : (isBlack ? "#7a1f1f" : "#ff4a4a");
   el.style.background = color;
 
-  const text = document.createElement("div");
-  text.className = "note-text";
-  text.textContent = noteToSolfege(n.note);
-  el.appendChild(text);
+const text = document.createElement("div");
+const solfege = noteToSolfege(n.note);
+text.className = "note-text"; 
+text.textContent = solfege;
 
-  el.style.top = (keyTop.offsetTop + (isBlack ? 35 : 70)) + "px";
+// 💡 「ファ」以外ならクラスを追加してスタイルを変える
+if (solfege !== "ファ" && solfege !== "ファ♯") {
+    text.classList.add("large-text");
+}
+el.appendChild(text);
+
+  el.style.top = (keyTop.offsetTop + (isBlack ? 25 : 50)) + "px";
   el.style.left = (keyTop.offsetLeft + keyTop.offsetWidth / 2 - 15) + "px";
   document.getElementById("notes-layer").appendChild(el);
-
-  const idx = notes.indexOf(n);
-  let next = notes.slice(idx + 1).find(x => x.hand === n.hand);
-  if(next && next.note === n.note && next.time - n.time < 0.3) return;
-
-  if(next){
-    const nextKey = document.querySelector(`#keyboard-top [data-note="${next.note}"]`);
-    if(nextKey){
-      const x1 = keyTop.offsetLeft + keyTop.offsetWidth / 2;
-      const y1 = keyTop.offsetTop + (isBlack ? 35 : 80);
-      const x2 = nextKey.offsetLeft + nextKey.offsetWidth / 2;
-      const y2 = nextKey.offsetTop + (nextKey.classList.contains("black") ? 35 : 70);
-      const dx = x2 - x1; const dy = y2 - y1;
-      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-      const beak = document.createElement("div");
-      beak.style.position = "absolute"; beak.style.pointerEvents = "none"; beak.style.zIndex = "25";
-      beak.style.width = "0"; beak.style.height = "0";
-      beak.style.borderTop = "8px solid transparent"; beak.style.borderBottom = "8px solid transparent";
-      beak.style.borderRight = n.hand === "left" ? "5px solid rgba(74,163,255,0.7)" : "5px solid rgba(255,74,74,0.7)";
-      beak.style.left = (x1 - 12) + "px"; beak.style.top  = (y1 - 8) + "px";
-      beak.style.transformOrigin = "right center";
-      beak.style.transform = `rotate(${angle}deg)`;
-      document.getElementById("notes-layer").appendChild(beak);
-
-      setTimeout(() => { beak.style.transition = "opacity 0.15s"; beak.style.opacity = "0"; }, 80);
-      setTimeout(() => { beak.remove(); }, 250);
-    }
-  }
+// 💡 追加：生成した瞬間にクラスを付けてフェードインさせる
+  requestAnimationFrame(() => {
+    el.classList.add("note-active");
+  });
 
   active.push({
     el, note: n.note, keyTop, hit: n.time, hand: n.hand, chordId: n.chordId, duration: n.duration,
@@ -1138,7 +1130,7 @@ function loop() {
   const secondsPerBeat = 60 / currentBpm;
   const currentBeatIndex = Math.floor(gameTime / secondsPerBeat);
 
-  if (currentBeatIndex % 4 === 0 && gameTime > 0.05) {
+if (currentBeatIndex % timeSignature === 0 && gameTime > 0.05) {
     const beatProgress = gameTime % secondsPerBeat;
     if (beatProgress < 0.05 && !window.hasFlashedThisBeat) {
       const bodyEl = document.body;
@@ -1163,9 +1155,9 @@ function loop() {
     // --- ノーツの位置更新 ---
     const isBlack = n.keyTop.classList.contains("black");
     if (isBlack) {
-      n.el.style.top = (n.keyTop.offsetTop + 35) + "px";
+      n.el.style.top = (n.keyTop.offsetTop + 25) + "px";
     } else {
-      n.el.style.top = (n.keyTop.offsetTop + 80 - 35) + "px";
+      n.el.style.top = (n.keyTop.offsetTop + 20) + "px";
     }
 
     // --- 1. 予兆（pre-hit）の判定：0.2秒前から光り始める ---
@@ -1185,18 +1177,20 @@ function loop() {
       n.guideShown = true;
     }
 
-    // --- 3. 一括削除：音符終了（hit + duration）時に予兆もガイドも全て消す ---
-    if (n.guideShown && !n.guideRemoved && gameTime >= n.hit + n.duration) {
-      n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
-      n.guideRemoved = true;
-    }
+const stayTime = Math.max(n.duration || 0.15, 0.15);
+// loop関数内のミス判定・削除ブロックを修正
+if (!n.missed && gameTime - n.hit > stayTime) {
+    n.missed = true;
+    n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
 
-    // --- ミス判定・削除 ---
-    const stayTime = Math.max(n.duration || 0.15, 0.15);
-    if (!n.missed && gameTime - n.hit > stayTime) {
-      n.missed = true;
-      n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
-      n.el?.remove();
+// 💡 削除の代わりにクラスを外してフェードアウトさせる
+    n.el.classList.remove("note-active"); 
+    
+    // 0.2秒（CSSのtransition時間）待ってから要素を削除
+    setTimeout(() => {
+        n.el?.remove();
+    }, 200);
+
       active = active.filter(x => x !== n);
       return;
     }
@@ -1256,6 +1250,8 @@ function loop() {
 function success(best) {
   if (best.done) return; 
   best.done = true;
+
+  best.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
   const handId = best.hand === "left" ? "leftHand" : "rightHand";
   const handEl = document.getElementById(handId);
   if (handEl) {
@@ -1305,12 +1301,13 @@ function hitNearest(){
 /* ================= ⭐ 改定：TAP用HIT処理 ================= */
 function hit(note){
   // ⭐ 下の鍵盤へのクラス付与になっていた箇所を「keyboard-top」へ完全移行
+  /*
   const key = document.querySelector(`#keyboard-top [data-note="${note}"]`);
   if (key) {
     key.classList.add("hit");
     setTimeout(() => key.classList.remove("hit"), 140);
   }
-
+*/
   const t = getTime();
   const JUDGE_WINDOW = 0.6;
   let best = null;
@@ -1358,9 +1355,15 @@ document.getElementById("speed-slider").addEventListener("input", (e) => {
 function setSpeed(mode) {}
 
 function showGoal() {
-  const el = document.getElementById("hitCount");
-  if (el) el.textContent = hitCount;
-  setTimeout(() => { if (el) el.style.display = "none"; }, 2500);
+    const overlay = document.getElementById("goalOverlay");
+    if (overlay) {
+        overlay.classList.add("goal-visible"); // CSSで定義した flex を付与
+    }
+    
+    // ゴール演出を数秒後に消す処理（必要であれば）
+    setTimeout(() => {
+        if (overlay) overlay.classList.remove("goal-visible");
+    }, 5000); // 5秒後に消す
 }
 
 function loadSong(fileName){
