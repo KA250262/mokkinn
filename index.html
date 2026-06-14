@@ -637,15 +637,17 @@ body.mobile #keyboard-top {
 .goal-visible {
     display: flex !important;
 }
-/* 中央の線や枠を強制的に消す */
-.combo-line, 
-.chord-surround, 
-.chord-surround-left, 
-.chord-surround-right, 
+
+/* 画面の枠や線を強制的に消す */
+#gameArea, #lineLayer, .chord-surround {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* もしこれでも残る場合は以下も追加 */
 #lineLayer {
     display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
 }
 
 </style>
@@ -669,7 +671,7 @@ body.mobile #keyboard-top {
 
 <img id="rightHand" class="piano-hand">
 <img id="leftHand" class="piano-hand">
-``<div id="lineLayer"></div>``
+
 
 <div id="ui">
   <div class="group">
@@ -718,14 +720,15 @@ let pausedTime = 0;
 const buttons = [
     document.getElementById("play-btn"),
     document.getElementById("stop-btn"),
-    document.getElementById("pause-btn")
+    document.getElementById("pause-btn"),
+    document.getElementById("rewind-btn")
 ];
 
 // イベントリスナーの設定は別途行います
 document.getElementById("play-btn").addEventListener("click", () => { startGame(); });
 document.getElementById("stop-btn").onclick = stopGame;
 document.getElementById("pause-btn").onclick = pauseGame;
-
+document.getElementById("rewind-btn").onclick = rewindGame;
 
 function pauseGame(){
   if (!running) return;
@@ -1019,30 +1022,32 @@ function stopGame(){
   paintKeyboard();
 }
 
-// 10秒戻るボタンのイベント設定
-document.getElementById("rewind-btn").onclick = rewindGame;
-
 function rewindGame() {
-  if (!running) return;
+    if (!running) return;
 
-  const rewindSeconds = 10;
-  const rewindAmount = rewindSeconds * 1000;
+    const rewindSeconds = 3; // ← ここは自由に変えてOK
 
-  // 1. 経過時間を戻す
-  pausedTime = Math.max(0, pausedTime - rewindAmount);
+    const currentMusicTime = getTime();
+    const targetTime = Math.max(0, currentMusicTime - rewindSeconds);
 
-  // 2. 現在の音楽時間(ゲーム内時間)を計算
-  const currentTime = (performance.now() - startTime - pausedTime) / 1000 - 3;
-  
-  // 3. ノーツのインデックスを巻き戻った時間に合わせて再設定
-  // 画面上のノーツが重複しないよう、一度古いものをクリアします
-  active.forEach(n => n.el?.remove());
-  active = [];
-  
-  // 指定時間以前のノーツを通過済みとみなすためインデックスを検索
-  index = notes.findIndex(n => n.time > currentTime);
-  if (index === -1) index = notes.length;
+    // ★ speed を二重にかけない
+    startTime = performance.now() - (targetTime + 3) * 1000 - pausedTime;
+
+    // ノーツ削除
+    active.forEach(n => n.el?.remove());
+    active = [];
+
+    // ★ speed を二重にかけない
+    index = notes.findIndex(n => n.time > targetTime);
+    if (index === -1) index = notes.length;
+
+    // ガイド類リセット
+    paintKeyboard();
+    document.querySelectorAll(".guide-left, .guide-right, .pre-hit").forEach(el => {
+        el.classList.remove("guide-left", "guide-right", "pre-hit");
+    });
 }
+
 
 
 function noteToSolfege(noteName){
