@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<script>
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
 
@@ -669,10 +671,6 @@ body.mobile #keyboard-top {
 <div id="leftBar" class="hand-bar left-bar"></div>
 <div id="rightBar" class="hand-bar right-bar"></div>
 
-<img id="rightHand" class="piano-hand">
-<img id="leftHand" class="piano-hand">
-
-
 <div id="ui">
   <div class="group">
     <label for="speed-slider">速度:</label>
@@ -704,6 +702,51 @@ body.mobile #keyboard-top {
 </div>
 
 <script>
+
+// window.synth の定義部分を以下のように書き換えてください
+window.synth = new Tone.Sampler({
+  urls: {
+  C3: "C3.wav",
+  D3: "D3.wav",
+  E3: "E3.wav",
+  F3: "F3.wav",
+  G3: "G3.wav",
+  A3: "A3.wav",
+  B3: "B3.wav",
+  C4: "C4.wav",
+  D4: "D4.wav",
+  E4: "E4.wav",
+  F4: "F4.wav",
+  G4: "G4.wav",
+  A4: "A4.wav",
+  B4: "B4.wav",
+  C5: "C5.wav"
+},
+  baseUrl: "./samples/",
+  maxPolyphony: 32, // ←これ追加
+  onload: () => {
+    console.log("音源ロード完了");
+  }
+}).toDestination();
+
+
+window.synth.volume.value = 0;
+
+// ★ここに置く（Sampler 初期化のすぐ下）
+window.synth.context.on('statechange', () => {
+  console.log("AudioContext state:", window.synth.context.state);
+});
+
+
+// 音源読み込みの成否をチェック
+Tone.loaded().then(() => {
+    console.log("すべてのサンプルがロードされました");
+}).catch((e) => {
+    console.error("ロード中にエラー発生:", e);
+});
+
+
+let lastPlayTime = 0;
 let prevRMS = 0;
 let baseline = 0;
 let prevSpectrum = [];
@@ -716,85 +759,6 @@ let running = false;
 let paused = false;
 let pauseStart = 0;
 let pausedTime = 0;
-
-const buttons = [
-    document.getElementById("play-btn"),
-    document.getElementById("stop-btn"),
-    document.getElementById("pause-btn"),
-    document.getElementById("rewind-btn")
-];
-
-// イベントリスナーの設定は別途行います
-document.getElementById("play-btn").addEventListener("click", () => { startGame(); });
-document.getElementById("stop-btn").onclick = stopGame;
-document.getElementById("pause-btn").onclick = pauseGame;
-document.getElementById("rewind-btn").onclick = rewindGame;
-
-function pauseGame(){
-  if (!running) return;
-  if (!paused){
-    paused = true;
-    pauseStart = performance.now();
-  } else {
-    paused = false;
-    pausedTime += performance.now() - pauseStart;
-    requestAnimationFrame(loop);
-  }
-}
-
-async function startMic() {
-    try {
-        if (!navigator.mediaDevices?.getUserMedia) return false;
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-        });
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyzer = Meyda.createMeydaAnalyzer({
-            audioContext: audioContext,
-            source: source,
-            bufferSize: 512,
-            featureExtractors: ["rms", "amplitudeSpectrum", "spectralCentroid"],
-            callback: (features) => {
-                const currentRMS = features.rms || 0;
-                const spectrum = features.amplitudeSpectrum || [];
-                const centroid = features.spectralCentroid || 0;
-                latestRMS = currentRMS;
-                latestSpectrum = spectrum;
-                baseline = baseline * 0.95 + currentRMS * 0.05;
-                let flux = 0;
-                if (prevSpectrum.length && prevSpectrum.length === spectrum.length) {
-                    for (let i = 0; i < spectrum.length; i++) {
-                        flux += Math.abs(spectrum[i] - prevSpectrum[i]);
-                    }
-                }
-                const delta = currentRMS - prevRMS;
-                const now = performance.now();
-
-                const debug = document.getElementById("debug");
-                if (debug) {
-                    debug.textContent = "RMS : " + currentRMS.toFixed(3) + " / base : " + baseline.toFixed(3);
-                }
-
-                const attackMode = currentRMS > 0.015 && currentRMS > baseline * 2 && (flux > 0.15 || delta > baseline * 1.2);
-                if (attackMode && now - lastHitDetect > 300) {
-                    hitNearest();
-                    lastHitDetect = now;
-                }
-                prevRMS = currentRMS;
-                prevSpectrum = [...spectrum];
-            }
-        });
-        analyzer.start();
-        analyser = analyzer;
-        return true;
-    } catch (e) { return false; }
-}
-
-let mic;
-let analyser;
-const synth = new Tone.PolySynth(Tone.Synth, { oscillator:{ type:"triangle" } }).toDestination();
-
 let notes = [];
 let active = [];
 let index = 0;
@@ -803,14 +767,50 @@ let hitCount = 0;
 let totalCount = 0;
 let whiteIndex = 0;
 let splitNote = 60;
-let speed = 0.5;
+let speed = 1.0;
 let timeSignature = 4; // デフォルトは4拍子
 let startTime = 0;
 let currentSongName = ""; // 今選んでいる曲名
 
+
+function play(note){
+  console.log("play実行", note);
+
+  try {
+    window.synth.triggerAttackRelease(note, 0.6, Tone.now());
+  } catch (e) {
+    console.error("play error:", e);
+  }
+}
+window.synth.volume.rampTo(-6, 0.1);
+setTimeout(() => {
+  window.synth.volume.rampTo(0, 0.05);
+}, 80);
+const buttons = [
+    document.getElementById("play-btn"),
+    document.getElementById("stop-btn"),
+    document.getElementById("pause-btn"),
+    document.getElementById("rewind-btn")
+];
+
+document.getElementById("play-btn").addEventListener("click", async () => {
+  await Tone.start();
+await Tone.loaded();
+
+  if (!window.synth) return;
+
+  console.log("synth loaded:", window.synth.loaded);
+
+  startGame();
+});
+
+document.getElementById("stop-btn").onclick = stopGame;
+document.getElementById("pause-btn").onclick = pauseGame;
+document.getElementById("rewind-btn").onclick = rewindGame;
+
 function getTime(){
-  const rawTime = (performance.now() - startTime - pausedTime) / 1000 - 3;
-  return rawTime * speed;
+  const rawTime = (performance.now() - startTime - pausedTime) / 1000;
+  return rawTime * speed;  // ← speed は後で説明
 }
 
 const playButton = document.getElementById('play-btn');
@@ -830,6 +830,8 @@ const travelTime = 3.0;
 const keys = ["C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1", "B1", "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2", "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3", "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4", "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5", "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6", "C7" ];
 
 renderKeyboard("keyboard-top");
+
+
 
 function renderKeyboard(id) {
     const kb = document.getElementById(id);
@@ -889,6 +891,91 @@ function initApp() {
     renderKeyboard("keyboard-top");
     loadInitialMidi().then(() => { console.log("MIDI準備完了"); });
 }
+
+
+
+function pauseGame(){
+  if (!running) return;
+
+  const judge = document.getElementById("judge");
+
+  if (!paused){
+    paused = true;
+    pauseStart = performance.now();
+
+    // ★PAUSE表示
+    judge.style.opacity = "1";
+    judge.textContent = "PAUSE";
+
+  } else {
+    paused = false;
+    pausedTime += performance.now() - pauseStart;
+
+    // ★PAUSE表示を消す
+    judge.textContent = "";
+    judge.style.opacity = "0";
+
+    requestAnimationFrame(loop);
+  }
+  document.querySelectorAll(".guide-left, .guide-right, .pre-hit").forEach(el => {
+  if (!active.some(n => n.keyTop === el)) {
+    el.classList.remove("guide-left", "guide-right", "pre-hit");
+  }
+});
+}
+
+async function startMic() {
+    try {
+        if (!navigator.mediaDevices?.getUserMedia) return false;
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyzer = Meyda.createMeydaAnalyzer({
+            audioContext: audioContext,
+            source: source,
+            bufferSize: 512,
+            featureExtractors: ["rms", "amplitudeSpectrum", "spectralCentroid"],
+            callback: (features) => {
+                const currentRMS = features.rms || 0;
+                const spectrum = features.amplitudeSpectrum || [];
+                const centroid = features.spectralCentroid || 0;
+                latestRMS = currentRMS;
+                latestSpectrum = spectrum;
+                baseline = baseline * 0.95 + currentRMS * 0.05;
+                let flux = 0;
+                if (prevSpectrum.length && prevSpectrum.length === spectrum.length) {
+                    for (let i = 0; i < spectrum.length; i++) {
+                        flux += Math.abs(spectrum[i] - prevSpectrum[i]);
+                    }
+                }
+                const delta = currentRMS - prevRMS;
+                const now = performance.now();
+
+                const debug = document.getElementById("debug");
+                if (debug) {
+                    debug.textContent = "RMS : " + currentRMS.toFixed(3) + " / base : " + baseline.toFixed(3);
+                }
+
+                const attackMode = currentRMS > 0.015 && currentRMS > baseline * 2 && (flux > 0.15 || delta > baseline * 1.2);
+                if (attackMode && now - lastHitDetect > 300) {
+                    hitNearest();
+                    lastHitDetect = now;
+                }
+                prevRMS = currentRMS;
+                prevSpectrum = [...spectrum];
+            }
+        });
+        analyzer.start();
+        analyser = analyzer;
+        return true;
+    } catch (e) { return false; }
+}
+
+let mic;
+let analyser;
+
 
 function loadInitialMidi() {
     const saved = localStorage.getItem("savedMidi");
@@ -964,32 +1051,67 @@ function paintKeyboard(){
   });
 }
 
+
+
+
 async function startGame() {
+
+  // AudioContext を開始
+  try {
+    await Tone.start();
+    console.log("AudioContext 開始");
+  } catch (e) {
+    console.error("AudioContext 開始失敗:", e);
+  }
+
+  // Sampler が無い場合の保険（ほぼ不要）
+  if (!window.synth) {
+    window.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+  }
+
+  // MIDI が無い場合は開始しない
   if (!notes || notes.length === 0) return;
+
+  // 状態リセット
   running = false;
   paused = false;
+
   active.forEach(n => n.el?.remove());
   active = [];
+
   score = 0;
   combo = 0;
   hitCount = 0;
   totalCount = notes.length;
   update();
 
-  try { await Tone.start(); } catch (e) {}
-  if (!analyser) { startMic().catch(e => {}); }
+  // マイク開始
+  if (!analyser) {
+    /*
+    try {
+      await startMic();
+    } catch (e) {}
+       */
+  }
 
+  // モバイル判定
   if (window.innerWidth <= 768) {
     document.body.classList.add("mobile");
   } else {
     document.body.classList.remove("mobile");
   }
+
+  // 時間リセット
   index = 0;
   pausedTime = 0;
   startTime = performance.now();
+
+  // ゲーム開始
   running = true;
   countdown(3);
 }
+
+
 
 function countdown(n){
   const judge = document.getElementById("judge");
@@ -1011,15 +1133,47 @@ function countdown(n){
 function stopGame(){
   running = false;
   paused = false;
+
   active.forEach(n => n.el?.remove());
   active = [];
-  document.querySelectorAll(".guide-left, .guide-right, .hit").forEach(el => {
-    el.classList.remove("guide-left", "guide-right", "hit");
+
+  document.querySelectorAll(".guide-left, .guide-right, .hit, .pre-hit").forEach(el => {
+    el.classList.remove(
+      "guide-left",
+      "guide-right",
+      "hit",
+      "pre-hit",
+      "note-active"
+    );
   });
-  const scoreDisplay = document.getElementById("score-display");
-  if (scoreDisplay) scoreDisplay.textContent = "0 / 0"; 
-  document.querySelectorAll(".combo-line, .chord-surround").forEach(e=>e.remove());
+
+  // ★黒鍵の「残り色」対策（超重要）
+  document.querySelectorAll(".black, .key").forEach(el => {
+    el.style.background = "";
+    el.style.boxShadow = "";
+  });
+
   paintKeyboard();
+
+  const scoreDisplay = document.getElementById("score-display");
+  if (scoreDisplay) scoreDisplay.textContent = "0 / 0";
+
+  document.querySelectorAll(".combo-line, .chord-surround").forEach(e=>e.remove());
+resetVisuals();
+
+}
+
+function resetVisuals(){
+  document.querySelectorAll(".key, .black").forEach(k => {
+    k.classList.remove(
+      "guide-left",
+      "guide-right",
+      "hit",
+      "pre-hit"
+    );
+    k.style.background = "";
+    k.style.boxShadow = "";
+  });
 }
 
 function rewindGame() {
@@ -1149,10 +1303,17 @@ if (currentBeatIndex % timeSignature === 0 && gameTime > 0.05) {
     window.hasFlashedThisBeat = false;
   }
 
-  while (index < notes.length && notes[index].time <= gameTime) {
-    spawn(notes[index]);
-    index++;
-  }
+while (index < notes.length && notes[index].time <= gameTime) {
+  const n = notes[index];
+
+  console.log("再生", n.note);
+
+  play(n.note);   // ←これ
+
+  spawn(n);
+
+  index++;
+}
 
   active.forEach(n => {
     if (n.removed) return;
@@ -1414,6 +1575,9 @@ function toggleSongMenu() {
   const menu = document.getElementById("songMenu");
   menu.style.display = (menu.style.display === "block") ? "none" : "block";
 }
+
+
+
 </script>
 </body>
 </html>
