@@ -12,7 +12,29 @@
 <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
 
 <style>
+#rotateMessage{
+  display:none;
+}
 
+@media (orientation: portrait) {
+  #rotateMessage{
+    display:flex;
+    position:fixed;
+    inset:0;
+    background:black;
+    color:white;
+    font-size:32px;
+    z-index:999999;
+    justify-content:center;
+    align-items:center;
+  }
+
+  #gameArea,
+  #ui,
+  #songListRow{
+    display:none;
+  }
+}
 html {
   transform-origin: top left;
 }
@@ -655,6 +677,9 @@ body.mobile #keyboard-top {
 </style>
 </head>
 <body>
+<div id="rotateMessage">
+  📱 横向きにして遊んでください
+</div> 
 <div data-midi="60"></div>
 
 <div id="gameArea">
