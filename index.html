@@ -92,7 +92,7 @@ body.mobile #keyboard-top {
 
 #keyboard-top {
   position: relative;
-  top: 40px;
+  top: 45px;
   left: 0;
   width: 100%;
   height: 240px; /* 💡2行がきれいに収まるように高さを広げました */
@@ -212,9 +212,10 @@ body.mobile #keyboard-top {
     overflow-x: auto;
     white-space: nowrap;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.1); /* 見やすくするための背景 */
     margin-top: 10px;
     box-sizing: border-box;
+      background: transparent;
+  box-shadow: none;
 }
 
 .songBtn {
@@ -685,7 +686,6 @@ body.mobile #keyboard-top {
     <div class="white-keys"></div>
     <div class="black-keys"></div>
   </div> 
-</div> <div id="songListRow"></div>
 </div>
 
 <div id="ui">
@@ -705,6 +705,7 @@ body.mobile #keyboard-top {
   <div id="judge"></div>
   <span id="score-display">0 / 0</span>
   <button onclick="startMic()" class="icon-btn">🎤</button>
+  <div id="songListRow"></div>
 </div>
 
 
@@ -731,8 +732,7 @@ if (isLine) {
     ">
       <h2>おねがい</h2>
       <p>
-      「⋯」を押して<br>
-      「デフォルトのブラウザで開く」<br>
+      「⋯」を押して<br>「デフォルトのブラウザで開く」<br>
       をえらんでね！
       </p>
     </div>
@@ -1516,8 +1516,7 @@ function loadSong(fileName){
 const songList = [
     { file: "55.mid", title: "バイエル 55番" },
     { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
-    { file: "3B_15_マリオネットのダンス.mid", title: "サウンドツリー マリオネット" },
-    { file: "コナン.mid", title: "コナン" },
+    { file: "コナン.mid", title: "コナンメインテーマ" },
     { file: "カントリーロード.mid", title: "カントリーロード" },
     { file: "Turkishi.mid", title: "トルコ行進曲" },
     { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
