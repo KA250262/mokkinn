@@ -48,12 +48,10 @@ body{
   font-family:sans-serif;
   overflow:hidden;
   transition: background-color 0.05s ease, filter 0.05s ease;
-}
-
-/* 1拍目に一瞬だけ付与されるクラス */
-body.beat-flash {
-  background-color: #fff176;
-  filter: brightness(1.15) ;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
 }
 
 body.mobile {
@@ -76,6 +74,7 @@ body.mobile #keyboard-top {
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
+  flex: 1;
 }
 
 #mascot{
@@ -93,11 +92,11 @@ body.mobile #keyboard-top {
 
 #keyboard-top {
   position: relative;
-  margin-top: 40px;
-  top: 0;
+  top: 40px;
   left: 0;
   width: 100%;
   height: 240px; /* 💡2行がきれいに収まるように高さを広げました */
+  flex-shrink: 0;
   z-index: 100;
 }
 
@@ -108,9 +107,9 @@ body.mobile #keyboard-top {
 /* 【2行目・手前】：すべての白鍵を一段下にきっぱり落とす */
 #keyboard-top .key {
     position: absolute;
-    top: 95px !important;
-    width: 28px;
-    height: 88px !important;
+    top: 75px !important;
+    width: 25px;
+    height: 75px !important;
     background: #fffae8;
     border: 1px solid #333;
     border-radius: 2px 2px 6px 6px;
@@ -132,8 +131,8 @@ body.mobile #keyboard-top {
 #keyboard-top .black {
     position: absolute;
     top: 35px !important;
-    width: 26px;
-    height: 75px !important;
+    width: 23px;
+    height: 60px !important;
     background: #222;
     border: 2px solid #fffae8;
     border-radius: 5px 5px 4px 4px;
@@ -428,17 +427,6 @@ body.mobile #keyboard-top {
     vertical-align: middle;
 }
 
-.hand-bar{
-  position:absolute;
-  height:20px;
-  border-radius:10px;
-  pointer-events:none;
-  z-index:25;
-  opacity:1 !important;
-  border:2px solid white;
-  transition: left 0.08s ease-out, top 0.08s ease-out, opacity 0.1s linear;
-}
-
 .icon-btn {
   background: #ff7ac8;
   color: white;
@@ -463,12 +451,6 @@ body.mobile #keyboard-top {
 .icon-btn:active {
   transform: scale(0.95);
 }
-
-
-
-
-.left-bar{ background:#7fdfff; z-index: 50; }
-.right-bar{ background:#ff9ed6; z-index: 50; }
 
 @keyframes comboBounce {
   0%{ transform:scale(1); }
@@ -705,9 +687,6 @@ body.mobile #keyboard-top {
   </div> 
 </div> <div id="songListRow"></div>
 </div>
-
-<div id="leftBar" class="hand-bar left-bar"></div>
-<div id="rightBar" class="hand-bar right-bar"></div>
 
 <div id="ui">
   <div class="group">
@@ -1330,12 +1309,6 @@ el.appendChild(text);
   });
 }
 
-const leftBar = document.getElementById("leftBar");
-const rightBar = document.getElementById("rightBar");
-const BAR_WIDTH = 200;
-leftBar.style.width = BAR_WIDTH + "px";
-rightBar.style.width = BAR_WIDTH + "px";
-
 let last = performance.now();
 
 
@@ -1348,20 +1321,6 @@ function loop() {
   const currentBpm = typeof bpm !== 'undefined' ? bpm : 120;
   const secondsPerBeat = 60 / currentBpm;
   const currentBeatIndex = Math.floor(gameTime / secondsPerBeat);
-
-if (currentBeatIndex % timeSignature === 0 && gameTime > 0.05) {
-    const beatProgress = gameTime % secondsPerBeat;
-    if (beatProgress < 0.05 && !window.hasFlashedThisBeat) {
-      const bodyEl = document.body;
-      bodyEl.classList.add('beat-flash');
-      window.hasFlashedThisBeat = true;
-      setTimeout(() => { bodyEl.classList.remove('beat-flash'); }, 160);
-    }
-  }
-
-  if (gameTime % secondsPerBeat >= 0.05) {
-    window.hasFlashedThisBeat = false;
-  }
 
 while (index < notes.length && notes[index].time <= gameTime) {
   const n = notes[index];
@@ -1420,47 +1379,6 @@ if (!n.missed && gameTime - n.hit > stayTime) {
       active = active.filter(x => x !== n);
       return;
     }
-
-    // --- 手のバー表示ロジック ---
-    if (gameTime > n.hit - 0.35 && gameTime < n.hit + 0.2) {
-      const BAR_WIDTH = 280;
-      leftBar.style.width = BAR_WIDTH + "px";
-      rightBar.style.width = BAR_WIDTH + "px";
-      const handId = n.hand === "left" ? "leftHand" : "rightHand";
-      const handEl = document.getElementById(handId);
-      const gameRect = document.getElementById("gameArea").getBoundingClientRect();
-
-      let xs = [];
-      const chordNotes = active.filter(x => x.chordId === n.chordId && x.hand === n.hand && !x.missed);
-      chordNotes.forEach(cn => {
-        const r = cn.keyTop?.getBoundingClientRect();
-        if (r) {
-          const x = (r.left - gameRect.left) + r.width / 2;
-          xs.push(x);
-        }
-      });
-
-      if (xs.length === 0) return;
-      const centerX = xs.reduce((sum, v) => sum + v, 0) / xs.length;
-
-      if (handEl) {
-        handEl.style.top = "520px";
-        handEl.style.opacity = "0.4";
-        handEl.classList.add("active");
-      }
-
-      if (n.hand === "right") {
-        rightBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
-        rightBar.style.top = "480px";
-        rightBar.style.opacity = "0.7";
-        leftBar.style.opacity = "0";
-      } else if (n.hand === "left") {
-        leftBar.style.left = (centerX - BAR_WIDTH / 2) + "px";
-        leftBar.style.top = "480px";
-        leftBar.style.opacity = "0.7";
-        rightBar.style.opacity = "0";
-      }
-    }
   });
 
   if (index >= notes.length && active.length === 0) {
@@ -1478,8 +1396,7 @@ function success(best) {
   best.done = true;
 
   best.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
-  const handId = best.hand === "left" ? "leftHand" : "rightHand";
-  const handEl = document.getElementById(handId);
+
   if (handEl) {
     handEl.classList.remove("tap");
     void handEl.offsetWidth;
