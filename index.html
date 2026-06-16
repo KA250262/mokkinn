@@ -68,6 +68,7 @@ body.mobile #keyboard-top {
 
 #gameArea {
   position:relative;
+  aspect-ratio: 2 / 1; 
   width: 100%;
   height: 60dvh;
   background-image: linear-gradient(rgba(0, 77, 64, 0.7), rgba(0, 77, 64, 0.7)), url("melokoro.png");
@@ -97,7 +98,7 @@ body.mobile #keyboard-top {
   left: 0;
   width: 100%;
   height: 240px; /* 💡2行がきれいに収まるように高さを広げました */
-  z-index: 10;
+  z-index: 100;
 }
 
 /* ========================================================
@@ -241,8 +242,6 @@ body.mobile #keyboard-top {
     width: 150px; /* 伸ばしたい長さに調整 */
     font-size: 14px;
 }
-
-
 
 
 #hitCount, #score-display {
@@ -751,10 +750,9 @@ if (isLine) {
       text-align:center;
       color:black;
     ">
-      <h2>🐰 おねがい 🐰</h2>
-
+      <h2>おねがい</h2>
       <p>
-      右下の「⋯」を押して<br>
+      「⋯」を押して<br>
       「デフォルトのブラウザで開く」<br>
       をえらんでね！
       </p>
