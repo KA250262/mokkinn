@@ -49,8 +49,9 @@ body{
   overflow:hidden;
   transition: background-color 0.05s ease, filter 0.05s ease;
   display: flex;
+  box-sizing: border-box;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   margin: 0;
 }
 
@@ -75,6 +76,7 @@ body.mobile #keyboard-top {
   background-repeat: no-repeat;
   overflow: hidden;
   flex: 1;
+  min-height: 0;
 }
 
 #mascot{
@@ -165,6 +167,7 @@ body.mobile #keyboard-top {
 
 #ui {
   display: flex;
+  flex-shrink: 0;
   flex-direction: row;     /* 横並びを強制 */
   align-items: center;     /* 縦中央揃え */
   gap: 5px;            
@@ -176,7 +179,7 @@ body.mobile #keyboard-top {
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
+  z-index: 1000;
   width: 95%;              /* パーセント指定で収まりを良くする */
   white-space: nowrap;     /* 改行させない */
   overflow-x: auto;        /* はみ出た場合は横スクロール */
@@ -203,20 +206,16 @@ body.mobile #keyboard-top {
   white-space: nowrap;
 }
 
-/* 既存の #songListRow のスタイルを以下のように書き換える */
 #songListRow {
-    position: relative; /* absoluteから変更 */
-    width: 100%;
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding: 10px;
-    margin-top: 10px;
-    box-sizing: border-box;
-      background: transparent;
-  box-shadow: none;
+  display: none;
+  width: 100%;
+  padding: 10px;
+  background: rgba(255,255,255,0.9);
+  flex-wrap: wrap;
+  gap: 5px;
+  z-index: 9999;
 }
+
 
 .songBtn {
     /* 普段はコンパクトなボタン */
@@ -668,6 +667,50 @@ body.mobile #keyboard-top {
   text-align:center;
   font-size:24px;
 }
+#speed-control{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+#speed-control button{
+  width:32px;
+  height:32px;
+  padding:0;
+}
+
+#speedLabel{
+  min-width:45px;
+  text-align:center;
+}
+
+#songModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+#songModalContent {
+  width: 90%;
+  max-height: 70%;
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* 隠す用 */
+.hidden {
+  display: none;
+}
+
 
 
 </style>
@@ -679,33 +722,38 @@ body.mobile #keyboard-top {
 <div data-midi="60"></div>
 
 <div id="gameArea">
-  <img id="mascot">
 
   <div id="keyboard-top">
     <div id="notes-layer"></div>
     <div class="white-keys"></div>
     <div class="black-keys"></div>
   </div> 
-</div>
 
-<div id="ui">
-  <div class="group">
-    <label for="speed-slider">速度:</label>
-    <input type="range" id="speed-slider" min="0.1" max="0.4" step="0.05" value="0.25">
-    <span id="speedLabel">ふつう</span>
+
+  <div id="ui">
+
+    <div id="speed-control">
+      <button onclick="changeSpeed(-1)">-</button>
+      <span id="speedLabel">1.0</span>
+      <button onclick="changeSpeed(1)">+</button>
+    </div>
+  
+    <div class="group">
+      <button id="rewind-btn" class="icon-btn">⏪</button>
+      <button id="play-btn" class="icon-btn">▶</button>
+      <button id="stop-btn" class="icon-btn">■</button>
+      <button id="pause-btn" class="icon-btn">⏸</button>
+    </div> 
+    
+    <button onclick="toggleSongList()">曲リスト</button>
+    <div id="songListRow"></div>
+    <div id="judge"></div>
+     <span id="score-display">0 / 0</span>
+     <button onclick="startMic()" class="icon-btn">🎤</button>
+
+    
   </div>
-
-<div class="group">
-  <button id="rewind-btn" class="icon-btn">⏪</button>
-  <button id="play-btn" class="icon-btn">▶</button>
-  <button id="stop-btn" class="icon-btn">■</button>
-  <button id="pause-btn" class="icon-btn">⏸</button>
-</div>
-
-  <div id="judge"></div>
-  <span id="score-display">0 / 0</span>
-  <button onclick="startMic()" class="icon-btn">🎤</button>
-  <div id="songListRow"></div>
+  
 </div>
 
 
@@ -731,7 +779,6 @@ if (isLine) {
       color:black;
     ">
       <h2>おねがい</h2>
-      <p>
       「⋯」を押して<br>「デフォルトのブラウザで開く」<br>
       をえらんでね！
       </p>
@@ -816,7 +863,7 @@ function play(note){
   console.log("play実行", note);
 
   try {
-    window.synth.triggerAttackRelease(note, 0.6, Tone.now());
+    window.synth.triggerAttackRelease(note, 1.3, Tone.now());
   } catch (e) {
     console.error("play error:", e);
   }
@@ -918,6 +965,19 @@ function applyScaleDebounced() {
     }, 100);
 }
 
+const songList = [
+    { file: "55.mid", title: "バイエル 55番" },
+    { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
+    { file: "コナン.mid", title: "コナンメインテーマ" },
+    { file: "カントリーロード.mid", title: "カントリーロード" },
+    { file: "Turkishi.mid", title: "トルコ行進曲" },
+    { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
+    { file: "革命.mid", title: "ショパン 革命" }
+];
+
+
+
+
 window.addEventListener("load", () => {
     applyScale();
     initApp();
@@ -925,11 +985,7 @@ window.addEventListener("load", () => {
 window.addEventListener("resize", applyScaleDebounced);
 window.addEventListener("orientationchange", applyScaleDebounced);
 
-function initApp() {
-    initSongMenu();
-    renderKeyboard("keyboard-top");
-    loadInitialMidi().then(() => { console.log("MIDI準備完了"); });
-}
+
 
 
 
@@ -1304,7 +1360,9 @@ el.appendChild(text);
   });
 
   active.push({
-    el, note: n.note, keyTop, hit: n.time, hand: n.hand, chordId: n.chordId, duration: n.duration,
+    el, note: n.note, keyTop, 
+    hit: n.time, hand: n.hand, chordId: n.chordId, 
+    duration: n.duration,
     missed: false, guideShown: false, guideRemoved: false,preShown: false,
   });
 }
@@ -1482,7 +1540,7 @@ function update(){
     scoreDisplay.textContent = `${hitCount} / ${total}`;
   }
 }
-
+/*
 // スライダーの制御
 document.getElementById("speed-slider").addEventListener("input", (e) => {
     speed = parseFloat(e.target.value);
@@ -1493,9 +1551,20 @@ document.getElementById("speed-slider").addEventListener("input", (e) => {
     else if (speed >= 0.35) label = "はやい";
     document.getElementById("speedLabel").textContent = label;
 });
+*/
 
-// 古い setSpeed 関数は不要なので中身を空にしておくか削除してください
-function setSpeed(mode) {}
+let speedIndex = 2; // 1.0 に対応するインデックス
+const speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
+
+function setSpeed(val) {
+    speed = val;
+    document.getElementById("speedLabel").textContent = speed.toFixed(2);
+}
+
+function changeSpeed(dir) {
+    speedIndex = Math.max(0, Math.min(speedLevels.length - 1, speedIndex + dir));
+    setSpeed(speedLevels[speedIndex]);
+}
 
 function showGoal() {
     const overlay = document.getElementById("goalOverlay");
@@ -1513,43 +1582,43 @@ function loadSong(fileName){
   loadMidiFromUrl("./songs/" + fileName, fileName);
 }
 
-const songList = [
-    { file: "55.mid", title: "バイエル 55番" },
-    { file: "3A_前奏曲.mid", title: "オールインワン 前奏曲" },
-    { file: "コナン.mid", title: "コナンメインテーマ" },
-    { file: "カントリーロード.mid", title: "カントリーロード" },
-    { file: "Turkishi.mid", title: "トルコ行進曲" },
-    { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
-    { file: "革命.mid", title: "ショパン 革命" }
-];
 
 function initSongMenu() {
-    const row = document.getElementById("songListRow");
-    row.innerHTML = "";
+    const menu = document.getElementById("songListRow");
+    if (!menu) return;
     
-// initSongMenu内のボタン生成部分
-songList.forEach(song => {
-    const btn = document.createElement("button");
-    btn.className = "songBtn";
-    
-    // 普段は頭文字
-    btn.textContent = song.title.substring(0, 2);
-    
-    // 押している（ホバー）間だけフルネームに切り替え
-    btn.onmouseover = () => btn.textContent = song.title;
-    btn.onmouseout = () => btn.textContent = song.title.substring(0, 2);
-    
-    // クリック時の処理
-    btn.onclick = () => loadSong(song.file);
-    row.appendChild(btn);
-});
-}
-// ページ読み込み時に実行
-initSongMenu();
+    menu.innerHTML = "";
 
-function toggleSongMenu() {
-  const menu = document.getElementById("songMenu");
-  menu.style.display = (menu.style.display === "block") ? "none" : "block";
+    songList.forEach(song => {
+        const btn = document.createElement("button");
+        btn.className = "songBtn";
+        btn.textContent = song.title;
+
+        btn.onclick = () => {
+            loadSong(song.file);
+            menu.style.display = "none";
+        };
+
+        menu.appendChild(btn);
+    });
+}
+
+function initApp() {
+    initSongMenu();
+    renderKeyboard("keyboard-top");
+    loadInitialMidi().then(() => { console.log("MIDI準備完了"); });
+}
+
+function toggleSongList() {
+  const el = document.getElementById("songListRow");
+  if (!el) {
+      console.error("songListRow が見つかりません");
+      return;
+  }
+  // 現在のスタイルを取得して切り替え
+  const isHidden = window.getComputedStyle(el).display === "none";
+  el.style.display = isHidden ? "flex" : "none";
+  console.log("リストの表示状態を切り替えました: " + el.style.display);
 }
 
 
