@@ -108,6 +108,8 @@ body.mobile #keyboard-top {
 
 /* 【2行目・手前】：すべての白鍵を一段下にきっぱり落とす */
 #keyboard-top .key {
+    box-shadow: 0 3px 0 #d0c7a8;
+    transition: transform 0.05s ease;
     position: absolute;
     top: 75px !important;
     width: 25px;
@@ -127,10 +129,16 @@ body.mobile #keyboard-top {
     user-select: none;
     cursor: pointer;
 }
+#keyboard-top .key.hit {
+    transform: translateY(3px);
+}
+
 
 
 /* 【1行目・奥】：すべての黒鍵を一番上にぴったり固定 */
 #keyboard-top .black {
+    box-shadow: 0 3px 0 #111;
+    transition: transform 0.05s ease;
     position: absolute;
     top: 35px !important;
     width: 23px;
@@ -152,6 +160,10 @@ body.mobile #keyboard-top {
     user-select: none;
     cursor: pointer;
 }
+.black.hit {
+ transform: translateY(2px);
+}
+
 
 /* C4（まん中のド）の下に▲を表示 */
 #keyboard-top .key[data-note="C4"]::after {
@@ -248,6 +260,33 @@ body.mobile #keyboard-top {
   color: rgb(12, 46, 2);
 }
 
+
+/* 鍵盤にリングを出す */
+.now-hit {
+    animation: nowPulse 0.3s ease-out;
+}
+
+@keyframes nowPulse {
+    0% {
+        transform: scale(1);
+        box-shadow:
+          0 0 0 0 rgba(255,255,255,0.9);
+    }
+
+    50% {
+        transform: scale(1.15);
+        box-shadow:
+          0 0 20px 10px rgba(255,255,255,0.8);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow:
+          0 0 0 0 rgba(255,255,255,0);
+    }
+}
+
+
 /* ========================================================
    鍵盤ヒット・ガイド（上の鍵盤・木琴専用スタイル）
    ======================================================== */
@@ -261,58 +300,40 @@ body.mobile #keyboard-top {
     filter: none !important;        /* ぼかしを除去 */
 }
 
-/* 自動演奏時のガイド：左手（青） */
-.guide-left {
-    animation: guideLeft 0.25s ease-out forwards;
-    z-index: 25 !important;
+
+.pre-hit-right {
+    background:#ff66cc !important;
 }
 
-/* 自動演奏時のガイド：右手（赤） */
+.pre-hit-left {
+    background:#66ddff !important;
+}
+
 .guide-right {
-    animation: guideRight 0.25s ease-out forwards;
-    z-index: 25 !important;
+    box-shadow:0 0 15px #ff66cc;
 }
 
-/* 右手ガイド：影なしで色を塗りつぶして「ぷにっ」と縮む */
-@keyframes guideRight {
-    0% { 
-        transform: scaleY(1); 
-        background: #ff4db8; /* 塗りつぶし */
-    }
-    50% { 
-        transform: scaleY(0.88); 
-        background: #ff80d5; /* 縮んだ時に少し明るい色にするなど */
-    }
-    100% { 
-        transform: scaleY(1); 
-        background: #ff4db8;
-    }
+.guide-left {
+    box-shadow:0 0 15px #66ddff;
 }
 
-/* 左手ガイド：影なしで色を塗りつぶして「ぷにっ」と縮む */
-@keyframes guideLeft {
-    0% { 
-        transform: scaleY(1); 
-        background: #33cfff; /* 塗りつぶし */
+@keyframes guidePulse {
+    0% {
+        transform: scaleY(1);
     }
-    50% { 
-        transform: scaleY(0.88); 
-        background: #8ae8ff; /* 縮んだ時に少し明るい色にするなど */
+    50% {
+        transform: scaleY(0.92);
     }
-    100% { 
-        transform: scaleY(1); 
-        background: #33cfff;
+    100% {
+        transform: scaleY(1);
     }
 }
-
-
-
 /* ========================================================
    木琴鍵盤から湧き出るノーツ（音符）システム
    ======================================================== */
 
 #notes-layer {
-    position: absolute;
+    position: relative;
     left: 0;
     top: 0;
     width: 100%;
@@ -322,6 +343,10 @@ body.mobile #keyboard-top {
     pointer-events: none;
 }
 
+
+.single-note {
+    border-radius: 50%;
+}
 .note {
     position: absolute;
     width: 30px;
@@ -330,15 +355,14 @@ body.mobile #keyboard-top {
     background: radial-gradient(circle, #fff8c0, #ffd860);
     border: 1px solid rgba(255,255,255,0.9);
     will-change: transform;
-    opacity: 0;
-    transform: scale(0.8);
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out; 
+    opacity: 0.15;
+    transform: none;
+    transition: none;
     z-index: 201 !important;
 }
 
-.note-active {
-    opacity: 1;
-    transform: scale(1);
+.note.note-active {
+  opacity: 1;
 }
 
 .note-text {
@@ -360,27 +384,12 @@ body.mobile #keyboard-top {
 }
 
 .note-spawn {
-    animation: noteSpawn 0.12s ease-out;
+    animation: none;
 }
-
-@keyframes noteSpawn {
-    0% {
-        opacity: 0;
-        transform: scale(0.7);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-
-
 
 .note-hit {
     box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
     filter: brightness(1.8);
-    transition: all 0.15s ease-out;
 }
 
 .note-suck {
@@ -419,6 +428,17 @@ body.mobile #keyboard-top {
 .note-trail-left {
     background: linear-gradient(90deg, rgba(74,163,255,0.8), rgba(74,163,255,0));
 }
+
+.note-fade-out {
+  animation: quickFade 0.15s ease-out forwards;
+}
+
+@keyframes quickFade {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6); }
+}
+
+
 
 
 /* #ui 内にスライダー用のスタイルを追加 */
@@ -627,9 +647,18 @@ body.mobile #keyboard-top {
     z-index: 150 !important; /* 常に白鍵より手前に出す */
 }
 
-/* ガイド用（くっきりした光） */
-.guide-left, .guide-right {
-    z-index: 30 !important; /* 予兆より上に重ねる */
+/* 左手：水色 */
+.guide-left {
+    background: #4aa3ff !important;
+    box-shadow: 0 0 15px #4aa3ff !important;
+    opacity: 1 !important;
+}
+
+/* 右手：ピンク */
+.guide-right {
+    background: #ff4a4a !important;
+    box-shadow: 0 0 15px #ff4a4a !important;
+    opacity: 1 !important;
 }
 
 /* 選択中のボタン用のスタイル */
@@ -710,6 +739,15 @@ body.mobile #keyboard-top {
 .hidden {
   display: none;
 }
+/* 優先度を上げて、確実に光らせる */
+#keyboard-top .key.guide-left,
+#keyboard-top .key.guide-right,
+#keyboard-top .black.guide-left,
+#keyboard-top .black.guide-right {
+    background: #7CFF6B !important; 
+    box-shadow: 0 0 15px #7CFF6B !important;
+    opacity: 1 !important;
+}
 
 
 
@@ -744,7 +782,7 @@ body.mobile #keyboard-top {
       <button id="stop-btn" class="icon-btn">■</button>
       <button id="pause-btn" class="icon-btn">⏸</button>
     </div> 
-    
+
     <button onclick="toggleSongList()">曲リスト</button>
     <div id="songListRow"></div>
     <div id="judge"></div>
@@ -857,6 +895,7 @@ let speed = 1.0;
 let timeSignature = 4; // デフォルトは4拍子
 let startTime = 0;
 let currentSongName = ""; // 今選んでいる曲名
+
 
 
 function play(note){
@@ -1147,9 +1186,20 @@ function paintKeyboard(){
 }
 
 
-
-
 async function startGame() {
+
+    // 曲が選ばれていない
+    if (!notes || notes.length === 0) {
+        const judge = document.getElementById("judge");
+        judge.style.opacity = "1";
+        judge.textContent = "曲を選んでね";
+        setTimeout(() => {
+            judge.style.opacity = "0";
+            judge.textContent = "";
+        }, 1200);
+        return;
+    }
+
 
   // AudioContext を開始
   try {
@@ -1225,6 +1275,7 @@ function countdown(n){
   setTimeout(()=>{ countdown(n-1); }, 1000);
 }
 
+
 function stopGame(){
   running = false;
   paused = false;
@@ -1257,6 +1308,7 @@ function stopGame(){
 resetVisuals();
 
 }
+
 
 function resetVisuals(){
   document.querySelectorAll(".key, .black").forEach(k => {
@@ -1329,43 +1381,74 @@ function noteToSolfege(noteName){
     return kana[p] || p;
 }
 
-function spawn(n){
+
+
+
+const NOTE_EARLY = 0.3;
+
+function spawn(n) {
   const keyTop = document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
-  if(!keyTop) return;
+  if (!keyTop) return;
 
   const isBlack = keyTop.classList.contains("black");
-  const el = document.createElement("div");
-  el.className = "note note-spawn";
+const el = document.createElement("div");
+el.className = "note";
 
-  let color = n.hand === "left" ? (isBlack ? "#1f4f7a" : "#4aa3ff") : (isBlack ? "#7a1f1f" : "#ff4a4a");
+
+const sameChord = notes.filter(
+  x => x.chordId === n.chordId
+).length;
+
+if (sameChord === 1) {
+  el.classList.add("single-note");
+}
+
+  // ★修正：黒鍵か白鍵かに関わらず、右手＝ピンク、左手＝水色に統一
+  let color = n.hand === "left" ? "#4aa3ff" : "#ff4a4a";
   el.style.background = color;
 
-const text = document.createElement("div");
-const solfege = noteToSolfege(n.note);
-text.className = "note-text"; 
-text.textContent = solfege;
+  // 黒鍵でなければテキストを追加する
+  if (!isBlack) {
+    const text = document.createElement("div");
+    const solfege = noteToSolfege(n.note);
+    text.className = "note-text";
+    text.textContent = solfege;
+    if (solfege !== "ファ" && solfege !== "ファ♯") {
+      text.classList.add("large-text");
+    }
+    el.appendChild(text);
+  }
 
-// 💡 「ファ」以外ならクラスを追加してスタイルを変える
-if (solfege !== "ファ" && solfege !== "ファ♯") {
-    text.classList.add("large-text");
-}
-el.appendChild(text);
+  // 位置計算などはそのまま
+  const speedPerSec = 240;
+  const earlyOffset = NOTE_EARLY * speedPerSec;
 
-  el.style.top = (keyTop.offsetTop + (isBlack ? 25 : 50)) + "px";
+  el.style.top = (keyTop.offsetTop + (isBlack ? 25 : 60) - earlyOffset) + "px";
   el.style.left = (keyTop.offsetLeft + keyTop.offsetWidth / 2 - 15) + "px";
+
   document.getElementById("notes-layer").appendChild(el);
-// 💡 追加：生成した瞬間にクラスを付けてフェードインさせる
+
   requestAnimationFrame(() => {
     el.classList.add("note-active");
   });
 
-  active.push({
-    el, note: n.note, keyTop, 
-    hit: n.time, hand: n.hand, chordId: n.chordId, 
+
+// spawn関数内の active.push の中身を以下のように更新してください
+active.push({
+    el, 
+    note: n.note, 
+    keyTop,
+    hit: n.time, 
+    hand: n.hand, 
+    chordId: n.chordId,
     duration: n.duration,
-    missed: false, guideShown: false, guideRemoved: false,preShown: false,
-  });
+    missed: false, 
+    guideShown: false, 
+    isKeyLit: false, // ★これを追加
+    preShown: false
+});
 }
+
 
 let last = performance.now();
 
@@ -1380,64 +1463,124 @@ function loop() {
   const secondsPerBeat = 60 / currentBpm;
   const currentBeatIndex = Math.floor(gameTime / secondsPerBeat);
 
-while (index < notes.length && notes[index].time <= gameTime) {
+
+
+// --- 修正後：NOTE_EARLY分だけ早く生成する ---
+const NOTE_EARLY = 0.8; // 1秒前倒し
+const SPAWN_DELAY = 0.3;
+
+while (index < notes.length && notes[index].time <= gameTime + NOTE_EARLY) {
   const n = notes[index];
-
-  console.log("再生", n.note);
-
-  play(n.note);   // ←これ
-
-  spawn(n);
+  
+  // spawnは早く呼ぶが、音を鳴らすタイミングは本来のMIDI時刻まで待つ必要がある
+  // そのため、spawn内で「生成して画面上部に待機させる」処理を行っています
+  spawn(n); 
 
   index++;
 }
 
-  active.forEach(n => {
+// 2. 音は「本来のタイミング(gameTime)」になったら鳴らす
+// 既に再生済みのノーツを避けるために判定が必要
+notes.forEach(n => {
+    if (!n.played && gameTime >= n.time) {
+        play(n.note);
+        n.played = true; // 再生済みフラグ
+    }
+});
+
+active.forEach(n => {
     if (n.removed) return;
 
-    // --- ノーツの位置更新 ---
-    const isBlack = n.keyTop.classList.contains("black");
-    if (isBlack) {
-      n.el.style.top = (n.keyTop.offsetTop + 25) + "px";
+    const remain = n.hit - gameTime;
+
+    if (n.el.classList.contains("single-note")) {
+
+    if (remain > 0.15) {
+
+        n.el.style.opacity = 0.05;
+
     } else {
-      n.el.style.top = (n.keyTop.offsetTop + 20) + "px";
+
+        n.el.style.opacity = 1;
+
+        if (!n.el.classList.contains("rolling")) {
+            n.el.classList.add("rolling");
+        }
+
+    }
+}
+const appearTime = 1.2;
+
+// しきい値（ここを境にパッと切り替え）
+const THRESHOLD = 0.6;
+
+if (remain > THRESHOLD) {
+    n.el.style.opacity = 0.05;   // 遠いときはずっと薄い
+} else {
+    n.el.style.opacity = 1.0;    // 近づいた瞬間にパッ！
+}
+
+
+    // ノーツの位置更新
+    const isBlack = n.keyTop.classList.contains("black");
+    n.el.style.top = (n.keyTop.offsetTop + (isBlack ? 25 : 20)) + "px";
+
+    // 判定：現在鳴っているべきか？
+    const shouldBeLit = (gameTime >= n.hit && gameTime <= n.hit + n.duration + 0.1);
+
+// ★追加
+const shouldNow =
+    (gameTime >= n.hit - 0.05 &&
+     gameTime <= n.hit + 0.05);
+
+if (shouldNow && !n.nowShown) {
+    n.keyTop?.classList.add("now-hit");
+
+    setTimeout(() => {
+        n.keyTop?.classList.remove("now-hit");
+    }, 300);
+
+    n.nowShown = true;
+}
+
+
+
+    // 状態が変化したときだけクラス操作
+    if (shouldBeLit && !n.isKeyLit) {
+        // ここで手に応じてクラスを使い分け
+        const colorClass = (n.hand === "left") ? "guide-left" : "guide-right";
+        n.keyTop?.classList.add(colorClass);
+        n.isKeyLit = true;
+    } else if (!shouldBeLit && n.isKeyLit) {
+        // 消すときは両方のクラスを対象に外す
+        n.keyTop?.classList.remove("guide-left", "guide-right");
+        n.isKeyLit = false;
     }
 
-    // --- 1. 予兆（pre-hit）の判定：0.2秒前から光り始める ---
-    if (!n.preShown && gameTime >= n.hit - 0.2) {
-      n.keyTop?.classList.add("pre-hit");
-      n.preShown = true;
-    }
-
-    // --- 2. ガイド発光の判定：0.15秒前から光る（くっきりした光） ---
-    if (!n.guideShown && gameTime >= n.hit - 0.15) {
-      n.el.classList.add("note-active");
-      if (n.hand === "left") {
-        n.keyTop?.classList.add("guide-left");
-      } else {
-        n.keyTop?.classList.add("guide-right");
-      }
-      n.guideShown = true;
-    }
-
-const stayTime = Math.max(n.duration || 0.15, 0.15);
-// loop関数内のミス判定・削除ブロックを修正
+    // --- ミス判定・削除処理 ---
+  const stayTime = 0; // ここを小さく（例：0.2秒程度）にするか、固定値に調整
 if (!n.missed && gameTime - n.hit > stayTime) {
     n.missed = true;
-    n.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
 
-// 💡 削除の代わりにクラスを外してフェードアウトさせる
-    n.el.classList.remove("note-active"); 
-    
-    // 0.2秒（CSSのtransition時間）待ってから要素を削除
+    n.keyTop?.classList.remove(
+      "pre-hit-left",
+      "pre-hit-right",
+      "guide-left",
+      "guide-right",
+      "hit"
+    );
+
+    n.el.classList.add("note-fade-out");
+
     setTimeout(() => {
         n.el?.remove();
-    }, 200);
+    }, 30);
 
-      active = active.filter(x => x !== n);
-      return;
-    }
+    active = active.filter(x => x !== n);
+    return;
+}
   });
+
 
   if (index >= notes.length && active.length === 0) {
     running = false;
@@ -1453,7 +1596,12 @@ function success(best) {
   if (best.done) return; 
   best.done = true;
 
-  best.keyTop?.classList.remove("pre-hit", "guide-left", "guide-right");
+  best.keyTop?.classList.remove(
+  "pre-hit-left",
+  "pre-hit-right",
+  "guide-left",
+  "guide-right"
+);
 
   if (handEl) {
     handEl.classList.remove("tap");
@@ -1490,10 +1638,11 @@ function hitNearest(){
 
   const best = candidates[0];
   active.filter(n => n.chordId === best.chordId && n.hand === best.hand).forEach(n => {
-      // ⭐ 改定：マイクヒット時も上の鍵盤をピカッと輝かせる
+      // 鍵盤が光る
       if (n.keyTop) {
           n.keyTop.classList.add("hit");
-          setTimeout(() => n.keyTop.classList.remove("hit"), 140);
+          // ★ここで必ず外すようにする（万が一の保険）
+          setTimeout(() => n.keyTop?.classList.remove("hit"), 200); 
       }
       success(n);
   });
@@ -1606,7 +1755,6 @@ function initSongMenu() {
 function initApp() {
     initSongMenu();
     renderKeyboard("keyboard-top");
-    loadInitialMidi().then(() => { console.log("MIDI準備完了"); });
 }
 
 function toggleSongList() {
