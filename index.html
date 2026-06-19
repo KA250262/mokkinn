@@ -201,17 +201,14 @@ body.mobile #keyboard-top {
   display: flex;
   align-items: center;     /* 縦中央揃え */
   gap: 5px;
-
+  margin-top:5px;
   width:auto;          /* ←追加 */
   max-width:none;      /* ←追加 */
 
   padding: 4px 8px; 
-  position: absolute;
+  position: static; 
 
-  top: 10px;
-  left: 50%;
-
-  transform: translateX(-50%);
+  transform: none;
 
   flex-shrink: 0;
   flex-direction: row;     /* 横並びを強制 */
@@ -230,8 +227,11 @@ body.mobile #keyboard-top {
 
 }
 
-#songSelector {
-  width: 180px;
+#songSelector{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:2000;
 }
 
 /* スマホの時だけスライダーを少し小さくする */
@@ -260,17 +260,32 @@ body.mobile #keyboard-top {
     flex-direction: column;
     position: absolute;
     top: 55px;
-    left: 320px;
+    left: 10px;
     width: fit-content;
     min-width: 0;
-
+    z-index:2000;
     padding: 8px;
     gap: 6px;
 
     background: rgba(255,255,255,0.9);
     border-radius: 12px;
 }
+@media (max-width:768px){
 
+  #ui{
+    transform: scale(0.9);
+  }
+
+#songSelector{
+  width:180px;
+}
+
+#songListRow{
+  top:55px;
+  left:10px;
+}
+
+}
 
 .songBtn {
     width: 160px;
@@ -842,6 +857,18 @@ animation: spawnNote 0.2s ease-out forwards;
     }
 }
 
+#keyboard-wrapper{
+  position:absolute;
+  left:50%;
+  top:60px;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
 </style>
 </head>
 <body>
@@ -852,15 +879,21 @@ animation: spawnNote 0.2s ease-out forwards;
 
 <div id="gameArea">
 
+   <button id="songSelector" onclick="toggleSongList()">
+    🎵 曲を選ぶ ▼
+   </button>
+
+   <div id="songListRow"></div>
+   
   <div id="keyboard-wrapper">
     <div id="keyboard-top">
       <div id="notes-layer"></div>
       <div class="white-keys"></div>
       <div class="black-keys"></div>
     </div>
-  </div>
 
-  <div id="ui">
+
+   <div id="ui">
 
     <div id="speed-control">
      <button onclick="changeSpeed(-1)">-</button>
@@ -877,13 +910,9 @@ animation: spawnNote 0.2s ease-out forwards;
      <button id="pauseBtn" class="icon-btn">⏸</button>
     </div>
 
-   <button id="songSelector" onclick="toggleSongList()">
-    🎵 曲を選ぶ ▼
-   </button>
-
-   <div id="songListRow"></div>
+    <div id="judge"></div>
+   </div>
  </div>
-  
 </div>
 
 <div id="debug"></div>
@@ -1391,6 +1420,7 @@ window.addEventListener("orientationchange", applyScaleDebounced);
 
 function showStart(){
   const judge = document.getElementById("judge");
+  if (!judge) return;
 
   judge.style.opacity = "1";
   judge.textContent = "START!";
