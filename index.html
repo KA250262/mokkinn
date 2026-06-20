@@ -111,26 +111,20 @@ body.mobile #keyboard-top {
   z-index: 100;
 }
 
-/* ========================================================
-   鍵盤を上から見た普通の2行配置にきっぱり分けるCSS
-   ======================================================== */
 
-/* 【2行目・手前】：すべての白鍵を一段下にきっぱり落とす */
 #keyboard-top .key {
-    box-shadow: 0 3px 0 #d0c7a8;
-    border: 2px solid #333;
+  border: 2px solid rgba(60,60,60,0.7) !important;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
     transition: transform 0.05s ease;
     position: absolute;
-    top: 75px !important;
-    width: 25px;
+    top: 85px !important;
+    width: 23px;
     height: 65px !important;
     background: #fffae8;
-    border: 1px solid #333;
-    border-radius: 2px 2px 6px 6px;
+    border-radius: 6px;
     z-index: 10 !important;
     transition: background 0.15s ease, box-shadow 0.15s ease;
-    transform-origin: center center !important;
-    
+    transform-origin: center center !important; 
     text-align: center;
     font-weight: bold;
     font-size: 10px;
@@ -146,7 +140,7 @@ body.mobile #keyboard-top {
   transform: translateY(4px) scale(0.95) !important;
   
   /* 既存の光る演出も維持しつつ、動きを追加 */
-  box-shadow: 0 0 10px rgba(255,255,255,1) !important;
+  /*box-shadow: 0 0 10px rgba(255,255,255,0.8);*/
   filter: brightness(1.4) !important;
   
   /* ぷにっと感を出すためのアニメーション設定 */
@@ -165,7 +159,7 @@ body.mobile #keyboard-top {
     width: 23px;
     height: 60px !important;
     background: #222;
-    border: 2px solid #fffae8;
+    border: 2px solid rgba(255,255,255,0.8);
     border-radius: 5px 5px 4px 4px;
 
     z-index: 20 !important; 
@@ -183,6 +177,8 @@ body.mobile #keyboard-top {
 }
 .black.hit {
  transform: translateY(2px);
+  background: #111;
+  /*border: 2px solid rgba(255,255,255,0.9) !important;*/
 }
 
 
@@ -357,11 +353,12 @@ body.mobile #keyboard-top {
    鍵盤ヒット・ガイド（上の鍵盤・木琴専用スタイル）
    ======================================================== */
 .hit {
-    background: #ffffff !important;
-    box-shadow: 0 0 12px rgba(255,255,255,0.9) !important;
-    filter: brightness(1.2);
+  background: #fffdf5 !important; /* 完全白じゃなく少しクリーム */
+  border-color: rgba(0,0,0,0.35) !important;
+  box-shadow:
+    inset 0 -2px 0 rgba(0,0,0,0.1),
+    0 0 12px rgba(255,255,255,0.8);
 }
-
 
 .pre-hit-right {
     background:#ff66cc !important;
@@ -427,8 +424,8 @@ body.mobile #keyboard-top {
     position: absolute;
     /* 最初は透明にしておく */
     opacity: 0;
-animation: spawnNote 0.2s ease-out forwards;
-    transition: opacity 0.1s ease-out, transform 0.1s ease-out;
+    animation: spawnNote 0.2s ease-out forwards;
+    transition: none;
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -456,6 +453,8 @@ animation: spawnNote 0.2s ease-out forwards;
     top: 50%; 
     left: 50%; 
     transform: translate(-50%, -50%); 
+    transition: opacity 0.05s linear;
+    opacity: 1;
     font-size: 15px; 
     white-space: nowrap; 
     font-weight: 800; 
@@ -683,20 +682,12 @@ animation: spawnNote 0.2s ease-out forwards;
 }
 
 @keyframes popIn {
-  0%   { transform: scale(0.4); opacity: 0; }
+  0%   { transform: scale(0.05); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes float {
-  0%   { transform: translateY(0px); }
-  50%  { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
 
-@keyframes wing {
-  0%   { transform: translateY(0px) rotate(-5deg); }
-  100% { transform: translateY(-2px) rotate(5deg); }
-}
+
 
 /* #lineLayer {
     position:absolute; 
@@ -795,14 +786,25 @@ animation: spawnNote 0.2s ease-out forwards;
   display: none;
 }
 /* 優先度を上げて、確実に光らせる */
-#keyboard-top .key.guide-left,
-#keyboard-top .key.guide-right,
+
+
 #keyboard-top .black.guide-left,
 #keyboard-top .black.guide-right {
-    background: #7CFF6B !important; 
-    box-shadow: 0 0 15px #7CFF6B !important;
-     opacity: 0 !important;
+    background: #ffffff; 
+    box-shadow: 0 0 15px #ffffff;
+     opacity: 30 !important;
 }
+#keyboard-top .key.guide-left{
+    background: #6CCBFF; 
+    box-shadow: 0 0 15px #6EDFD3;
+     opacity: 60 !important;
+}
+#keyboard-top .key.guide-right{
+    background: #FF7FB0; 
+    box-shadow: 0 0 15px #FF86C2;
+     opacity: 60 !important;
+}
+
 
 #startOverlay,
 #goalOverlay {
@@ -888,9 +890,12 @@ animation: spawnNote 0.2s ease-out forwards;
    
   <div id="keyboard-wrapper">
     <div id="keyboard-top">
+
       <div id="notes-layer"></div>
+
       <div class="white-keys"></div>
       <div class="black-keys"></div>
+
     </div>
 
 
@@ -1075,6 +1080,18 @@ function startStepMode(){
   active = [];
 }
 
+
+
+function updatePosition(n, now) {
+  if (!n.el) return;
+
+  const speed = 400;
+  const y = (n.time - now) * speed;
+
+  n.el.style.transform = `translateY(${y}px)`;
+}
+
+
 // =========================
 // オートモード（自動再生）の開始
 // =========================
@@ -1088,18 +1105,22 @@ function startAutoMode(){
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
 function loop() {
-  // 1. 停止判定：runningがfalseなら即終了
   if (!running) return;
 
-  // 2. フレーム予約：ポーズ中じゃなければ次のループを予約
-  if (!paused) {
-    loopId = requestAnimationFrame(loop);
-  } else {
-    return; // ポーズ中はここで待機
-  }
+  loopId = requestAnimationFrame(loop);
+ 
+  if (paused) return;
+  const now = Tone.now();
+
+ active.forEach(n => {
+  updatePosition(n, now);
+});
 
   // 3. 基本情報取得
   const gameTime = getTime();
+
+
+
 
   // 4. ノーツの出現処理（AUTO MODEのみ）
   if (!stepMode) {
@@ -1198,7 +1219,7 @@ if (!n.hitFired && Math.abs(diff) < 0.03) {
     cancelAnimationFrame(loopId);
   }
 }
-
+loop();
 
 
 
@@ -1809,87 +1830,70 @@ const spawned = new Set();
 
 
 // spawn
-function spawn(n) {
 
-  
+function spawn(note, now = getTime()) {
+
   const keyTop = document.querySelector(
-    `#keyboard-top [data-note="${n.note}"]`
+    `#keyboard-top [data-note="${note.note}"]`
   );
-
   if (!keyTop) return;
 
-const isBlack = keyTop.classList.contains("black");
-const el = document.createElement("div");
-el.className = "note";
+  const el = document.createElement("div");
+  el.className = "note";
 
+  // 鍵盤の位置に合わせて配置
+  const isBlack = keyTop.classList.contains("black");
 
-// ★位置計算の修正
-  // 基準となる鍵盤のオフセットを取得
-  const baseTop = keyTop.offsetTop;
-  
-// --- ★ここをこのように修正してください ---
-  // 黒鍵なら +35px して、白鍵のノーツより下に配置する
-  const yOffset = isBlack ? -20 : 0; 
-  
-  // topの基準を明確にする
-  el.style.top = (keyTop.offsetTop + yOffset) + "px";
-  el.style.left = (keyTop.offsetLeft + keyTop.offsetWidth / 2 - 15) + "px";
+  const x = keyTop.offsetLeft + keyTop.offsetWidth / 2 - 15;
+  const y = keyTop.offsetTop + (isBlack ? -20 : 0);
 
-const y = 0;
+  el.style.left = x + "px";
+  el.style.top = y + "px";
 
-// ★後から出たノーツほど手前
-el.style.zIndex = noteZCounter++;
+  // 色（手の分離）
+  el.style.background = note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
 
+  // z-index管理（後勝ち表示）
+  el.style.zIndex = noteZCounter++;
 
-const sameChord = notes.filter(
-  x => x.chordId === n.chordId
-).length;
+  // ノーツ表示用テキスト（白鍵だけ）
+  const text = document.createElement("div");
+  text.className = "note-text";
 
-if (sameChord === 1) {
-  el.classList.add("single-note");
-}
+  // ここはあなたの関数使ってOK
+  const sol = noteToSolfege(note.note);
+  text.textContent = sol;
 
-  // ★修正：黒鍵か白鍵かに関わらず、右手＝ピンク、左手＝水色に統一
-  let color = n.hand === "left" ? "#4aa3ff" : "#ff4a4a";
-  el.style.background = color;
-
-  // 黒鍵でなければテキストを追加する
-  if (!isBlack) {
-    const text = document.createElement("div");
-    const solfege = noteToSolfege(n.note);
-    text.className = "note-text";
-    text.textContent = solfege;
-    if (solfege !== "ファ" && solfege !== "ファ♯") {
-      text.classList.add("large-text");
-    }
-    el.appendChild(text);
+  if (sol !== "ファ" && sol !== "ファ♯") {
+    text.classList.add("large-text");
   }
 
-const speedPerSec = 400;
-  const earlyOffset = stepMode ? 0 : (NOTE_EARLY * speedPerSec);
+  el.appendChild(text);
 
-    document.getElementById("notes-layer").appendChild(el);
+  // DOM追加
+  document.getElementById("notes-layer").appendChild(el);
 
-  requestAnimationFrame(() => {
-    el.classList.add("note-active");
-  });
-
-
-active.push({
-    el, 
-    note: n.note, 
+  // active登録（ゲーム用データ）
+  const obj = {
+    el,
+    note: note.note,
+    time: note.time,
+    hit: note.time,
     keyTop,
-    hit: n.time, 
-    hand: n.hand, 
-    chordId: n.chordId,
-    duration: n.duration,
-    missed: false, 
-    guideShown: false, // ここが重要
-    done: false,         // これがないと成功判定が動かない
-    y: 0,             // 鍵盤からの相対高さ（0が鍵盤位置）
-    v: -8
+    hand: note.hand,
+    chordId: note.chordId,
 
-});
+    y: 0,
+    v: 0,
+
+    guideShown: false,
+    done: false,
+    missed: false
+  };
+
+  active.push(obj);
+
+  return obj;
 }
 
 
