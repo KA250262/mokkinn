@@ -36,11 +36,6 @@
   }
 }
 
-.icon-btn,
-#speed-control button,
-#songSelectBtn {
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
-}
 
 
 html {
@@ -106,7 +101,7 @@ body.mobile #keyboard-top {
   top: 10px;
   left: 0;
   width: 100%;
-  height: 240px; /* 💡2行がきれいに収まるように高さを広げました */
+  height: 210px; /* 💡2行がきれいに収まるように高さを広げました */
   flex-shrink: 0;
   z-index: 100;
 }
@@ -133,19 +128,13 @@ body.mobile #keyboard-top {
     user-select: none;
     cursor: pointer;
 }
-/* 既存の .hit 関連のCSSを以下のように強化してください */
+
 #keyboard-top .key.hit,
 #keyboard-top .black.hit {
-  /* 動きを強制的に適用 */
-  transform: translateY(4px) scale(0.95) !important;
-  
-  /* 既存の光る演出も維持しつつ、動きを追加 */
-  /*box-shadow: 0 0 10px rgba(255,255,255,0.8);*/
-  filter: brightness(1.4) !important;
-  
-  /* ぷにっと感を出すためのアニメーション設定 */
+  transform: scale(0.95) ;
+  filter: brightness(1.4);
   transition: transform 0.08s ease-out, filter 0.08s ease-out !important;
-  z-index: 9999 !important;
+  z-index: auto !important;
 }
 
 
@@ -196,30 +185,28 @@ body.mobile #keyboard-top {
 
 #ui {
   display: flex;
+  flex-direction: row;     /* 横並びを強制 */
+  flex-wrap: nowrap;
+  justify-content:center;
   align-items: center;     /* 縦中央揃え */
   gap: 5px;
   margin-top:0px;
-  width:auto;          /* ←追加 */
+  width:max-content;
+  min-width:max-content;        /* ←追加 */
   max-width:none;      /* ←追加 */
-
+  margin-top:-15px;
   padding: 4px 8px; 
   position: static; 
 
   transform: none;
 
-  flex-shrink: 0;
-  flex-direction: row;     /* 横並びを強制 */
-            
-    
+  flex-shrink: 0;  
   background: rgba(255,255,255,0.10);
   backdrop-filter: blur(6px);
   border-radius: 20px;
  
   background: transparent;
   backdrop-filter: none;
-   
-  flex-wrap: nowrap;
-
   z-index: 1000;
 
 }
@@ -281,7 +268,6 @@ body.mobile #keyboard-top {
   top:55px;
   left:10px;
 }
-
 }
 
 .songBtn {
@@ -321,7 +307,13 @@ body.mobile #keyboard-top {
   font-size: 25px;
   color: rgb(12, 46, 2);
 }
-
+.group{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:8px;
+}
 
 /* 鍵盤にリングを出す */
 .now-hit {
@@ -398,7 +390,7 @@ body.mobile #keyboard-top {
     width: 100%;
     height: 100%;
     /* 💡 鍵盤のz-index(最高100)よりも大きく設定 */
-    z-index: 200 ; 
+    z-index: 10000 ; 
     pointer-events: none;
 }
 
@@ -435,7 +427,7 @@ body.mobile #keyboard-top {
     opacity: 0.15;
     transform: none;
     transition: none;
-    z-index: 201 !important;
+    z-index: 10001 !important;
 }
 
 .note-hit-effect {
@@ -452,7 +444,7 @@ body.mobile #keyboard-top {
     position: absolute; 
     top: 50%; 
     left: 50%; 
-    transform: translate(-50%, -50%); 
+    transform: translate(-50%, -50%)scaleX(0.9); 
     transition: opacity 0.05s linear;
     opacity: 1;
     font-size: 15px; 
@@ -461,6 +453,10 @@ body.mobile #keyboard-top {
     color: white; 
     text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
     z-index: 300; 
+}
+
+.note-text.small {
+  font-size: 12px;
 }
 
 /* ファ以外に適用される大きめのフォント */
@@ -554,18 +550,24 @@ body.mobile #keyboard-top {
   color: white;
   border: none;
   padding: 8px 12px;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
+  border-radius: 12px;
+  width: 60px;
+  height: 60px;
+  font-size: 27px;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
+.icon-btn,
+#speed-control button,
+#songSelectBtn {
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
 
 .icon-btn:hover {
   background: #ff3399;
@@ -771,13 +773,17 @@ body.mobile #keyboard-top {
 }
 
 #speed-control button{
-  width:32px;
-  height:32px;
+  width:48px;
+  height:48px;
   padding:0;
+  font-size:22px;
 }
 
+
 #speedLabel{
-  min-width:45px;
+  min-width:60px;
+  font-size:24px;
+  font-weight:bold;
   text-align:center;
 }
 
@@ -914,6 +920,8 @@ body.mobile #keyboard-top {
 
      <button id="stopBtn" class="icon-btn">■</button>
      <button id="pauseBtn" class="icon-btn">⏸</button>
+
+     <button id="resetBtn" class="icon-btn">🔄</button>
     </div>
 
     <div id="judge"></div>
@@ -942,8 +950,6 @@ if (isLine) {
   `;
   throw new Error("LINE Browser");
 }
-
-
 
 // window.synth の定義部分を以下のように書き換えてください
 window.synth = new Tone.Sampler({
@@ -1058,9 +1064,21 @@ const stopBtn  = document.getElementById("stopBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const backBtn  = document.getElementById("backBtn");
 const stepBtn  = document.getElementById("stepBtn");
+const resetBtn = document.getElementById("resetBtn");
 
 // 存在しないボタンを除外して配列にまとめる（安全対策）
-const buttons = [playBtn, stopBtn, pauseBtn, backBtn, stepBtn].filter(Boolean);
+const buttons = [
+  playBtn,
+  stopBtn,
+  pauseBtn,
+  backBtn,
+  stepBtn,
+  resetBtn
+].filter(Boolean);
+
+document
+  .getElementById("resetBtn")
+  ?.addEventListener("click", emergencyReset);
 
 // =========================
 // ステップモード（コマ送り）の開始
@@ -1085,8 +1103,11 @@ function startStepMode(){
 function updatePosition(n, now) {
   if (!n.el) return;
 
-  const speed = 400;
-  const y = (n.time - now) * speed;
+  const travelTime = 3.0; // ノーツが降りてくる時間（秒）
+
+  const y =
+    ((n.time - now) / travelTime) * 300 * speed; 
+    // ↑ speed（1.0〜1.5）をちゃんと効かせる
 
   n.el.style.transform = `translateY(${y}px)`;
 }
@@ -1105,6 +1126,26 @@ function startAutoMode(){
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
 function loop() {
+
+  document.querySelectorAll(
+    "#keyboard-top .guide-left, #keyboard-top .guide-right"
+  ).forEach(key => {
+
+    const alive = active.some(
+      n =>
+        n.keyTop === key &&
+        !n.done &&
+        !n.missed
+    );
+
+    if (!alive) {
+      key.classList.remove(
+        "guide-left",
+        "guide-right"
+      );
+    }
+  });
+
   if (!running) return;
 
   loopId = requestAnimationFrame(loop);
@@ -1117,7 +1158,7 @@ function loop() {
 });
 
   // 3. 基本情報取得
-  const gameTime = getTime();
+ const gameTime = getTime() * speed;
 
 
 
@@ -1191,12 +1232,11 @@ function loop() {
     if (n.played) return;
     
     // 現在時刻がノーツの時間を過ぎていたら音を鳴らす
-   const diff = gameTime - n.time;
+const diff = gameTime - n.time;
 
-if (!n.hitFired && Math.abs(diff) < 0.03) {
-  n.hitFired = true;
-
+if (diff > 0 && diff < 0.03) {
   play(n.note);
+
 
   const key = document.querySelector(
     `#keyboard-top [data-note="${n.note}"]`
@@ -1218,6 +1258,7 @@ if (!n.hitFired && Math.abs(diff) < 0.03) {
     showGoal();
     cancelAnimationFrame(loopId);
   }
+console.log(active.length);
 }
 loop();
 
@@ -1235,11 +1276,30 @@ playBtn?.addEventListener("click", async () => {
   changeButtonColor(playBtn);
 });
 
+
+
+
+function clearKeyHighlights(){
+  document.querySelectorAll("#keyboard-top .key, #keyboard-top .black").forEach(k => {
+    k.classList.remove(
+      "hit",
+      "guide-left",
+      "guide-right",
+      "pre-hit-left",
+      "pre-hit-right"
+    );
+  });
+}
+
+
+
 // =========================
 // ⏹ 停止
 // =========================
 stopBtn?.addEventListener("click", () => {
   resetAll();
+
+  clearKeyHighlights(); 
 
   score = 0;
   combo = 0;
@@ -1249,6 +1309,30 @@ stopBtn?.addEventListener("click", () => {
 
   document.getElementById("judge").textContent = "";
 });
+// =========================
+// リセット
+// =========================
+document.getElementById("resetBtn").addEventListener("click", emergencyReset);
+
+function emergencyReset(){
+
+  running = false;
+  paused = false;
+
+  cancelAnimationFrame(loopId);
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  document.querySelectorAll(".key,.black").forEach(k=>{
+    k.className = k.classList.contains("black")
+      ? "black"
+      : "key";
+  });
+
+  paintKeyboard();
+}
+
 
 // =========================
 // ⏸ 一時停止
@@ -1339,8 +1423,9 @@ stepBtn?.addEventListener("click", async () => {
 // ⏱ 時間計算
 // =========================
 function getTime() {
-  return (performance.now() - startTime) / 1000;
+  return ((performance.now() - startTime) / 1000) * speed;
 }
+
 
 // =========================
 // 🎨 ボタン状態管理
@@ -1781,6 +1866,10 @@ function rewindGame() {
   active.forEach(n => n.el?.remove());
   active = [];
 
+  notes.forEach(n => {
+  n.hitFired = false;
+})
+
   index = notes.findIndex(n => n.time > targetTime);
   if (index === -1) index = notes.length;
 
@@ -1864,8 +1953,8 @@ function spawn(note, now = getTime()) {
   const sol = noteToSolfege(note.note);
   text.textContent = sol;
 
-  if (sol !== "ファ" && sol !== "ファ♯") {
-    text.classList.add("large-text");
+if (sol.includes("♯")) {
+  text.classList.add("small");
   }
 
   el.appendChild(text);
@@ -2011,18 +2100,6 @@ function update(){
     scoreDisplay.textContent = `${hitCount} / ${total}`;
   }
 }
-/*
-// スライダーの制御
-document.getElementById("speed-slider").addEventListener("input", (e) => {
-    speed = parseFloat(e.target.value);
-    
-    // ラベルの更新
-    let label = "ふつう";
-    if (speed <= 0.15) label = "ゆっくり";
-    else if (speed >= 0.35) label = "はやい";
-    document.getElementById("speedLabel").textContent = label;
-});
-*/
 
 let speedIndex = 2; // 1.0 に対応するインデックス
 const speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
@@ -2235,12 +2312,22 @@ function seekToTime(t){
   notes.forEach(n => {
     if (n.time >= t) {
       n.played = false;
+      n.hitFired = false;
     }
   });
 
   paintKeyboard();
 
   rebuildVisibleNotes();
+
+document.querySelectorAll(
+  ".guide-left,.guide-right"
+).forEach(el=>{
+  el.classList.remove(
+    "guide-left",
+    "guide-right"
+  );
+});
 }
 
 
@@ -2259,12 +2346,12 @@ function rebuildVisibleNotes(){
 
 function stepForward() {
 
-console.log(
+  console.log(
   "step",
   stepIndex,
   notes[stepIndex]?.time,
   notes[stepIndex]?.note
-);
+  );
 
 
   if (!notes || notes.length === 0) return;
@@ -2277,41 +2364,47 @@ console.log(
   const chordNotes = notes.filter(n => Math.abs(n.time - currentTime) < 0.01);
 
 
-console.log(
+  console.log(
   "step",
   stepIndex,
   "time",
   currentTime,
   "count",
   chordNotes.length
-);
+  );
+
   // 3. 画面上の古いノーツを消去
   active.forEach(n => n.el?.remove());
   active = [];
 
-  // 4. 抽出したノーツをすべて描画＆演奏＆光らせる
-  chordNotes.forEach(n => {
-    // 描画
-    spawn(n);
-    
-    // 演奏
-    play(n.note);
+chordNotes.forEach(n => {
+  // 描画
+  spawn(n);
 
-    // 鍵盤の発光
-    const key = document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
-    if (key) {
+  // 演奏
+  play(n.note);
+
+  // 鍵盤の発光
+  const key = document.querySelector(
+    `#keyboard-top [data-note="${n.note}"]`
+  );
+
+  if (key) {
+    setTimeout(() => {
       key.classList.add("hit");
-      // 少し長めに光らせる（視認性向上のため）
-      setTimeout(() => key.classList.remove("hit"), 300);
-    }
-  });
 
-  // 5. インデックスを、次の異なる時刻のノーツまで進める
-  // これにより、次にボタンを押した時に「次の和音」に移動するようになります
-  stepIndex = notes.findIndex(n => n.time > currentTime);
-  if (stepIndex === -1) stepIndex = notes.length;
+      setTimeout(() => {
+        key.classList.remove("hit");
+      }, 200);
+    }, 30);
+  }
+});
+
+// ← forEach の外に出す（重要）
+stepIndex = notes.findIndex(n => n.time > currentTime);
+if (stepIndex === -1) stepIndex = notes.length;
+
 }
-
 </script>
 </body>
 </html>
