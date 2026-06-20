@@ -1122,10 +1122,21 @@ function startAutoMode(){
   requestAnimationFrame(loop); // ループ処理を開始
 }
 
+
+
+
+
+
 // =========================
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
 function loop() {
+
+if (!running) {
+  loopId = null;
+  return;
+}
+window.__gameVersion = (window.__gameVersion || 0) + 1;
 
   document.querySelectorAll(
     "#keyboard-top .guide-left, #keyboard-top .guide-right"
@@ -1291,7 +1302,22 @@ function clearKeyHighlights(){
   });
 }
 
+function hardStop() {
+  running = false;
+  paused = false;
+  stepMode = false;
 
+  if (loopId) {
+    cancelAnimationFrame(loopId);
+    loopId = null;
+  }
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  index = 0;
+  stepIndex = 0;
+}
 
 // =========================
 // ⏹ 停止
@@ -1922,6 +1948,8 @@ const spawned = new Set();
 
 function spawn(note, now = getTime()) {
 
+const myVersion = window.__gameVersion;
+
   const keyTop = document.querySelector(
     `#keyboard-top [data-note="${note.note}"]`
   );
@@ -2101,8 +2129,8 @@ function update(){
   }
 }
 
-let speedIndex = 2; // 1.0 に対応するインデックス
-const speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
+let speedIndex = 1; // 1.0 に対応するインデックス
+const speedLevels = [0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
 
 function setSpeed(val) {
     speed = val;
@@ -2208,7 +2236,7 @@ function toggleSongList() {
 }
 
 function resetAll() {
-
+hardStop();
 
    if(window.synth){
   window.synth.releaseAll();
@@ -2234,9 +2262,8 @@ function resetAll() {
     n.played = false;
   });
 
- 
-
   paintKeyboard();
+  renderKeyboard("keyboard-top"); 
 }
 
 function nextNote(){
@@ -2302,6 +2329,9 @@ function seekForwardTo(t){
 
 
 function seekToTime(t){
+
+ hardStop();
+
   active.forEach(n => n.el?.remove());
   active = [];
 
@@ -2346,6 +2376,11 @@ function rebuildVisibleNotes(){
 
 function stepForward() {
 
+document.querySelectorAll("#keyboard-top .key, #keyboard-top .black")
+  .forEach(k => {
+    k.classList.remove("hit", "guide-left", "guide-right", "pre-hit-left", "pre-hit-right");
+  });
+
   console.log(
   "step",
   stepIndex,
@@ -2389,15 +2424,17 @@ chordNotes.forEach(n => {
     `#keyboard-top [data-note="${n.note}"]`
   );
 
-  if (key) {
-    setTimeout(() => {
-      key.classList.add("hit");
 
-      setTimeout(() => {
-        key.classList.remove("hit");
-      }, 200);
-    }, 30);
+  function flashKey(key, cls = "hit") {
+  if (!key) return;
+
+  key.classList.add(cls);
+
+  setTimeout(() => {
+    key.classList.remove(cls);
+  }, 120);
   }
+
 });
 
 // ← forEach の外に出す（重要）
