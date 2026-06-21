@@ -245,12 +245,14 @@ body.mobile #keyboard-top {
     position: absolute;
     top: 55px;
     left: 10px;
-    width: fit-content;
+    width: 180px;
+    max-height: 60vh; 
     min-width: 0;
     z-index:2000;
     padding: 8px;
     gap: 6px;
-
+    max-height: 60vh;
+    overflow-y: auto;
     background: rgba(255,255,255,0.9);
     border-radius: 12px;
 }
@@ -258,18 +260,12 @@ body.mobile #keyboard-top {
 
   #ui{
     transform: scale(0.9);
-  }
+    }
 
-#songSelector{
-  width:180px;
+    #songSelector{
+     width:180px;
+     }
 }
-
-#songListRow{
-  top:55px;
-  left:10px;
-}
-}
-
 .songBtn {
     width: 160px;
     height: 40px;
@@ -1116,12 +1112,31 @@ function updatePosition(n, now) {
 // =========================
 // オートモード（自動再生）の開始
 // =========================
-function startAutoMode(){
+// =========================
+// オートモード（自動再生）の開始
+// =========================
+function startAutoMode() {
+  // 1. まず残留しているノーツを物理的に全消去
+  const notesLayer = document.getElementById("notes-layer");
+  if (notesLayer) {
+    notesLayer.innerHTML = ""; 
+  }
+  
+  // 2. active配列をクリア
+  active = [];
+
+  // 3. 必要なフラグの切り替え
   stepMode = false;
   running = true;
-  requestAnimationFrame(loop); // ループ処理を開始
-}
+  paused = false;
 
+  // 4. 現在の時刻から再生を再開するために startTime を補正
+  // 現在の再生位置(getTime())を考慮してスタート時間を設定し直す
+  startTime = performance.now() - (getTime() / speed) * 1000;
+
+  // 5. ループを開始
+  requestAnimationFrame(loop);
+}
 
 
 
@@ -2177,6 +2192,7 @@ function loadSong(fileName){
 }
 
 
+// ... (前略)
 function initSongMenu() {
     const menu = document.getElementById("songListRow");
     if (!menu) return;
@@ -2187,261 +2203,192 @@ function initSongMenu() {
         const btn = document.createElement("button");
         btn.className = "songBtn";
         btn.textContent = song.title;
+  
+        btn.onclick = () => {
+            document.querySelectorAll(".songBtn").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            loadSong(song.file);
 
-btn.onclick = () => {
+            // 曲名ボタンを書き換え
+            const selector = document.getElementById("songSelector");
+            if (selector) {
+                selector.textContent = "🎵 " + song.title + " ▼";
+            }
 
-    document
-      .querySelectorAll(".songBtn")
-      .forEach(b => b.classList.remove("selected"));
-
-    btn.classList.add("selected");
-
-    loadSong(song.file);
-
-    // 曲名ボタンを書き換え
-  const selector = document.getElementById("songSelector");
-  if (selector) {
-    selector.textContent = "🎵 " + song.title + " ▼";
-  }
-
-    // リストを閉じる
-    document.getElementById("songListRow").style.display = "none";
-};
-
+            // リストを閉じる
+            document.getElementById("songListRow").style.display = "none";
+        };
         menu.appendChild(btn);
-  });
-}
+    });
+} // ここで initSongMenu を正しく閉じる
 
 function initApp() {
-  initSongMenu();
-  renderKeyboard("keyboard-top");
+    initSongMenu();
+    renderKeyboard("keyboard-top");
 
-  const btn = document.getElementById("songSelector");
-  if (btn) {
-    btn.textContent = "🎵 " + songList[0].title + " ▼";
-  }
+    const btn = document.getElementById("songSelector");
+    if (btn) {
+        btn.textContent = "🎵 " + songList[0].title + " ▼";
+    }
 }
 
-
 function toggleSongList() {
-  const el = document.getElementById("songListRow");
-  if (!el) {
-      console.error("songListRow が見つかりません");
-      return;
-  }
-  // 現在のスタイルを取得して切り替え
-  const isHidden = window.getComputedStyle(el).display === "none";
-  el.style.display = isHidden ? "flex" : "none";
-  console.log("リストの表示状態を切り替えました: " + el.style.display);
+    const el = document.getElementById("songListRow");
+    if (!el) {
+        console.error("songListRow が見つかりません");
+        return;
+    }
+    const isHidden = window.getComputedStyle(el).display === "none";
+    el.style.display = isHidden ? "flex" : "none";
 }
 
 function resetAll() {
-hardStop();
-
-   if(window.synth){
-  window.synth.releaseAll();
- }
-  // loop停止
-  running = false;
-  paused = false;
-  stepMode = false;
-
-  cancelAnimationFrame(loopId);
-  loopId = null;
-
-  // index全部リセット
-  index = 0;
-  stepIndex = 0;
-
-  // ノーツ全部削除
-  active.forEach(n => n.el?.remove());
-  active = [];
-
-  // 音リセット系
-  notes.forEach(n => {
-    n.played = false;
-  });
-
-  paintKeyboard();
-  renderKeyboard("keyboard-top"); 
+    // 1. まず現在の処理を完全に停止
+    hardStop();
+    
+    // 2. 音声をすべて停止
+    if (window.synth) {
+        window.synth.releaseAll();
+    }
+    
+    // 3. ゲームの制御フラグをリセット
+    running = false;
+    paused = false;
+    stepMode = false;
+    
+    // 4. ループ処理をキャンセル
+    if (loopId) {
+        cancelAnimationFrame(loopId);
+        loopId = null;
+    }
+    
+    // 5. 【重要】画面上のノーツを物理的に全削除
+    const notesLayer = document.getElementById("notes-layer");
+    if (notesLayer) {
+        notesLayer.innerHTML = ""; // ここで中身を空っぽにする
+    }
+    
+    // 6. 配列を空にする
+    active = [];
+    
+    // 7. インデックスと時間の初期化
+    index = 0;
+    stepIndex = 0;
+    startTime = 0;
+    
+    // 8. 全てのノーツの再生フラグをリセット
+    notes.forEach(n => {
+        n.played = false;
+        n.done = false;
+        n.missed = false;
+        n.guideShown = false;
+    });
+    
+    // 9. 鍵盤の光りなどをリセット
+    paintKeyboard();
+    console.log("リセット完了: 画面とデータをクリアしました");
 }
 
-function nextNote(){
-  const now = getTime();
-  const next = notes.find(n => n.time > now);
-  if (!next) return;
+function nextNote() {
+    const now = getTime();
+    const next = notes.find(n => n.time > now);
+    if (!next) return;
 
-  const t = next.time;
+    const t = next.time;
+    running = false;
+    seekForwardTo(t);
 
-  // ★追加：完全停止してから再構築
-  running = false;
-
-  seekForwardTo(t);
-
-  const chordNotes = notes.filter(n =>
-    Math.abs(n.time - t) < 0.01
-  );
-
-  chordNotes.forEach(n => spawn(n));
+    const chordNotes = notes.filter(n => Math.abs(n.time - t) < 0.01);
+    chordNotes.forEach(n => spawn(n));
 }
-
-
 
 function prevNote() {
-  const now = getTime();
+    const now = getTime();
+    let i = index - 1;
+    if (i < 0) return;
 
-  let i = index - 1;
-  if (i < 0) return;
-
-  const baseTime = notes[i].time;
-
-  const group = [];
-  while (i >= 0 && notes[i].time === baseTime) {
-    group.unshift(notes[i]);
-    i--;
-  }
-
-  index = i + 1;
-
-  seekToTime(baseTime);
-
-  group.forEach(n => play(n.note));
-}
-
-
-
-
-function seekForwardTo(t){
-  active.forEach(n => n.el?.remove());
-  active = [];
-
- index = notes.findIndex(n => n.time >= t);
-
- if(index === -1){
-  index = notes.length;
- }
-
-  startTime = performance.now() - t * 1000 - pausedTime;
-
-  paintKeyboard();
-}
-
-
-
-function seekToTime(t){
-
- hardStop();
-
-  active.forEach(n => n.el?.remove());
-  active = [];
-
-  index = notes.findIndex(n => n.time >= t);
-
-  startTime = performance.now() - t * 1000 - pausedTime;
-
-  notes.forEach(n => {
-    if (n.time >= t) {
-      n.played = false;
-      n.hitFired = false;
+    const baseTime = notes[i].time;
+    const group = [];
+    while (i >= 0 && notes[i].time === baseTime) {
+        group.unshift(notes[i]);
+        i--;
     }
-  });
-
-  paintKeyboard();
-
-  rebuildVisibleNotes();
-
-document.querySelectorAll(
-  ".guide-left,.guide-right"
-).forEach(el=>{
-  el.classList.remove(
-    "guide-left",
-    "guide-right"
-  );
-});
+    index = i + 1;
+    seekToTime(baseTime);
+    group.forEach(n => play(n.note));
 }
 
+function seekForwardTo(t) {
+    active.forEach(n => n.el?.remove());
+    active = [];
+    index = notes.findIndex(n => n.time >= t);
+    if(index === -1) index = notes.length;
+    startTime = performance.now() - t * 1000 - pausedTime;
+    paintKeyboard();
+}
 
-function rebuildVisibleNotes(){
-  const gameTime = getTime();
+function seekToTime(t) {
+    hardStop();
+    active.forEach(n => n.el?.remove());
+    active = [];
+    index = notes.findIndex(n => n.time >= t);
+    startTime = performance.now() - t * 1000 - pausedTime;
+    notes.forEach(n => {
+        if (n.time >= t) {
+            n.played = false;
+            n.hitFired = false;
+        }
+    });
+    paintKeyboard();
+    rebuildVisibleNotes();
+}
 
-  for (let i = index; i < notes.length; i++) {
-    if (notes[i].time <= gameTime + NOTE_EARLY) {
-      spawn(notes[i]);
-    } else {
-      break;
+function rebuildVisibleNotes() {
+    const gameTime = getTime();
+    for (let i = index; i < notes.length; i++) {
+        if (notes[i].time <= gameTime + NOTE_EARLY) {
+            spawn(notes[i]);
+        } else {
+            break;
+        }
     }
-  }
 }
-
 
 function stepForward() {
 
-document.querySelectorAll("#keyboard-top .key, #keyboard-top .black")
-  .forEach(k => {
-    k.classList.remove("hit", "guide-left", "guide-right", "pre-hit-left", "pre-hit-right");
-  });
+  document.getElementById("notes-layer").innerHTML = "";
+  
+    document.querySelectorAll("#keyboard-top .key, #keyboard-top .black")
+        .forEach(k => {
+            k.classList.remove("hit", "guide-left", "guide-right", "pre-hit-left", "pre-hit-right");
+        });
 
-  console.log(
-  "step",
-  stepIndex,
-  notes[stepIndex]?.time,
-  notes[stepIndex]?.note
-  );
+    if (!notes || notes.length === 0) return;
+    if (stepIndex >= notes.length) return;
 
+    const currentTime = notes[stepIndex].time;
+    const chordNotes = notes.filter(n => Math.abs(n.time - currentTime) < 0.01);
 
-  if (!notes || notes.length === 0) return;
-  if (stepIndex >= notes.length) return;
+    active.forEach(n => n.el?.remove());
+    active = [];
 
-  // 1. 現在のステップ時刻を取得
-  const currentTime = notes[stepIndex].time;
+    chordNotes.forEach(n => {
+        spawn(n);
+        play(n.note);
+        const key = document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
+        
+        function flashKey(k, cls = "hit") {
+            if (!k) return;
+            k.classList.add(cls);
+            setTimeout(() => k.classList.remove(cls), 120);
+        }
+        flashKey(key);
+    });
 
-  // 2. その時刻と一致するノーツをすべて抽出（和音対応）
-  const chordNotes = notes.filter(n => Math.abs(n.time - currentTime) < 0.01);
-
-
-  console.log(
-  "step",
-  stepIndex,
-  "time",
-  currentTime,
-  "count",
-  chordNotes.length
-  );
-
-  // 3. 画面上の古いノーツを消去
-  active.forEach(n => n.el?.remove());
-  active = [];
-
-chordNotes.forEach(n => {
-  // 描画
-  spawn(n);
-
-  // 演奏
-  play(n.note);
-
-  // 鍵盤の発光
-  const key = document.querySelector(
-    `#keyboard-top [data-note="${n.note}"]`
-  );
-
-
-  function flashKey(key, cls = "hit") {
-  if (!key) return;
-
-  key.classList.add(cls);
-
-  setTimeout(() => {
-    key.classList.remove(cls);
-  }, 120);
-  }
-
-});
-
-// ← forEach の外に出す（重要）
-stepIndex = notes.findIndex(n => n.time > currentTime);
-if (stepIndex === -1) stepIndex = notes.length;
-
+    stepIndex = notes.findIndex(n => n.time > currentTime);
+    if (stepIndex === -1) stepIndex = notes.length;
 }
+
 </script>
 </body>
 </html>
