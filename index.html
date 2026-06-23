@@ -920,8 +920,6 @@ box-shadow: none;
 
      <button id="stopBtn" class="icon-btn">■</button>
      <button id="pauseBtn" class="icon-btn">⏸</button>
-
-     <button id="resetBtn" class="icon-btn">🔄</button>
     </div>
 
     <div id="judge"></div>
@@ -1026,23 +1024,35 @@ let noteZCounter = 1000;
 let stepMode = false;
 let rewindHolding = false;
 let rewindTimer = null;
+let lastNoteTime = {};
 
 
 // =========================
 // 🎹 synth（音源）の再生
 // =========================
+
+
 function play(note){
-  // 音声コンテキストが停止中なら再開する
-  if (window.synth.context.state !== 'running') {
-    window.synth.context.resume();
-  }
-  try {
-    // 音を鳴らす（triggerAttackRelease: 指定した音を一定時間鳴らす）
-    window.synth?.triggerAttackRelease(note, 1, Tone.now());
-  } catch (e) {
-    console.error("再生エラー:", e);
-  }
+    const now = Tone.now();
+
+    // ★ ノートごとにガード（和音はブロックしない）
+    if (!lastNoteTime[note]) lastNoteTime[note] = 0;
+    if (now - lastNoteTime[note] < 0.03) return; 
+    lastNoteTime[note] = now;
+
+    // AudioContext が止まっていたら再開
+    if (window.synth.context.state !== "running") {
+        window.synth.context.resume();
+    }
+
+    try {
+        window.synth.triggerAttackRelease(note, 1, now);
+    } catch (e) {
+        console.error("再生エラー:", e);
+    }
 }
+
+
 
 // =========================
 // 🎚 音量調整（安全な処理）
@@ -1064,7 +1074,7 @@ const stopBtn  = document.getElementById("stopBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const backBtn  = document.getElementById("backBtn");
 const stepBtn  = document.getElementById("stepBtn");
-const resetBtn = document.getElementById("resetBtn");
+
 
 // 存在しないボタンを除外して配列にまとめる（安全対策）
 const buttons = [
@@ -1073,7 +1083,6 @@ const buttons = [
   pauseBtn,
   backBtn,
   stepBtn,
-  resetBtn
 ].filter(Boolean);
 
 document
@@ -1113,9 +1122,7 @@ function updatePosition(n, now) {
 }
 
 
-// =========================
-// オートモード（自動再生）の開始
-// =========================
+
 // =========================
 // オートモード（自動再生）の開始
 // =========================
@@ -1263,31 +1270,39 @@ if (loopId) cancelAnimationFrame(loopId);
     }
   }
 
-  // 6. 音声再生処理
+// 6. 音声再生処理
   notes.forEach(n => {
     if (n.played) return;
     
     // 現在時刻がノーツの時間を過ぎていたら音を鳴らす
-const diff = gameTime - n.time;
+    const diff = gameTime - n.time;
 
- const key = document.querySelector(
-    `#keyboard-top [data-note="${n.note}"]`
-  );
+    // --- ★安全装置★ ---
+    // もしノーツの時間が現在より1秒以上前なら、巻き戻し時の誤動作とみなして
+    // 再生せずに「played」扱いにして無視する
+    if (diff > 1.0) {
+      n.played = true;
+      return;
+    }
+    // ------------------
 
-if (!n.played && diff > 0) {
-  play(n.note);
-  n.played = true;
-}
+    const key = document.querySelector(
+      `#keyboard-top [data-note="${n.note}"]`
+    );
 
-if (diff > 0 && diff < 0.12) {
-  key.classList.add("hit");
+    if (!n.played && diff > 0) {
+      play(n.note);
+      n.played = true;
+    }
 
-    setTimeout(() => {
-      key.classList.remove("hit");
-    }, 400);
-  }
+    if (diff > 0 && diff < 0.12) {
+      key.classList.add("hit");
 
-});
+      setTimeout(() => {
+        key.classList.remove("hit");
+      }, 400);
+    }
+  });
 
   // 7. 終了チェック
   if (index >= notes.length && active.length === 0) {
@@ -1303,7 +1318,7 @@ loop();
 
 function stopAll() {
   hardStop();
-
+notes.forEach(n => n.played = false);
   running = false;
   paused = false;
   stepMode = false;
@@ -1327,12 +1342,29 @@ function stopAll() {
 // =========================
 // ▶ 再生開始
 // =========================
-playBtn?.addEventListener("click", async () => {
-  await Tone.start();
-  stopAll();
-  startGame();
-  changeButtonColor(playBtn);
+playBtn.addEventListener("click", () => {
+
+  // すでに再生中なら無視
+  if (running) return;
+
+  // active をクリア
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+
+  // played をリセット
+  notes.forEach(n => n.played = false);
+
+  // ★ index の位置から再生するための startTime 補正
+  const t = notes[index]?.time ?? 0;
+  startTime = performance.now() - (t * 1000) / speed;
+
+  running = true;
+  paused = false;
+
+  requestAnimationFrame(loop);
 });
+
+
 
 
 
@@ -1383,26 +1415,6 @@ stopBtn?.addEventListener("click", () => {
   document.getElementById("judge").textContent = "";
 
 // =========================
-// リセット
-// =========================
-document.getElementById("resetBtn").addEventListener("click", emergencyReset);
-
-
-
-function emergencyReset(){
-
-
-  document.querySelectorAll(".key,.black").forEach(k=>{
-    k.className = k.classList.contains("black")
-      ? "black"
-      : "key";
-  });
-
-  paintKeyboard();
-}
-
-
-// =========================
 // ⏸ 一時停止
 // =========================
 pauseBtn?.addEventListener("click", () => {
@@ -1413,62 +1425,98 @@ pauseBtn?.addEventListener("click", () => {
 // =========================
 // ⏪ 戻る / ⏭ 進む
 // =========================
+// 巻き戻しボタン（⏪）のイベント処理
+// --- マウス操作（巻き戻し開始） ---
 backBtn?.addEventListener("mousedown", async () => {
   await Tone.start();
-
+  
+  // 1. 巻き戻し開始時に音を強制停止
+  if (window.synth) window.synth.releaseAll();
+  
   rewindHolding = true;
-  stepMode = true;   // 自動再生止める
-  running = false;
-
+  running = false; // ループを止める
+  
   const loopBack = () => {
     if (!rewindHolding) return;
-
-    stepBack(); // 1イベント戻る
-
-    rewindTimer = setTimeout(loopBack, 80); // 連続戻し速度
+    stepBack(); // stepBack() 内で play() を呼ばないようにしてください
+    rewindTimer = setTimeout(loopBack, 80);
   };
-
   loopBack();
 });
+
+// --- マウス操作（巻き戻し終了） ---
 backBtn?.addEventListener("mouseup", () => {
-  rewindHolding = false;
-  clearTimeout(rewindTimer);
-
-  // ここから再生復帰
-  stepMode = false;
-  running = true;
-
-  requestAnimationFrame(loop);
+  if (rewindHolding) finishRewind();
 });
 
-function stepBack(){
-  const now = getTime();
-
-  if (index <= 0) return;
-
-  index--;
-
-  const targetTime = notes[index].time;
-
-  // 同時発音まとめて戻す
-  while (index > 0 && Math.abs(notes[index - 1].time - targetTime) < 0.001) {
-    index--;
-  }
-
-  seekToTime(notes[index].time);
-  console.log("stepBack →", index, notes[index].note);
-}
-
-
- // スマホ対応
+// --- タッチ操作（巻き戻し開始） ---
 backBtn?.addEventListener("touchstart", async (e) => {
   e.preventDefault();
   backBtn.dispatchEvent(new Event("mousedown"));
 });
 
+// --- タッチ操作（巻き戻し終了） ---
 backBtn?.addEventListener("touchend", (e) => {
   e.preventDefault();
-  backBtn.dispatchEvent(new Event("mouseup"));
+  if (rewindHolding) finishRewind();
+});
+
+
+function stepBack() {
+  if (index <= 0) return;
+
+  index--;
+  const targetTime = notes[index].time;
+
+  // 同じタイミング（和音）の音をまとめて戻る
+  while (index > 0 && Math.abs(notes[index - 1].time - targetTime) < 0.001) {
+    index--;
+  }
+
+  // 1. ノーツの描画をクリア
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+
+  // 2. ★超重要：ここを修正
+  // 全てを false にせず、巻き戻した時間(targetTime)より過去の音だけを
+  // 演奏済み(true)にすることで、ガーンと鳴るのを防ぐ
+  notes.forEach(n => {
+    n.played = (n.time < targetTime);
+  });
+
+  // 3. 再生時間を巻き戻し位置に合わせる
+  startTime = performance.now() - (targetTime * 1000) / speed;
+
+  running = false; 
+}
+
+
+// --- 共通の巻き戻し終了処理 ---
+function finishRewind() {
+  rewindHolding = false;
+  clearTimeout(rewindTimer);
+
+  // 巻き戻し後の正確な時間を計算
+  const targetTime = notes[index] ? notes[index].time : 0;
+  startTime = performance.now() - (targetTime * 1000) / speed;
+
+  // 1. ノイズ防止とフラグ同期をまとめて実行
+  syncAudioState();
+
+  // 2. 巻き戻し後は一時停止状態で待機
+  running = false;
+  stepMode = false;
+}
+
+// --- マウス操作 ---
+backBtn?.addEventListener("mouseup", () => {
+  if (rewindHolding) finishRewind();
+});
+
+// --- タッチ操作 ---
+backBtn?.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  if (rewindHolding) finishRewind();
 });
 
 
@@ -1780,34 +1828,26 @@ function paintKeyboard(){
 
 
 async function startGame() {
+if (running) {
+  console.warn("startGame blocked (already running)");
+  return;
+}
 
-  // ★ここがガード
-  if (gameStarted) {
-    console.warn("startGame blocked (already running)");
-    return;
-  }
-  gameStarted = true;
-  
 
-  // =========================
-  // ① 事前チェック
-  // =========================
+  // 曲がないとき
   if (!notes || notes.length === 0) {
     const judge = document.getElementById("judge");
     judge.style.opacity = "1";
     judge.textContent = "曲を選んでね";
-
     setTimeout(() => {
       judge.style.opacity = "0";
       judge.textContent = "";
     }, 1200);
-
+    gameStarted = false;
     return;
   }
 
-  // =========================
-  // ② Audio初期化
-  // =========================
+  // Audio 初期化
   try {
     await Tone.start();
     console.log("AudioContext 開始");
@@ -1815,41 +1855,33 @@ async function startGame() {
     console.error("AudioContext 開始失敗:", e);
   }
 
-  if (!window.synth) {
-    window.synth = new Tone.PolySynth(Tone.Synth).toDestination();
-  }
+  // Sampler を使うならここで synth チェック（PolySynth は不要なら消す）
+  // if (!window.synth) { ... } ← Sampler 初期化済みなら不要
 
-  // =========================
-  // ③ 状態リセット（超重要）
-  // =========================
+  // ノーツ・状態の完全リセット
+  document.getElementById("notes-layer").innerHTML = "";
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  notes.forEach(n => n.played = false);
+
   index = 0;
   stepIndex = 0;
   pausedTime = 0;
-  
-
   running = false;
   paused = false;
   loopRunning = false;
 
-  startTime = performance.now();
-
   score = 0;
   combo = 0;
   hitCount = 0;
+  totalCount = notes.length;
+
+  startTime = performance.now();
 
   update();
-  
- 
 
-  active.forEach(n => n.el?.remove());
-
-  totalCount = notes.length;
-active = [];
-  
-
-  // =========================
-  // ④ UI / 環境設定
-  // =========================
+  // モバイルクラス
   if (window.innerWidth <= 768) {
     document.body.classList.add("mobile");
   } else {
@@ -1858,20 +1890,21 @@ active = [];
 
   showStart();
 
-  // =========================
-  // ⑤ モード判定（ここが核心）
-  // =========================
+  // モード起動
   if (stepMode) {
     console.log("STEP MODE 起動");
-
-    startStepMode();   // 自動ループ停止モード
+    startStepMode();
   } else {
     console.log("AUTO MODE 起動");
-
-    startAutoMode();   // 通常再生
+    startAutoMode();
   }
 }
 
+function updateBaseTime() {
+    const currentMusicTime = getTime(); 
+    // 現在の時刻から「曲の経過時間分」を引いて、正しい開始基準を再計算
+    startTime = performance.now() - (currentMusicTime / speed) * 1000;
+}
 
 
 
@@ -1924,34 +1957,33 @@ function resetVisuals(){
   });
 }
 
-function rewindGame() {
-  if (!running) return;
+/**
+ * 巻き戻しボタン用関数
+ */
+function rewind() {
+  // 1. オーディオ時間を実際に巻き戻す
+  // (audioが定義されていない場合のエラー回避も入れています)
+  if (typeof audio !== 'undefined' && audio) {
+    audio.currentTime = Math.max(0, audio.currentTime - 5);
+  }
 
-  const rewindSeconds = 3;
+  // 2. 基準となる startTime を巻き戻し後の時間に再計算
+  // ※この関数は別途定義しておく必要があります（下記参照）
+  updateBaseTime();
 
-  const currentMusicTime = getTime();
-  const targetTime = Math.max(0, currentMusicTime - rewindSeconds);
+  // 3. ノーツ表示レイヤーを一度クリアしてリセット
+  const notesLayer = document.getElementById("notes-layer");
+  if (notesLayer) {
+    notesLayer.innerHTML = "";
+  }
 
-  // ⭐ ここが重要（+3消す）
-  startTime = performance.now() - targetTime * 1000 - pausedTime;
-
-  active.forEach(n => n.el?.remove());
-  active = [];
-
-  notes.forEach(n => {
-  n.hitFired = false;
-})
-
-  index = notes.findIndex(n => n.time > targetTime);
-  if (index === -1) index = notes.length;
-
-  paintKeyboard();
-
-  document.querySelectorAll(".guide-left, .guide-right, .pre-hit")
-    .forEach(el => {
-      el.classList.remove("guide-left", "guide-right", "pre-hit");
-    });
+  // 4. オーディオとノーツの状態を同期し直す
+  // ※syncAudioState内でノーツの再描画が行われるようにしてください
+  if (typeof syncAudioState === 'function') {
+    syncAudioState();
+  }
 }
+
 
 
 
@@ -2186,9 +2218,32 @@ function setSpeed(val) {
 }
 
 function changeSpeed(dir) {
-    speedIndex = Math.max(0, Math.min(speedLevels.length - 1, speedIndex + dir));
-    setSpeed(speedLevels[speedIndex]);
+  const currentMusicTime = getTime();
+  
+speedIndex = Math.max(0, Math.min(speedLevels.length - 1, speedIndex + dir));
+  setSpeed(speedLevels[speedIndex]);
+  
+function updateBaseTime() {
+    // 1. まず現在の時間を取得する
+    const currentMusicTime = getTime(); 
+    
+    // 2. 取得した時間を計算式に使う
+    startTime = performance.now() - (currentMusicTime / speed) * 1000;
 }
+  syncAudioState();
+}
+
+  // 6. 画面上のノーツの再描画
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+  
+  // 画面に現在表示すべきノーツだけを再生成する
+  notes.forEach(n => {
+    if (n.time > currentMusicTime && n.time < currentMusicTime + 3.0) {
+      spawn(n);
+    }
+  });
+
 
 function showGoal() {
     const overlay = document.getElementById("goalOverlay");
@@ -2254,6 +2309,32 @@ function initSongMenu() {
         menu.appendChild(btn);
     });
 } // ここで initSongMenu を正しく閉じる
+
+// 再生位置とフラグを現在の状態に強制同期させる関数
+function syncAudioState() {
+  const currentMusicTime = getTime();
+  
+  // 1. ノイズ防止：演奏中の音を止める
+  if (window.synth) window.synth.releaseAll();
+  
+  // 2. 過去の音を「演奏済み」にロック
+  notes.forEach(n => {
+    n.played = (n.time <= currentMusicTime);
+  });
+
+  // 3. 画面のノーツをクリアして再構築
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+  
+  // 4. 今から少し先のノーツだけ表示対象にする
+  notes.forEach(n => {
+    if (n.time > currentMusicTime && n.time < currentMusicTime + 3.0) {
+      spawn(n);
+    }
+  });
+}
+
+
 
 function initApp() {
     initSongMenu();
