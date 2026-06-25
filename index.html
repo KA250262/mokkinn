@@ -216,12 +216,7 @@ body.mobile #keyboard-top {
 
 }
 
-#songSelector{
-  position:absolute;
-  top:10px;
-  left:10px;
-  z-index:2000;
-}
+
 
 /* スマホの時だけスライダーを少し小さくする */
 @media (max-width: 600px) {
@@ -245,23 +240,58 @@ body.mobile #keyboard-top {
 }
 
 #songListRow {
-    display: flex;
+    display:none;
     flex-direction: column;
-    position: absolute;
-    top: 55px;
-    left: 10px;
-    width: 180px;
-    min-width: 0;
-    z-index:2000;
-    padding: 8px;
-    gap: 6px;
-    max-height: 40vh;
+
+    position: fixed;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%);
+
+    width: min(80vw, 400px);
+
+    z-index: 9999;
+    padding: 12px;
+    gap: 8px;
+
+    max-height: 60vh;
     overflow-y: auto;
-    background: rgba(255,255,255,0.9);
+
+    background: rgba(255,255,255,0.95);
     border-radius: 12px;
-      touch-action:pan-y;
-  -webkit-overflow-scrolling:touch;
+
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
 }
+#songSelector {
+  position: fixed;
+ left: 50%;
+    top: 10px;
+  transform: translateX(-50%);
+
+  width:250px;
+  height:40px;
+
+  font-size: 22px;
+
+  z-index: 2000;
+}
+#songSelector.selectedSong{
+   position: fixed;
+
+    left: 50%;
+    top: 10px;
+
+     transform: translateX(-50%);
+
+    min-width: 250px;
+    height: 40px;
+
+    font-size: 14px;
+
+    z-index: 2000;
+}
+
 @media (max-width:768px){
 
   #ui{
@@ -273,7 +303,8 @@ body.mobile #keyboard-top {
      }
 }
 .songBtn {
-    width: 160px;
+    width: 100%;
+    min-height: 50px;
     height: 40px;
 
     text-align: left;
@@ -283,8 +314,9 @@ body.mobile #keyboard-top {
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: bold;
+    position: static 
 }
 
 .songBtn.selected {
@@ -2311,10 +2343,14 @@ function initSongMenu() {
             btn.classList.add("selected");
             loadSong(song.file);
 
+            document.getElementById("songListRow").classList.remove("show");
+
             // 曲名ボタンを書き換え
             const selector = document.getElementById("songSelector");
             if (selector) {
                 selector.textContent = "🎵 " + song.title + " ▼";
+
+               selector.classList.add("selectedSong");
             }
 
             // リストを閉じる
