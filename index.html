@@ -12,7 +12,2529 @@
 <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
 
 <style>
+#rotateMessage{<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メロころ♪</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<script>
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+<script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+
+<style>
 #rotateMessage{
+  display:none;
+}
+
+@media (orientation: portrait) {
+  #rotateMessage{
+    display:flex;
+    position:fixed;
+    inset:0;
+    background:black;
+    color:white;
+    font-size:32px;
+    z-index:999999;
+    justify-content:center;
+    align-items:center;
+  }
+
+  #gameArea,
+  #ui,
+  #songListRow{
+    display:none;
+  }
+}
+
+
+
+html {
+  transform-origin: top left;
+}
+
+body{
+  margin:0;
+  padding:0;
+  background: #fff176;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+    overflow-x:hidden;
+  overflow-y:auto;
+  transition: background-color 0.05s ease, filter 0.05s ease;
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  height: 100dvh;
+  margin: 0;
+}
+
+body.mobile {
+    transform: none !important;
+    overflow-x: auto !important;
+}
+body.mobile #keyboard-top {
+    width: max-content;
+    position: absolute; 
+    top: 0;
+}
+
+#gameArea {
+  position:relative;
+  aspect-ratio: 2 / 1; 
+  justify-content: flex-start;
+  width: 100%;
+  height: 60dvh;
+  background-image: linear-gradient(rgba(0, 77, 64, 0.7), rgba(0, 77, 64, 0.7)), url("melokoro.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+#mascot{
+  position:absolute;
+  width:100%;
+  height:70%;
+  left:0;
+  top:0;
+  object-fit:contain;
+  object-position:top;
+  pointer-events:none;
+  z-index:1;
+}
+
+
+#keyboard-top {
+  position: relative;
+  top: 10px;
+  left: 0;
+  width: 100%;
+  height: 210px; /* 💡2行がきれいに収まるように高さを広げました */
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+
+#keyboard-top .key {
+  border: 2px solid rgba(60,60,60,0.7) !important;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+    transition: transform 0.05s ease;
+    position: absolute;
+    top: 85px !important;
+    width: 23px;
+    height: 65px !important;
+    background: #fffae8;
+    border-radius: 6px;
+    z-index: 10 !important;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    transform-origin: center center !important; 
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+    padding-top: 60px;
+    box-sizing: border-box;
+    user-select: none;
+    cursor: pointer;
+}
+/* 
+#keyboard-top .key.hit,
+#keyboard-top .black.hit {
+  transform: scale(0.95) ;
+  filter: brightness(1.4);
+  transition: transform 0.0s ease-out, filter 0.0s ease-out !important;
+  z-index: auto !important;
+}
+
+
+
+/* 【1行目・奥】：すべての黒鍵を一番上にぴったり固定 */
+#keyboard-top .black {
+    box-shadow: 0 3px 0 #111;
+    transition: transform 0.05s ease;
+    position: absolute;
+    top: 35px !important;
+    width: 23px;
+    height: 60px !important;
+    background: #222;
+    border: 2px solid rgba(255,255,255,0.8);
+    border-radius: 5px 5px 4px 4px;
+
+    z-index: 20 !important; 
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    transform-origin: center center !important;
+    
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px;
+    color: white;
+    padding-top: 40px;
+    box-sizing: border-box;
+    user-select: none;
+    cursor: pointer;
+}
+.black.hit {
+ transform: translateY(10px);
+  background: #111;
+  /*border: 2px solid rgba(255,255,255,0.9) !important;*/
+}
+.key.hit {
+ transform: translateY(10px);
+  background: #111;
+  /*border: 2px solid rgba(255,255,255,0.9) !important;*/
+}
+
+/* C4（まん中のド）の下に▲を表示 */
+#keyboard-top .key[data-note="C4"]::after {
+    content: "▲";
+    position: absolute;
+    bottom: -20px; /* 鍵盤の下に配置 */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #ff3399; /* お好みの色に */
+    pointer-events: none;
+}
+
+#ui {
+  display: flex;
+  flex-direction: row;     /* 横並びを強制 */
+  flex-wrap: nowrap;
+  justify-content:center;
+  align-items: center;     /* 縦中央揃え */
+  gap: 5px;
+  margin-top:0px;
+  width:max-content;
+  min-width:max-content;        /* ←追加 */
+  max-width:none;      /* ←追加 */
+  margin-top:-15px;
+  padding: 4px 8px; 
+  position: static; 
+
+  transform: none;
+
+  flex-shrink: 0;  
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+ 
+  background: transparent;
+  backdrop-filter: none;
+  z-index: 1000;
+
+}
+
+#songSelector{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:2000;
+}
+
+/* スマホの時だけスライダーを少し小さくする */
+@media (max-width: 600px) {
+  #speed-slider {
+    width: 60px; /* 100pxから60pxへ短縮 */
+  }
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+  }
+}
+
+.controls-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center; 
+  gap: 20px;
+  white-space: nowrap;
+}
+
+#songListRow {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 55px;
+    left: 10px;
+    width: 180px;
+    min-width: 0;
+    z-index:2000;
+    padding: 8px;
+    gap: 6px;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+      touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+@media (max-width:768px){
+
+  #ui{
+    transform:none;
+    }
+
+    #songSelector{
+     width:180px;
+     }
+}
+.songBtn {
+    width: 160px;
+    height: 40px;
+
+    text-align: left;
+    padding-left: 15px;
+
+    background: #ff7ac8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.songBtn.selected {
+    background: #ff3399;
+    border-left: 6px solid white;
+}
+
+#songSelectBtn{
+  min-width:180px;
+  height:40px;
+  padding:0 12px;
+  border:none;
+  border-radius:20px;
+  background:#ff7ac8;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+#hitCount, #score-display {
+  font-size: 25px;
+  color: rgb(12, 46, 2);
+}
+.group{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:8px;
+}
+
+/* 鍵盤にリングを出す */
+.now-hit {
+    animation: nowPulse 0.3s ease-out;
+}
+
+@keyframes nowPulse {
+    0% {
+        transform: scale(1);
+        box-shadow:
+          0 0 0 0 rgba(255,255,255,0.9);
+    }
+
+    50% {
+        transform: scale(1.15);
+        box-shadow:
+          0 0 20px 10px rgba(255,255,255,0.8);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow:
+          0 0 0 0 rgba(255,255,255,0);
+    }
+}
+
+
+/* ========================================================
+   鍵盤ヒット・ガイド（上の鍵盤・木琴専用スタイル）
+   ======================================================== */
+/*.hit {
+  background: #c6e0ca !important; 
+  border-color: rgba(0,0,0,0.35) !important;
+box-shadow: none;
+}*/
+
+.pre-hit-right {
+    background:#ff66cc !important;
+}
+
+.pre-hit-left {
+    background:#66ddff !important;
+}
+
+.guide-right {
+    box-shadow:0 0 15px #ff66cc;
+}
+
+.guide-left {
+    box-shadow:0 0 15px #66ddff;
+}
+
+@keyframes guidePulse {
+    0% {
+        transform: scaleY(1);
+    }
+    50% {
+        transform: scaleY(0.92);
+    }
+    100% {
+        transform: scaleY(1);
+    }
+}
+/* ========================================================
+   木琴鍵盤から湧き出るノーツ（音符）システム
+   ======================================================== */
+
+#notes-layer {
+    position: absolute;
+    left: 0;
+    top: 30px;
+    width: 100%;
+    height: 100%;
+    /* 💡 鍵盤のz-index(最高100)よりも大きく設定 */
+    z-index: 10000 ; 
+    pointer-events: none;
+}
+
+
+.single-note{
+    transition:none;
+    transform-origin:center center;
+}
+
+@keyframes spawnNote {
+    0% {
+        opacity: 0;
+        transform: scale(0.1) rotate(-12deg); 
+        
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);    
+    }
+}
+
+.note {
+    position: absolute;
+    /* 最初は透明にしておく */
+    opacity: 0;
+    animation: spawnNote 0.2s ease-out forwards;
+    transition: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 30%;
+    /*border: 1px solid rgba(255,255,255,0.9);*/
+    background: radial-gradient(circle, #fff8c0, #ffd860);
+    will-change: transform;
+    opacity: 0.15;
+    transform: none;
+    transition: none;
+    z-index: 10001 !important;
+}
+
+.note-hit-effect {
+    opacity: 0 !important;
+    transform: scale(0.5) !important;
+    pointer-events: none;
+}
+
+.note.note-active {
+  opacity: 1;
+}
+
+.note-text {
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%)scaleX(0.9); 
+    transition: opacity 0.1s linear;
+    opacity: 1;
+    font-size: 18px; 
+    white-space: nowrap; 
+    font-weight: 800; 
+    color: white; 
+    text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
+    z-index: 300; 
+}
+
+.note-text.small {
+  font-size: 12px;
+}
+
+/* ファ以外に適用される大きめのフォント */
+.large-text {
+    font-size: 25px !important;
+}
+
+.note-spawn {
+    animation: none;
+}
+
+.note-hit {
+    box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
+    filter: brightness(1.8);
+}
+
+.note-suck {
+    animation: suckToLine 0.25s ease-in forwards;
+}
+
+@keyframes suckToLine {
+    0% {
+        transform: scale(1);
+        filter: blur(0px);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.1);
+        filter: blur(6px);
+        opacity: 0;
+    }
+}
+
+.note-trail {
+    position: absolute;
+    height: 8px;
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: 40;
+    opacity: 0.5;
+    transform-origin: left center;
+    filter: blur(3px);
+    box-shadow: 0 0 8px currentColor;
+}
+
+.note-trail-right {
+    background: linear-gradient(90deg, rgba(255,74,74,0.8), rgba(255,74,74,0));
+}
+
+.note-trail-left {
+    background: linear-gradient(90deg, rgba(74,163,255,0.8), rgba(74,163,255,0));
+}
+
+.note-fade-out {
+  animation: quickFade 0.15s ease-out forwards;
+}
+
+@keyframes quickFade {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6); }
+}
+
+
+/* #ui 内にスライダー用のスタイルを追加 */
+#speed-slider {
+    width: 100px;
+    vertical-align: middle;
+}
+
+/* 再生*/
+.play-btn {
+  transform: scale(1.1);
+  background: #2ecc71;
+}
+.play-btn:hover {
+  background: #27ae60;
+}
+
+/* ⏪ コマ戻し */
+
+/* ⏭ コマ送り */
+.step-btn,.back-btn {
+  background: #3498db;
+}
+.step-btn:hover,.back-btn:hover{
+  background: #2980b9;
+}
+
+.icon-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 12px;
+  width: 60px;
+  height: 60px;
+  font-size: 27px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.icon-btn,
+#speed-control button,
+#songSelectBtn {
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+
+.icon-btn:hover {
+  background: #ff3399;
+  transform: scale(1.1);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes comboBounce {
+  0%{ transform:scale(1); }
+  30%{ transform:scale(1.03) rotate(-1deg); }
+  60%{ transform:scale(1.03) rotate(1deg); }
+  100%{ transform:scale(1); }
+}
+
+@keyframes bubblePop {
+  0%{ transform:translateX(-50%) scale(1); opacity:1; }
+  50%{ transform:translateX(-50%) scale(1.3); opacity:1; }
+  100%{ transform:translateX(-50%) scale(2.2); opacity:0; }
+}
+
+.bubble-out {
+  animation: bubblePop 0.12s ease-out forwards;
+}
+
+/*.hit-flash{
+  position:absolute;
+  left:50%;
+  transform:translateX(-100%);
+  width:90%;
+  height:24px;
+  border-radius:20px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.95), rgba(120,220,255,0.7), rgba(120,220,255,0));
+  pointer-events:none;
+  animation:flashAnim 0.10s ease-out forwards;
+  z-index:500;
+}*/
+
+
+.chord-surround {
+  position: absolute;
+  pointer-events: none;
+  z-index: 90; 
+}
+
+.chord-surround-right { filter: drop-shadow(0 0 8px #ff4a4a) !important; }
+.chord-surround-left { filter: drop-shadow(0 0 8px #4aa3ff) !important; }
+
+@keyframes lineFlash {
+  0% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(0); }
+}
+
+@keyframes flashFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#score{
+  color:gold;
+  display:inline-block;
+  transition:0.1s;
+}
+
+#debug{
+  display: none !important;
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  font-size: 14px;
+  text-align: left;
+  border-radius: 8px;
+  color: white;
+}
+
+
+.bird {
+  font-size: 40px;
+  transform-origin: center;
+  animation: wing 0.4s infinite alternate;
+}
+
+.leftBird { transform: scaleX(-1); }
+.rightBird { transform: scaleX(1); }
+
+.piano-hand {
+  display: none !important;
+  position: absolute;
+  height: 200px;
+  z-index: 30;
+  pointer-events: none;
+  top: 650px;           
+  left: 0px;
+  transition: left 0.08s ease-out, top 0.1s ease-out, transform 0.05s ease-out, opacity 0.05s linear;
+  opacity: 0;
+}
+
+.piano-hand.tap {
+  transform: scale(0.88) translateY(-5px);
+}
+
+.tape {
+  background: gold;
+  color: #222;
+  font-weight: bold;
+  padding: 6px 16px;
+  border-radius: 6px;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.05); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+
+
+
+/* #lineLayer {
+    position:absolute; 
+    left:0; 
+    top:0; 
+    width:100%; 
+    height:100%; 
+    pointer-events:none; 
+    z-index:90; 
+} 
+*/
+
+/* 白鍵：透け感のある光 
+.key.pre-hit {
+    background:  #ffffff !important;
+    border: 2px solid #ffffff !important;
+    z-index: 50 !important; 
+}*/
+
+/* 黒鍵：鮮やかな蛍光色（HIT時と同じ色） 
+.black.pre-hit {
+    background: #ffffff !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 10px#ffffff !important;
+    z-index: 150 !important; 
+}*/
+
+/* 左手：水色 */
+.guide-left {
+    background: #4aa3ff !important;
+    box-shadow: 0 0 10px #4aa3ff !important;
+    opacity: 1 !important;
+}
+
+/* 右手：ピンク */
+.guide-right {
+    background: #ff4a4a !important;
+    box-shadow: 0 0 10px #ff4a4a !important;
+    opacity: 1 !important;
+}
+
+/* 選択中のボタン用のスタイル*/
+.songBtn.selected {
+    background: #ff3399;
+    border: 2px solid white;
+    box-shadow: 0 0 12px #ff3399;
+}
+/* ゴール表示用クラス */
+.goal-visible {
+    display: flex !important;
+}
+
+/* 画面の枠や線を強制的に消す */
+#gameArea, #lineLayer, .chord-surround {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* もしこれでも残る場合は以下も追加 */
+#lineLayer {
+    display: none !important;
+}
+
+#lineWarning{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#000c;
+  color:white;
+  z-index:999999;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  font-size:24px;
+}
+#speed-control{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+#speed-control button{
+  width:48px;
+  height:48px;
+  padding:0;
+  font-size:22px;
+}
+
+
+#speedLabel{
+  min-width:60px;
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+}
+
+/* 隠す用 */
+.hidden {
+  display: none;
+}
+/* 優先度を上げて、確実に光らせる */
+
+
+/*#keyboard-top .black.guide-left,
+#keyboard-top .black.guide-right {
+    background: #ffffff; 
+    box-shadow: 0 0 15px #ffffff;
+     opacity: 30 !important;
+}*/
+#keyboard-top .key.guide-left{
+    background: #6CCBFF; 
+    box-shadow: 0 0 50px #6EDFD3;
+     opacity: 1!important;
+}
+#keyboard-top .key.guide-right{
+    background: #FF7FB0; 
+    box-shadow: 0 0 50px #FF86C2;
+     opacity: 1!important;
+}
+
+
+#startOverlay,
+#goalOverlay {
+  position: fixed;
+  inset: 0;
+  top: 200px;
+  display: none;
+  justify-content: center;
+  z-index: 999999;
+}
+
+.goalScene {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.note-pre {
+    animation: preFloat 1.2s ease-in-out infinite;
+}
+
+@keyframes preFloat {
+    0%   { transform: rotate(-6deg) translateY(0px) scale(0.9); }
+    50%  { transform: rotate(-3deg) translateY(-3px) scale(0.92); }
+    100% { transform: rotate(-6deg) translateY(0px) scale(0.9); }
+}
+/* ポヨンと跳ねるアニメーション */
+@keyframes bounceNote {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.note-bounce {
+    animation: bounceNote 0.2s ease-out;
+}
+/* 鍵盤エリアの枠 */
+#keyboard-wrapper {
+    width: 100%;
+    overflow-x: scroll; /* はみ出たら横スクロールさせる */
+    touch-action: pan-x; /* スクロールをスムーズにする */
+}
+
+/* スマホ用：鍵盤のズーム設定 */
+@media (max-width: 768px) {
+    #keyboard-top {
+        /* ここで鍵盤を1.5倍〜2倍に拡大する */
+        transform: scale(1.5);
+        transform-origin: left top;
+        
+        /* 拡大した分、全体の横幅を調整 */
+        width: 150%; 
+    }
+      #songSelector{
+    position: fixed;
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    max-width: 90vw;
+    max-height: 80vh;
+
+    overflow-y: auto;
+  }
+}
+
+#keyboard-wrapper{
+  position:absolute;
+  left:50%;
+  top:20px;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+</style>
+</head>
+<body>
+<div id="rotateMessage">
+  ♫ 横向きにして遊んでください
+</div> 
+<div data-midi="60"></div>
+
+<div id="gameArea">
+
+   <button id="songSelector" onclick="toggleSongList()">
+    🎵 曲を選ぶ ▼
+   </button>
+
+   <div id="songListRow"></div>
+   
+  <div id="keyboard-wrapper">
+    <div id="keyboard-top">
+
+      <div id="notes-layer"></div>
+
+      <div class="white-keys"></div>
+      <div class="black-keys"></div>
+
+    </div>
+
+
+   <div id="ui">
+
+    <div id="speed-control">
+     <button onclick="changeSpeed(-1)">-</button>
+     <span id="speedLabel">1.0</span>
+     <button onclick="changeSpeed(1)">+</button>
+    </div>
+
+    <div class="group">
+     <button id="backBtn" class="icon-btn back-btn">⏪</button>
+     <button id="playBtn" class="icon-btn play-btn">▶</button>
+     <button id="stepBtn" class="icon-btn step-btn">⏭</button>
+
+     <button id="stopBtn" class="icon-btn">■</button>
+     <button id="pauseBtn" class="icon-btn">⏸</button>
+    </div>
+
+    <div id="judge"></div>
+   </div>
+ </div>
+</div>
+
+<div id="debug"></div>
+
+<script>
+const isLine = navigator.userAgent.includes("Line");
+
+if (isLine) {
+  document.body.innerHTML = `
+    <div style="
+      padding:30px;
+      font-size:24px;
+      text-align:center;
+      color:black;
+    ">
+      <h2>おねがい</h2>
+      「⋯」を押して<br>「デフォルトのブラウザで開く」<br>
+      をえらんでね！
+      </p>
+    </div>
+  `;
+  throw new Error("LINE Browser");
+}
+
+// window.synth の定義部分を以下のように書き換えてください
+window.synth = new Tone.Sampler({
+  urls: {
+  C3: "C3.wav",
+  D3: "D3.wav",
+  E3: "E3.wav",
+  F3: "F3.wav",
+  G3: "G3.wav",
+  A3: "A3.wav",
+  B3: "B3.wav",
+  C4: "C4.wav",
+  D4: "D4.wav",
+  E4: "E4.wav",
+  F4: "F4.wav",
+  G4: "G4.wav",
+  A4: "A4.wav",
+  B4: "B4.wav",
+  C5: "C5.wav"
+},
+  baseUrl: "./samples/",
+  maxPolyphony: 32, // ←これ追加
+  onload: () => {
+    console.log("音源ロード完了");
+  }
+}).toDestination();
+
+
+window.synth.volume.value = 0;
+
+// ★ここに置く（Sampler 初期化のすぐ下）
+window.synth.context.on('statechange', () => {
+  console.log("AudioContext state:", window.synth.context.state);
+});
+
+
+// 音源読み込みの成否をチェック
+Tone.loaded().then(() => {
+    console.log("すべてのサンプルがロードされました");
+}).catch((e) => {
+    console.error("ロード中にエラー発生:", e);
+});
+
+
+let lastPlayTime = 0;
+let prevRMS = 0;
+let baseline = 0;
+let prevSpectrum = [];
+let latestRMS = 0;
+let latestSpectrum = [];
+let lastHitDetect = 0;
+let loopRunning = false;
+let loopId = null;
+let usedNotes = new Set();
+let score = 0;
+let running = false;
+let paused = false;
+let pauseStart = 0;
+let pausedTime = 0;
+let notes = [];
+let active = [];
+let index = 0;
+let combo = 0;
+let hitCount = 0;
+let totalCount = 0;
+let whiteIndex = 0;
+let splitNote = 60;
+let stepIndex = 0;
+let speed = 1.0;
+let timeSignature = 4; // デフォルトは4拍子
+let startTime = 0;
+let currentSongName = ""; // 今選んでいる曲名
+let noteZCounter = 1000;
+let stepMode = false;
+let rewindHolding = false;
+let rewindTimer = null;
+let lastNoteTime = {};
+
+
+// =========================
+// 🎹 synth（音源）の再生
+// =========================
+
+
+function play(note){
+    const now = Tone.now();
+
+    // ★ ノートごとにガード（和音はブロックしない）
+    if (!lastNoteTime[note]) lastNoteTime[note] = 0;
+    if (now - lastNoteTime[note] < 0.03) return; 
+    lastNoteTime[note] = now;
+
+    // AudioContext が止まっていたら再開
+    if (window.synth.context.state !== "running") {
+        window.synth.context.resume();
+    }
+
+    try {
+        window.synth.triggerAttackRelease(note, 1, now);
+    } catch (e) {
+        console.error("再生エラー:", e);
+    }
+}
+
+
+
+// =========================
+// 🎚 音量調整（安全な処理）
+// =========================
+if (window.synth?.volume) {
+  // 一度音量を下げてから、0.08秒後に0に戻す（プツッというノイズを軽減する処理）
+  window.synth.volume.rampTo(-6, 0.1);
+
+  setTimeout(() => {
+    window.synth.volume.rampTo(0, 0.05);
+  }, 80);
+}
+
+// =========================
+// 🎛 ボタンの取得（キャメルケースで統一）
+// =========================
+const playBtn  = document.getElementById("playBtn");
+const stopBtn  = document.getElementById("stopBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const backBtn  = document.getElementById("backBtn");
+const stepBtn  = document.getElementById("stepBtn");
+
+
+// 存在しないボタンを除外して配列にまとめる（安全対策）
+const buttons = [
+  playBtn,
+  stopBtn,
+  pauseBtn,
+  backBtn,
+  stepBtn,
+].filter(Boolean);
+
+document
+  .getElementById("resetBtn")
+  ?.addEventListener("click", emergencyReset);
+
+// =========================
+// ステップモード（コマ送り）の開始
+// =========================
+function startStepMode(){
+  stepMode = true;
+  running = false;
+
+  const now = getTime();
+  const nextIndex = notes.findIndex(n => n.time > now);
+
+  if(nextIndex !== -1){
+    stepIndex = nextIndex;
+  }
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+}
+
+
+
+function updatePosition(n, now) {
+  if (!n.el) return;
+
+  const travelTime = 3.0; // ノーツが降りてくる時間（秒）
+
+  const y =
+    ((n.time - now) / travelTime) * 300 * speed; 
+    // ↑ speed（1.0〜1.5）をちゃんと効かせる
+
+  n.el.style.transform = `translateY(${y}px)`;
+}
+
+
+
+// =========================
+// オートモード（自動再生）の開始
+// =========================
+function startAutoMode() {
+  // 1. まず残留しているノーツを物理的に全消去
+  const notesLayer = document.getElementById("notes-layer");
+  if (notesLayer) {
+    notesLayer.innerHTML = ""; 
+  }
+  
+  // 2. active配列をクリア
+  active = [];
+
+  // 3. 必要なフラグの切り替え
+  stepMode = false;
+  running = true;
+  paused = false;
+
+  // 4. 現在の時刻から再生を再開するために startTime を補正
+  // 現在の再生位置(getTime())を考慮してスタート時間を設定し直す
+  startTime = performance.now() - (getTime() / speed) * 1000;
+
+  // 5. ループを開始
+  requestAnimationFrame(loop);
+}
+
+
+
+
+
+// =========================
+// 🔄 ループ処理（ゲームの心臓部）
+// =========================
+function loop() {
+
+  if (loopRunning && !running) {
+    loopRunning = false;
+    loopId = null;
+    return;
+  }
+   if (loopRunning === false) {
+    loopRunning = true;
+  }
+
+  loopRunning = true;
+window.__gameVersion = (window.__gameVersion || 0) + 1;
+
+  document.querySelectorAll(
+    "#keyboard-top .guide-left, #keyboard-top .guide-right"
+  ).forEach(key => {
+
+    const alive = active.some(
+      n =>
+        n.keyTop === key &&
+        !n.done &&
+        !n.missed
+    );
+
+    if (!alive) {
+      key.classList.remove(
+        "guide-left",
+        "guide-right"
+      );
+    }
+  });
+
+  if (!running) return;
+if (loopId) cancelAnimationFrame(loopId);
+  loopId = requestAnimationFrame(loop);
+ 
+  if (paused) return;
+  const now = Tone.now();
+
+ active.forEach(n => {
+  updatePosition(n, now);
+});
+
+  // 3. 基本情報取得
+ const gameTime = getTime() * speed;
+
+
+
+
+  // 4. ノーツの出現処理（AUTO MODEのみ）
+  if (!stepMode) {
+    while (index < notes.length && notes[index].time <= gameTime + 0.25) {
+      spawn(notes[index]);
+      index++;
+    }
+  }
+
+// 5. 判定と位置の更新
+  for (let i = active.length - 1; i >= 0; i--) {
+    const n = active[i];
+    if (n.removed) continue;
+
+    const remain = n.hit - gameTime;
+
+// ★追加：ヒット0.15秒前にポヨンとさせる
+    /*if (!n.bounced && remain < 0.1 && remain > 0) {
+        n.bounced = true;
+        n.el.classList.add("note-bounce");
+        
+        // アニメーションが終わったらクラスを外す（再利用できるように）
+        setTimeout(() => {
+            n.el.classList.remove("note-bounce");
+        }, 50);
+    }*/
+    // ガイドの点灯処理
+    if (!n.guideShown && remain < 0.05 && remain > 0) {
+      n.guideShown = true;
+      const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
+      n.keyTop.classList.add(guideClass);
+    }
+
+    // --- ここから修正した物理演算 ---
+   /* const gravity = 0.8; 
+    const ground = 0; 
+
+    n.v += gravity;
+    n.y += n.v;
+
+    if (n.y >= ground) {
+      n.y = ground;
+      if (n.v > 0) n.v *= -0.5; // 跳ね返り係数
+      if (Math.abs(n.v) < 1.5) n.v = 0;
+    }
+
+    // ★重要：CSSへの反映（鍵盤位置 + 跳ねた分）
+    n.el.style.transform = `translateY(${n.y}px)`;
+    // --- 修正終わり ---*/
+
+    // 判定処理：通り過ぎてから0.2秒経ったらミス扱い＆消滅
+    if (!n.missed && remain < -0.15) {
+      n.missed = true;
+      n.keyTop?.classList.remove("guide-left", "guide-right");
+      n.el.classList.add("note-fade-out");
+      
+      setTimeout(() => {
+        if (n.el) n.el.remove();
+      }, 1);
+
+      active.splice(i, 1);
+      continue;
+    }
+  }
+
+// 6. 音声再生処理
+  notes.forEach(n => {
+    if (n.played) return;
+    
+    // 現在時刻がノーツの時間を過ぎていたら音を鳴らす
+    const diff = gameTime - n.time;
+
+    // --- ★安全装置★ ---
+    // もしノーツの時間が現在より1秒以上前なら、巻き戻し時の誤動作とみなして
+    // 再生せずに「played」扱いにして無視する
+    if (diff > 1.0) {
+      n.played = true;
+      return;
+    }
+    // ------------------
+
+    const key = document.querySelector(
+      `#keyboard-top [data-note="${n.note}"]`
+    );
+
+    if (!n.played && diff > 0) {
+      play(n.note);
+      n.played = true;
+    }
+
+    if (diff > 0 && diff < 0.12) {
+      key.classList.add("hit");
+
+      setTimeout(() => {
+        key.classList.remove("hit");
+      }, 400);
+    }
+  });
+
+  // 7. 終了チェック
+  if (index >= notes.length && active.length === 0) {
+    running = false;
+    showGoal();
+    cancelAnimationFrame(loopId);
+  }
+console.log(active.length);
+}
+loop();
+
+
+
+function stopAll() {
+  hardStop();
+notes.forEach(n => n.played = false);
+  running = false;
+  paused = false;
+  stepMode = false;
+
+  if (loopId) {
+    cancelAnimationFrame(loopId);
+    loopId = null;
+  }
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  index = 0;
+  stepIndex = 0;
+
+   gameStarted = false;
+}
+
+
+
+// =========================
+// ▶ 再生開始
+// =========================
+playBtn.addEventListener("click", () => {
+
+  // すでに再生中なら無視
+  if (running) return;
+
+  // active をクリア
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+
+  // played をリセット
+  notes.forEach(n => n.played = false);
+
+  // ★ index の位置から再生するための startTime 補正
+  const t = notes[index]?.time ?? 0;
+  startTime = performance.now() - (t * 1000) / speed;
+
+  running = true;
+  paused = false;
+
+  requestAnimationFrame(loop);
+});
+
+
+
+
+
+
+function clearKeyHighlights(){
+  document.querySelectorAll("#keyboard-top .key, #keyboard-top .black").forEach(k => {
+    k.classList.remove(
+      "hit",
+      "guide-left",
+      "guide-right",
+      "pre-hit-left",
+      "pre-hit-right"
+    );
+  });
+}
+
+function hardStop() {
+  running = false;
+  paused = false;
+  stepMode = false;
+
+  if (loopId) {
+    cancelAnimationFrame(loopId);
+    loopId = null;
+  }
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  index = 0;
+  stepIndex = 0;
+}
+
+// =========================
+// ⏹ 停止
+// =========================
+stopBtn?.addEventListener("click", () => {
+  stopAll();
+  clearKeyHighlights();
+});
+
+  score = 0;
+  combo = 0;
+  hitCount = 0;
+  pausedTime = 0;
+  startTime = 0;
+
+  document.getElementById("judge").textContent = "";
+
+// =========================
+// ⏸ 一時停止
+// =========================
+pauseBtn?.addEventListener("click", () => {
+  pauseGame();
+  changeButtonColor(pauseBtn);
+});
+
+// =========================
+// ⏪ 戻る / ⏭ 進む
+// =========================
+// 巻き戻しボタン（⏪）のイベント処理
+// --- マウス操作（巻き戻し開始） ---
+backBtn?.addEventListener("mousedown", async () => {
+  await Tone.start();
+  
+  // 1. 巻き戻し開始時に音を強制停止
+  if (window.synth) window.synth.releaseAll();
+  
+  rewindHolding = true;
+  running = false; // ループを止める
+  
+  const loopBack = () => {
+    if (!rewindHolding) return;
+    stepBack(); // stepBack() 内で play() を呼ばないようにしてください
+    rewindTimer = setTimeout(loopBack, 80);
+  };
+  loopBack();
+});
+
+// --- マウス操作（巻き戻し終了） ---
+backBtn?.addEventListener("mouseup", () => {
+  if (rewindHolding) finishRewind();
+});
+
+// --- タッチ操作（巻き戻し開始） ---
+backBtn?.addEventListener("touchstart", async (e) => {
+  e.preventDefault();
+  backBtn.dispatchEvent(new Event("mousedown"));
+});
+
+// --- タッチ操作（巻き戻し終了） ---
+backBtn?.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  if (rewindHolding) finishRewind();
+});
+
+
+function stepBack() {
+  if (index <= 0) return;
+
+  index--;
+  const targetTime = notes[index].time;
+
+  // 同じタイミング（和音）の音をまとめて戻る
+  while (index > 0 && Math.abs(notes[index - 1].time - targetTime) < 0.001) {
+    index--;
+  }
+
+  // 1. ノーツの描画をクリア
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+
+  // 2. ★超重要：ここを修正
+  // 全てを false にせず、巻き戻した時間(targetTime)より過去の音だけを
+  // 演奏済み(true)にすることで、ガーンと鳴るのを防ぐ
+  notes.forEach(n => {
+    n.played = (n.time < targetTime);
+  });
+
+  // 3. 再生時間を巻き戻し位置に合わせる
+  startTime = performance.now() - (targetTime * 1000) / speed;
+
+  running = false; 
+}
+
+
+// --- 共通の巻き戻し終了処理 ---
+function finishRewind() {
+  rewindHolding = false;
+  clearTimeout(rewindTimer);
+
+  // 巻き戻し後の正確な時間を計算
+  const targetTime = notes[index] ? notes[index].time : 0;
+  startTime = performance.now() - (targetTime * 1000) / speed;
+
+  // 1. ノイズ防止とフラグ同期をまとめて実行
+  syncAudioState();
+
+  // 2. 巻き戻し後は一時停止状態で待機
+  running = false;
+  stepMode = false;
+}
+
+// --- マウス操作 ---
+backBtn?.addEventListener("mouseup", () => {
+  if (rewindHolding) finishRewind();
+});
+
+// --- タッチ操作 ---
+backBtn?.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  if (rewindHolding) finishRewind();
+});
+
+
+
+
+stepBtn?.addEventListener("click", async () => {
+  await Tone.start();
+
+  running = false;
+  paused = false;
+  stepMode = true;
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  stepForward();
+});
+
+// =========================
+// ⏱ 時間計算
+// =========================
+function getTime() {
+  return ((performance.now() - startTime) / 1000) * speed;
+}
+
+
+// =========================
+// 🎨 ボタン状態管理
+// =========================
+function changeButtonColor(activeButton) {
+  buttons.forEach(btn => btn?.classList.remove("active"));
+  if (activeButton) activeButton.classList.add("active");
+}
+
+// =========================
+// 🎹 キーボード設定
+// =========================
+const travelTime = 3.0;
+
+const keys = [
+  "C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1","B1",
+  "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2",
+  "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3",
+  "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
+  "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
+  "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6",
+  "C7"
+];
+
+// =========================
+// 🎹 描画
+// =========================
+renderKeyboard("keyboard-top");
+
+
+
+function renderKeyboard(id) {
+    const kb = document.getElementById(id);
+    if (!kb) return;
+    
+    kb.querySelectorAll(".key,.black").forEach(e => e.remove());
+    const whiteNotes = keys.filter(n => !n.includes("#"));
+    const isMobile = window.innerWidth <= 768;
+    const whiteWidth = isMobile ? 35 : (window.innerWidth / whiteNotes.length);
+    
+    let whiteIndex = 0;
+    keys.forEach(note => {
+        const isBlack = note.includes("#");
+        const key = document.createElement("div");
+        key.dataset.note = note;
+        
+        if (isBlack) {
+            key.className = "black";
+            key.style.left = (whiteIndex * whiteWidth - 11) + "px"; 
+        } else {
+            key.className = "key";
+            key.style.left = (whiteIndex * whiteWidth) + "px";
+            key.style.width = whiteWidth + "px";
+            whiteIndex++;
+        }
+        kb.appendChild(key);
+    });
+    paintKeyboard();
+}
+
+let scaleTimer;
+function applyScale() {
+    if (window.innerWidth <= 768) {
+        document.body.classList.add("mobile");
+    } else {
+        document.body.classList.remove("mobile");
+    }
+}
+
+function applyScaleDebounced() {
+    clearTimeout(scaleTimer);
+    scaleTimer = setTimeout(() => {
+        applyScale();
+        renderKeyboard("keyboard-top");
+    }, 100);
+}
+
+const songList = [
+    { file: "青い鳥_両手.mid", title: "青い鳥伴奏_両手" },
+    { file: "青い鳥_左手.mid", title: "青い鳥_左手とメロディー" },
+    { file: "永遠にアムロ.mid", title: "永遠にアムロ" },
+    { file: "転生願望.mid", title: "転生願望" },
+    { file: "コナン.mid", title: "コナンメインテーマ" },
+    { file: "カントリーロード.mid", title: "カントリーロード" },
+    { file: "Turkishi.mid", title: "トルコ行進曲" },
+    { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
+    { file: "革命.mid", title: "ショパン 革命" }
+];
+
+
+
+
+window.addEventListener("load", () => {
+    applyScale();
+    initApp();
+});
+window.addEventListener("resize", applyScaleDebounced);
+window.addEventListener("orientationchange", applyScaleDebounced);
+
+
+
+function showStart(){
+  const judge = document.getElementById("judge");
+  if (!judge) return;
+
+  judge.style.opacity = "1";
+  judge.textContent = "START!";
+
+  setTimeout(() => {
+    judge.textContent = "";
+    judge.style.opacity = "0";
+  }, 600);
+}
+
+
+
+function pauseGame(){
+  if (!running) return;
+
+  const judge = document.getElementById("judge");
+
+  if (!paused){
+    paused = true;
+    pauseStart = performance.now();
+
+ // ★ここでTone.jsに「すべての音を止めて！」と命令する
+    if (window.synth) {
+      window.synth.releaseAll(); 
+    }
+
+    // ★PAUSE表示
+    judge.style.opacity = "1";
+    judge.textContent = "PAUSE";
+
+  } else {
+    paused = false;
+  // 停止していた時間を計算
+    const pauseDuration = performance.now() - pauseStart;
+    pausedTime += pauseDuration;
+
+    // 再開したとき、過去のStartTimeを「停止していた時間分」だけ後ろにずらす
+    // これにより、今の現在時刻とゲーム内時間のズレを補正します
+    startTime += pauseDuration;
+
+    // ★PAUSE表示を消す
+    judge.textContent = "";
+    judge.style.opacity = "0";
+
+    requestAnimationFrame(loop);
+  }
+  document.querySelectorAll(".guide-left, .guide-right, .pre-hit").forEach(el => {
+  if (!active.some(n => n.keyTop === el)) {
+    el.classList.remove("guide-left", "guide-right", "pre-hit");
+  }
+});
+}
+
+async function startMic() {
+    try {
+        if (!navigator.mediaDevices?.getUserMedia) return false;
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyzer = Meyda.createMeydaAnalyzer({
+            audioContext: audioContext,
+            source: source,
+            bufferSize: 512,
+            featureExtractors: ["rms", "amplitudeSpectrum", "spectralCentroid"],
+            callback: (features) => {
+                const currentRMS = features.rms || 0;
+                const spectrum = features.amplitudeSpectrum || [];
+                const centroid = features.spectralCentroid || 0;
+                latestRMS = currentRMS;
+                latestSpectrum = spectrum;
+                baseline = baseline * 0.95 + currentRMS * 0.05;
+                let flux = 0;
+                if (prevSpectrum.length && prevSpectrum.length === spectrum.length) {
+                    for (let i = 0; i < spectrum.length; i++) {
+                        flux += Math.abs(spectrum[i] - prevSpectrum[i]);
+                    }
+                }
+                const delta = currentRMS - prevRMS;
+                const now = performance.now();
+
+                const debug = document.getElementById("debug");
+                if (debug) {
+                    debug.textContent = "RMS : " + currentRMS.toFixed(3) + " / base : " + baseline.toFixed(3);
+                }
+
+                const attackMode = currentRMS > 0.015 && currentRMS > baseline * 2 && (flux > 0.15 || delta > baseline * 1.2);
+                if (attackMode && now - lastHitDetect > 300) {
+                    hitNearest();
+                    lastHitDetect = now;
+                }
+                prevRMS = currentRMS;
+                prevSpectrum = [...spectrum];
+            }
+        });
+        analyzer.start();
+        analyser = analyzer;
+        return true;
+    } catch (e) { return false; }
+}
+
+let mic;
+
+function loadInitialMidi() {
+  const midi = new Midi(buffer);
+  window.songBpm =
+  midi.header.tempos?.[0]?.bpm || 120;
+
+    const saved = localStorage.getItem("savedMidi");
+    if (saved) {
+        try {
+            const obj = JSON.parse(saved);
+            const uint = new Uint8Array(obj.data);
+            loadMidi(uint.buffer, obj.name);
+            return Promise.resolve();
+        } catch (e) { console.warn("saved MIDI破損:", e); }
+    }
+    return loadMidiFromUrl("./songs/55.mid", "55.mid");
+}
+
+function getNoteColor(note){
+  return note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
+}
+
+async function loadMidiFromUrl(url, fileName){
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+  loadMidi(buf, fileName);
+}
+
+function loadMidi(buffer, fileName){
+  chordSpawnIndex = {};
+  const midi = new Midi(buffer);
+    timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
+  const keySig = midi.header.keySignatures?.[0];
+  const keyFix = { "D#":"Eb", "Eb":"Eb", "C#":"Db", "Db":"Db", "F#":"Gb", "Gb":"Gb", "G#":"Ab", "Ab":"Ab", "A#":"Bb", "Bb":"Bb" };
+  window.currentKey = keyFix[keySig?.key] || "C";
+
+  notes = [];
+  usedNotes.clear();
+
+  let playableTrackCount = 0;
+  midi.tracks.forEach(t => {
+    if (t.notes.length === 0) return;
+    t.notes.forEach(n => {
+      notes.push({
+        time: n.time,
+        note: n.name,
+        midi: n.midi,
+        duration: n.duration,
+        hand: (playableTrackCount === 0) ? "right" : "left"
+      });
+      usedNotes.add(n.name);
+    });
+    playableTrackCount++;
+  });
+
+  notes.sort((a, b) => a.time - b.time);
+
+  let currentChordId = 0;
+  for (let i = 0; i < notes.length; i++) {
+    if (i > 0 && Math.abs(notes[i].time - notes[i - 1].time) > 0.01) {
+      currentChordId++;
+    }
+    notes[i].chordId = currentChordId;
+  }
+  totalCount = notes.length;
+  paintKeyboard();
+}
+
+function paintKeyboard(){
+  document.querySelectorAll(".key, .black").forEach(key=>{
+    if(key.classList.contains("black")){
+      key.style.background = "#222";
+    } else {
+      key.style.background = "#fffae8"; /* ⭐初期色をアイボリーに変更 */
+    }
+    key.style.opacity = "1";
+  });
+}
+
+
+async function startGame() {
+if (running) {
+  console.warn("startGame blocked (already running)");
+  return;
+}
+
+
+  // 曲がないとき
+  if (!notes || notes.length === 0) {
+    const judge = document.getElementById("judge");
+    judge.style.opacity = "1";
+    judge.textContent = "曲を選んでね";
+    setTimeout(() => {
+      judge.style.opacity = "0";
+      judge.textContent = "";
+    }, 1200);
+    gameStarted = false;
+    return;
+  }
+
+  // Audio 初期化
+  try {
+    await Tone.start();
+    console.log("AudioContext 開始");
+  } catch (e) {
+    console.error("AudioContext 開始失敗:", e);
+  }
+
+  // Sampler を使うならここで synth チェック（PolySynth は不要なら消す）
+  // if (!window.synth) { ... } ← Sampler 初期化済みなら不要
+
+  // ノーツ・状態の完全リセット
+  document.getElementById("notes-layer").innerHTML = "";
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  notes.forEach(n => n.played = false);
+
+  index = 0;
+  stepIndex = 0;
+  pausedTime = 0;
+  running = false;
+  paused = false;
+  loopRunning = false;
+
+  score = 0;
+  combo = 0;
+  hitCount = 0;
+  totalCount = notes.length;
+
+  startTime = performance.now();
+
+  update();
+
+  // モバイルクラス
+  if (window.innerWidth <= 768) {
+    document.body.classList.add("mobile");
+  } else {
+    document.body.classList.remove("mobile");
+  }
+
+  showStart();
+
+  // モード起動
+  if (stepMode) {
+    console.log("STEP MODE 起動");
+    startStepMode();
+  } else {
+    console.log("AUTO MODE 起動");
+    startAutoMode();
+  }
+}
+
+function updateBaseTime() {
+    const currentMusicTime = getTime(); 
+    // 現在の時刻から「曲の経過時間分」を引いて、正しい開始基準を再計算
+    startTime = performance.now() - (currentMusicTime / speed) * 1000;
+}
+
+
+
+
+
+function stopGame(){
+  running = false;
+  paused = false;
+
+  active.forEach(n => n.el?.remove());
+  active = [];
+
+  document.querySelectorAll(".guide-left, .guide-right, .hit, .pre-hit").forEach(el => {
+    el.classList.remove(
+      "guide-left",
+      "guide-right",
+      "hit",
+      "pre-hit",
+      "note-active"
+    );
+  });
+
+  // ★黒鍵の「残り色」対策（超重要）
+  document.querySelectorAll(".black, .key").forEach(el => {
+    el.style.background = "";
+    el.style.boxShadow = "";
+  });
+
+  paintKeyboard();
+
+  const scoreDisplay = document.getElementById("score-display");
+  if (scoreDisplay) scoreDisplay.textContent = "0 / 0";
+
+  document.querySelectorAll(".combo-line, .chord-surround").forEach(e=>e.remove());
+resetVisuals();
+
+}
+
+
+function resetVisuals(){
+  document.querySelectorAll(".key, .black").forEach(k => {
+    k.classList.remove(
+      "guide-left",
+      "guide-right",
+      "hit",
+      "pre-hit"
+    );
+    k.style.background = "";
+    k.style.boxShadow = "";
+  });
+}
+
+/**
+ * 巻き戻しボタン用関数
+ */
+function rewind() {
+  // 1. オーディオ時間を実際に巻き戻す
+  // (audioが定義されていない場合のエラー回避も入れています)
+  if (typeof audio !== 'undefined' && audio) {
+    audio.currentTime = Math.max(0, audio.currentTime - 5);
+  }
+
+  // 2. 基準となる startTime を巻き戻し後の時間に再計算
+  // ※この関数は別途定義しておく必要があります（下記参照）
+  updateBaseTime();
+
+  // 3. ノーツ表示レイヤーを一度クリアしてリセット
+  const notesLayer = document.getElementById("notes-layer");
+  if (notesLayer) {
+    notesLayer.innerHTML = "";
+  }
+
+  // 4. オーディオとノーツの状態を同期し直す
+  // ※syncAudioState内でノーツの再描画が行われるようにしてください
+  if (typeof syncAudioState === 'function') {
+    syncAudioState();
+  }
+}
+
+
+
+
+function noteToSolfege(noteName){
+    const pitch = noteName.replace(/[0-9]/g, "");
+    const normalize = {
+        "C":"C", "C#":"C#","Db":"C#", "D":"D", "D#":"D#","Eb":"D#", "E":"E","Fb":"E",
+        "F":"F","E#":"F", "F#":"F#","Gb":"F#", "G":"G", "G#":"G#","Ab":"G#", "A":"A",
+        "A#":"A#","Bb":"A#", "B":"B","Cb":"B"
+    };
+    const p = normalize[pitch];
+    if(!p) return pitch;
+
+    const key = window.currentKey || "C";
+    const majorScale = {
+        C:  ["C","D","E","F","G","A","B"], G:  ["C","D","E","F#","G","A","B"],
+        D:  ["C#","D","E","F#","G","A","B"], A:  ["C#","D","E","F#","G#","A","B"],
+        E:  ["C#","D#","E","F#","G#","A","B"], B:  ["C#","D#","E","F#","G#","A#","B"],
+        F:  ["C","D","E","F","G","A","A#"], Bb: ["C","D","D#","F","G","A","A#"],
+        Eb: ["C","D","D#","F","G","G#","A#"], Ab: ["C","C#","D#","F","G","G#","A#"]
+    };
+    const solfege = ["ド","レ","ミ","ファ","ソ","ラ","シ"];
+    const scale = majorScale[key];
+    const idx = scale.indexOf(p);
+    if(idx !== -1) return solfege[idx];
+
+    const kana = {
+        "C":"ド", "C#":"ド♯", "D":"レ", "D#":"レ♯", "E":"ミ", "F":"ファ",
+        "F#":"ファ♯", "G":"ソ", "G#":"ソ♯", "A":"ラ", "A#":"ラ♯", "B":"シ"
+    };
+    return kana[p] || p;
+}
+
+const NOTE_EARLY = 0.3;
+
+const spawned = new Set();
+
+
+// spawn
+
+function spawn(note, now = getTime()) {
+
+const myVersion = window.__gameVersion;
+
+  const keyTop = document.querySelector(
+    `#keyboard-top [data-note="${note.note}"]`
+  );
+  if (!keyTop) return;
+
+  const el = document.createElement("div");
+  el.className = "note";
+
+  // 鍵盤の位置に合わせて配置
+  const isBlack = keyTop.classList.contains("black");
+
+const x = keyTop.offsetLeft + keyTop.offsetWidth / 2 - 12
+        + (isBlack ? 1 : 0);
+
+const y = keyTop.offsetTop + (isBlack ? -10 : 0);
+
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+
+  // 色（手の分離）
+  el.style.background = note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
+
+  // z-index管理（後勝ち表示）
+  el.style.zIndex = noteZCounter++;
+
+  // ノーツ表示用テキスト（白鍵だけ）
+  const text = document.createElement("div");
+  text.className = "note-text";
+
+  // ここはあなたの関数使ってOK
+  const sol = noteToSolfege(note.note);
+  text.textContent = sol;
+
+if (sol.includes("♯")) {
+  text.classList.add("small");
+  }
+
+  el.appendChild(text);
+
+  // DOM追加
+  document.getElementById("notes-layer").appendChild(el);
+
+  // active登録（ゲーム用データ）
+  const obj = {
+    el,
+    note: note.note,
+    time: note.time,
+    hit: note.time,
+    keyTop,
+    hand: note.hand,
+    chordId: note.chordId,
+
+    y: 0,
+    v: 0,
+
+    guideShown: false,
+    done: false,
+    missed: false
+  };
+
+  active.push(obj);
+
+  return obj;
+}
+
+
+function success(best) {
+  if (best.done) return; 
+  best.done = true;
+
+
+  
+  best.el.classList.add("note-hit-effect");
+
+  // 2. 0.1秒（transitionの時間）だけ待ってからDOMから完全に削除する
+  setTimeout(() => { 
+      if (best.el) best.el.remove(); 
+  }, 100); // ここを短くするほど速く消えます
+
+  best.keyTop?.classList.remove(
+  "pre-hit-left",
+  "pre-hit-right",
+  "guide-left",
+  "guide-right"
+);
+
+  best.el.classList.add("note-suck");
+  best.removed = true;
+
+  setTimeout(() => { best.el?.remove(); }, 250);
+  active = active.filter(n => n !== best);
+  hitCount++;
+  update();
+}
+
+function hitNearest() {
+   console.log("🔥 hitNearest fired");
+  const now = getTime();
+
+  // guideが出てる & 未処理のノーツだけ対象
+  const candidates = active.filter(n => 
+    n.guideShown && 
+    !n.done && 
+    n.keyTop
+  );
+
+  if (candidates.length === 0) return;
+
+  // 一番最初の候補を「基準」にする
+  const best = candidates[0];
+
+  // 同じキー・同じ手だけまとめる（安全）
+  const group = active.filter(n =>
+    n.guideShown &&
+    !n.done &&
+    n.keyTop &&
+    n.chordId === best.chordId &&
+    n.hand === best.hand
+  );
+
+  group.forEach(n => {
+    // 🔥 光る
+    n.keyTop.classList.add("hit");
+
+    setTimeout(() => {
+      n.keyTop?.classList.remove("hit");
+    }, 200);
+
+    // 成功処理（1回ずつ安全に）
+    success(n);
+  });
+}
+
+/* ================= ⭐ 改定：TAP用HIT処理 ================= */
+function hit(note){
+  // ⭐ 下の鍵盤へのクラス付与になっていた箇所を「keyboard-top」へ完全移行
+  /*
+  const key = document.querySelector(`#keyboard-top [data-note="${note}"]`);
+  if (key) {
+    key.classList.add("hit");
+    setTimeout(() => key.classList.remove("hit"), 140);
+  }
+*/
+  const t = getTime();
+  const JUDGE_WINDOW = 0.6;
+  let best = null;
+  let bestDiff = 999;
+
+  active.forEach(n => {
+  if (!n.keyTop) {
+    console.warn("keyTop missing", n);
+    return;
+  }
+  console.log(n.keyTop.className);
+
+    if (n.note !== note) return;
+    const diff = n.hit - t;
+    if (Math.abs(diff) > JUDGE_WINDOW) return;
+    const absDiff = Math.abs(diff);
+    if (absDiff < bestDiff) {
+      bestDiff = absDiff;
+      best = n;
+    }
+  });
+
+  if (best) {
+    success(best, note);
+    score += 300;
+    combo++;
+  }
+  update();
+}
+
+function update(){
+  const total = (typeof notes !== 'undefined' && notes.length) ? notes.length : 0;
+  const scoreDisplay = document.getElementById("score-display");
+  if (scoreDisplay) {
+    scoreDisplay.textContent = `${hitCount} / ${total}`;
+  }
+}
+
+let speedIndex = 1; // 1.0 に対応するインデックス
+const speedLevels = [0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
+
+function setSpeed(val) {
+    speed = val;
+    document.getElementById("speedLabel").textContent = speed.toFixed(2);
+}
+
+function changeSpeed(dir) {
+  const currentMusicTime = getTime();
+  
+speedIndex = Math.max(0, Math.min(speedLevels.length - 1, speedIndex + dir));
+  setSpeed(speedLevels[speedIndex]);
+  
+function updateBaseTime() {
+    // 1. まず現在の時間を取得する
+    const currentMusicTime = getTime(); 
+    
+    // 2. 取得した時間を計算式に使う
+    startTime = performance.now() - (currentMusicTime / speed) * 1000;
+}
+  syncAudioState();
+}
+
+  // 6. 画面上のノーツの再描画
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+  
+  // 画面に現在表示すべきノーツだけを再生成する
+  notes.forEach(n => {
+    if (n.time > currentMusicTime && n.time < currentMusicTime + 3.0) {
+      spawn(n);
+    }
+  });
+
+
+function showGoal() {
+    const overlay = document.getElementById("goalOverlay");
+    if (overlay) {
+        overlay.classList.add("goal-visible"); // CSSで定義した flex を付与
+    }
+    
+    // ゴール演出を数秒後に消す処理（必要であれば）
+    setTimeout(() => {
+        if (overlay) overlay.classList.remove("goal-visible");
+    }, 5000); // 5秒後に消す
+}
+
+function showJudge(text, time = 800){
+  const judge = document.getElementById("judge");
+  if (!judge) return;
+
+  judge.textContent = text;
+  judge.style.opacity = "1";
+
+  setTimeout(() => {
+    judge.style.opacity = "0";
+  }, time);
+}
+
+
+
+
+
+
+
+function loadSong(fileName){
+  loadMidiFromUrl("./songs/" + fileName, fileName);
+}
+
+
+// ... (前略)
+function initSongMenu() {
+    const menu = document.getElementById("songListRow");
+    if (!menu) return;
+    
+    menu.innerHTML = "";
+
+    songList.forEach(song => {
+        const btn = document.createElement("button");
+        btn.className = "songBtn";
+        btn.textContent = song.title;
+  
+        btn.onclick = () => {
+            document.querySelectorAll(".songBtn").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            loadSong(song.file);
+
+            // 曲名ボタンを書き換え
+            const selector = document.getElementById("songSelector");
+            if (selector) {
+                selector.textContent = "🎵 " + song.title + " ▼";
+            }
+
+            // リストを閉じる
+            document.getElementById("songListRow").style.display = "none";
+        };
+        menu.appendChild(btn);
+    });
+} // ここで initSongMenu を正しく閉じる
+
+// 再生位置とフラグを現在の状態に強制同期させる関数
+function syncAudioState() {
+  const currentMusicTime = getTime();
+  
+  // 1. ノイズ防止：演奏中の音を止める
+  if (window.synth) window.synth.releaseAll();
+  
+  // 2. 過去の音を「演奏済み」にロック
+  notes.forEach(n => {
+    n.played = (n.time <= currentMusicTime);
+  });
+
+  // 3. 画面のノーツをクリアして再構築
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+  
+  // 4. 今から少し先のノーツだけ表示対象にする
+  notes.forEach(n => {
+    if (n.time > currentMusicTime && n.time < currentMusicTime + 3.0) {
+      spawn(n);
+    }
+  });
+}
+
+
+
+function initApp() {
+    initSongMenu();
+    renderKeyboard("keyboard-top");
+
+    const btn = document.getElementById("songSelector");
+    if (btn) {
+        btn.textContent = "🎵 " + songList[0].title + " ▼";
+    }
+}
+
+function toggleSongList() {
+    const el = document.getElementById("songListRow");
+    if (!el) {
+        console.error("songListRow が見つかりません");
+        return;
+    }
+    const isHidden = window.getComputedStyle(el).display === "none";
+    el.style.display = isHidden ? "flex" : "none";
+}
+
+function resetAll() {
+    // 1. まず現在の処理を完全に停止
+    hardStop();
+    
+    // 2. 音声をすべて停止
+    if (window.synth) {
+        window.synth.releaseAll();
+    }
+    
+    // 3. ゲームの制御フラグをリセット
+    running = false;
+    paused = false;
+    stepMode = false;
+    
+    // 4. ループ処理をキャンセル
+    if (loopId) {
+        cancelAnimationFrame(loopId);
+        loopId = null;
+    }
+    
+    // 5. 【重要】画面上のノーツを物理的に全削除
+    const notesLayer = document.getElementById("notes-layer");
+    if (notesLayer) {
+        notesLayer.innerHTML = ""; // ここで中身を空っぽにする
+    }
+    
+    // 6. 配列を空にする
+    active = [];
+    
+    // 7. インデックスと時間の初期化
+    index = 0;
+    stepIndex = 0;
+    startTime = 0;
+    
+    // 8. 全てのノーツの再生フラグをリセット
+    notes.forEach(n => {
+        n.played = false;
+        n.done = false;
+        n.missed = false;
+        n.guideShown = false;
+    });
+    
+    // 9. 鍵盤の光りなどをリセット
+    paintKeyboard();
+    console.log("リセット完了: 画面とデータをクリアしました");
+}
+
+function nextNote() {
+    const now = getTime();
+    const next = notes.find(n => n.time > now);
+    if (!next) return;
+
+    const t = next.time;
+    running = false;
+    seekForwardTo(t);
+
+    const chordNotes = notes.filter(n => Math.abs(n.time - t) < 0.01);
+    chordNotes.forEach(n => spawn(n));
+}
+
+function prevNote() {
+    const now = getTime();
+    let i = index - 1;
+    if (i < 0) return;
+
+    const baseTime = notes[i].time;
+    const group = [];
+    while (i >= 0 && notes[i].time === baseTime) {
+        group.unshift(notes[i]);
+        i--;
+    }
+    index = i + 1;
+    seekToTime(baseTime);
+    group.forEach(n => play(n.note));
+}
+
+function seekForwardTo(t) {
+    active.forEach(n => n.el?.remove());
+    active = [];
+    index = notes.findIndex(n => n.time >= t);
+    if(index === -1) index = notes.length;
+    startTime = performance.now() - t * 1000 - pausedTime;
+    paintKeyboard();
+}
+
+function seekToTime(t) {
+    hardStop();
+    active.forEach(n => n.el?.remove());
+    active = [];
+    index = notes.findIndex(n => n.time >= t);
+    startTime = performance.now() - t * 1000 - pausedTime;
+    notes.forEach(n => {
+        if (n.time >= t) {
+            n.played = false;
+            n.hitFired = false;
+        }
+    });
+    paintKeyboard();
+    rebuildVisibleNotes();
+}
+
+function rebuildVisibleNotes() {
+    const gameTime = getTime();
+    for (let i = index; i < notes.length; i++) {
+        if (notes[i].time <= gameTime + NOTE_EARLY) {
+            spawn(notes[i]);
+        } else {
+            break;
+        }
+    }
+}
+
+function stepForward() {
+
+  document.getElementById("notes-layer").innerHTML = "";
+  
+    document.querySelectorAll("#keyboard-top .key, #keyboard-top .black")
+        .forEach(k => {
+            k.classList.remove("hit", "guide-left", "guide-right", "pre-hit-left", "pre-hit-right");
+        });
+
+    if (!notes || notes.length === 0) return;
+    if (stepIndex >= notes.length) return;
+
+    const currentTime = notes[stepIndex].time;
+    const chordNotes = notes.filter(n => Math.abs(n.time - currentTime) < 0.01);
+
+    active.forEach(n => n.el?.remove());
+    active = [];
+
+    chordNotes.forEach(n => {
+        spawn(n);
+        play(n.note);
+        const key = document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
+        
+        function flashKey(k, cls = "hit") {
+            if (!k) return;
+            k.classList.add(cls);
+            setTimeout(() => k.classList.remove(cls), 120);
+        }
+        flashKey(key);
+    });
+
+    stepIndex = notes.findIndex(n => n.time > currentTime);
+    if (stepIndex === -1) stepIndex = notes.length;
+}
+
+</script>
+</body>
+</html>
+
   display:none;
 }
 
