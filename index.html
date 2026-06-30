@@ -1069,7 +1069,7 @@ let stepMode = false;
 let rewindHolding = false;
 let rewindTimer = null;
 let lastNoteTime = {};
-
+let practiceIndex = 0;
 
 // =========================
 // 🎹 synth（音源）の再生
@@ -1117,6 +1117,7 @@ const playBtn  = document.getElementById("playBtn");
 const stopBtn  = document.getElementById("stopBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const backBtn  = document.getElementById("backBtn");
+backBtn.addEventListener("click", stepBack);
 const stepBtn  = document.getElementById("stepBtn");
 
 
@@ -1195,7 +1196,30 @@ function startAutoMode() {
 
 
 
+// =========================
+// 現在位置付近のノーツを表示
+// =========================
+function refreshNotes() {
 
+  // 今あるノーツを全部消す
+  document.getElementById("notes-layer").innerHTML = "";
+  active = [];
+
+  // 今の時間
+  const gameTime = getTime() * speed;
+
+  // indexは変更しない
+  let i = index;
+
+  while (
+    i < notes.length &&
+    notes[i].time <= gameTime + 0.25
+  ) {
+    spawn(notes[i]);
+    i++;
+  }
+
+}
 
 // =========================
 // 🔄 ループ処理（ゲームの心臓部）
@@ -1247,16 +1271,19 @@ if (loopId) cancelAnimationFrame(loopId);
   // 3. 基本情報取得
  const gameTime = getTime() * speed;
 
+// 4. ノーツの出現処理（AUTO MODEのみ）
+if (!stepMode) {
 
+    while (
+        index < notes.length &&
+        notes[index].time <= gameTime + 0.25
+    ) {
 
-
-  // 4. ノーツの出現処理（AUTO MODEのみ）
-  if (!stepMode) {
-    while (index < notes.length && notes[index].time <= gameTime + 0.25) {
-      spawn(notes[index]);
-      index++;
+        spawn(notes[index]);
+        index++;
     }
-  }
+
+}
 
 // 5. 判定と位置の更新
   for (let i = active.length - 1; i >= 0; i--) {
@@ -1410,9 +1437,6 @@ playBtn.addEventListener("click", () => {
 
 
 
-
-
-
 function clearKeyHighlights(){
   document.querySelectorAll("#keyboard-top .key, #keyboard-top .black").forEach(k => {
     k.classList.remove(
@@ -1466,56 +1490,34 @@ pauseBtn?.addEventListener("click", () => {
   changeButtonColor(pauseBtn);
 });
 
-// =========================
-// ⏪ 戻る / ⏭ 進む
-// =========================
-// 巻き戻しボタン（⏪）のイベント処理
-// --- マウス操作（巻き戻し開始） ---
-backBtn?.addEventListener("mousedown", async () => {
-  await Tone.start();
-  
-  // 1. 巻き戻し開始時に音を強制停止
-  if (window.synth) window.synth.releaseAll();
-  
-  rewindHolding = true;
-  running = false; // ループを止める
-  
-  const loopBack = () => {
-    if (!rewindHolding) return;
-    stepBack(); // stepBack() 内で play() を呼ばないようにしてください
-    rewindTimer = setTimeout(loopBack, 80);
-  };
-  loopBack();
-});
 
-// --- マウス操作（巻き戻し終了） ---
-backBtn?.addEventListener("mouseup", () => {
-  if (rewindHolding) finishRewind();
-});
-
-// --- タッチ操作（巻き戻し開始） ---
-backBtn?.addEventListener("touchstart", async (e) => {
-  e.preventDefault();
-  backBtn.dispatchEvent(new Event("mousedown"));
-});
-
-// --- タッチ操作（巻き戻し終了） ---
-backBtn?.addEventListener("touchend", (e) => {
-  e.preventDefault();
-  if (rewindHolding) finishRewind();
-});
 
 
 function stepBack() {
+
+    console.log("stepBackが呼ばれた");
+
   if (index <= 0) return;
+// 現在のtick
+const currentTick = notes[index].ticks;
 
-  index--;
-  const targetTime = notes[index].time;
+// 4小節前
+const ticksPerMeasure = window.ppq * timeSignature;
+const targetTick = Math.max(0, currentTick - ticksPerMeasure * 4);
 
-  // 同じタイミング（和音）の音をまとめて戻る
-  while (index > 0 && Math.abs(notes[index - 1].time - targetTime) < 0.001) {
-    index--;
-  }
+// ジャンプ先を探す
+let newIndex = 0;
+
+for (let i = index; i >= 0; i--) {
+    if (notes[i].ticks < targetTick){
+        newIndex = i;
+        break;
+    }
+}
+
+index = newIndex;
+
+const targetTime = notes[index].time;
 
   // 1. ノーツの描画をクリア
   document.getElementById("notes-layer").innerHTML = "";
@@ -1531,37 +1533,18 @@ function stepBack() {
   // 3. 再生時間を巻き戻し位置に合わせる
   startTime = performance.now() - (targetTime * 1000) / speed;
 
-  running = false; 
+running = false;
+
+// 戻った位置のノーツを表示
+const previewIndex = index;
+
+while (index < notes.length && notes[index].time <= targetTime + 0.25) {
+    spawn(notes[index]);
+    index++;
 }
 
-
-// --- 共通の巻き戻し終了処理 ---
-function finishRewind() {
-  rewindHolding = false;
-  clearTimeout(rewindTimer);
-
-  // 巻き戻し後の正確な時間を計算
-  const targetTime = notes[index] ? notes[index].time : 0;
-  startTime = performance.now() - (targetTime * 1000) / speed;
-
-  // 1. ノイズ防止とフラグ同期をまとめて実行
-  syncAudioState();
-
-  // 2. 巻き戻し後は一時停止状態で待機
-  running = false;
-  stepMode = false;
+index = previewIndex;
 }
-
-// --- マウス操作 ---
-backBtn?.addEventListener("mouseup", () => {
-  if (rewindHolding) finishRewind();
-});
-
-// --- タッチ操作 ---
-backBtn?.addEventListener("touchend", (e) => {
-  e.preventDefault();
-  if (rewindHolding) finishRewind();
-});
 
 
 
@@ -1664,16 +1647,19 @@ function applyScaleDebounced() {
 }
 
 const songList = [
-    { file: "青い鳥.mid", title: "青い鳥" },
+    { file: "青い鳥.mid", title: "青い鳥（F）_伴奏" },
     { file: "青い鳥_左手.mid", title: "青い鳥_左手とメロディー" },
-   { file: "海の見える街_ばーんミュージック.mid", title: "海の見える街" },
+    { file: "夢をかなえてドラえもん.mid", title: "入門_夢をかなえてドラえもん" },
     { file: "中級_海の見える街.mid", title: "中級_海の見える街" },
     { file: "永遠にアムロ.mid", title: "永遠にアムロ" },
     { file: "転生願望.mid", title: "転生願望" },
     { file: "コナン.mid", title: "コナンメインテーマ" },
     { file: "カントリーロード.mid", title: "カントリーロード" },
-    { file: "Turkishi.mid", title: "トルコ行進曲" },
+    { file: "Turkishi.mid", title: "トルコ行進曲_部分練習用" },
     { file: "人生のメリーゴーランド.mid", title: "人生のメリーゴーランド" },
+    { file: "ミッキーマウスマーチ.mid", title: "かんたん_ミッキーマウス" },
+    { file: "ハッピーバースデ-.mid", title: "かんたん_ハッピーバースデ-" },
+    { file: "小さな世界.mid", title: "上級_小さな世界" },
     { file: "革命.mid", title: "ショパン 革命" }
 ];
 
@@ -1797,7 +1783,7 @@ async function startMic() {
 let mic;
 
 function loadInitialMidi() {
-  const midi = new Midi(buffer);
+
   window.songBpm =
   midi.header.tempos?.[0]?.bpm || 120;
 
@@ -1818,15 +1804,26 @@ function getNoteColor(note){
 }
 
 async function loadMidiFromUrl(url, fileName){
+
   const res = await fetch(url);
   const buf = await res.arrayBuffer();
   loadMidi(buf, fileName);
 }
 
+
 function loadMidi(buffer, fileName){
+  
   chordSpawnIndex = {};
   const midi = new Midi(buffer);
-    timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
+
+  console.log("PPQ =", midi.header.ppq);
+  console.log("Time Signatures =", midi.header.timeSignatures);
+  console.log("Tempos =", midi.header.tempos);
+  console.log(midi.header);
+
+
+  window.ppq = midi.header.ppq;
+  timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
   const keySig = midi.header.keySignatures?.[0];
   const keyFix = { "D#":"Eb", "Eb":"Eb", "C#":"Db", "Db":"Db", "F#":"Gb", "Gb":"Gb", "G#":"Ab", "Ab":"Ab", "A#":"Bb", "Bb":"Bb" };
   window.currentKey = keyFix[keySig?.key] || "C";
@@ -1835,11 +1832,16 @@ function loadMidi(buffer, fileName){
   usedNotes.clear();
 
   let playableTrackCount = 0;
+
   midi.tracks.forEach(t => {
     if (t.notes.length === 0) return;
     t.notes.forEach(n => {
+
+       console.log("time=", n.time, "ticks=", n.ticks);
+
       notes.push({
         time: n.time,
+        ticks: n.ticks,
         note: n.name,
         midi: n.midi,
         duration: n.duration,
@@ -1851,6 +1853,8 @@ function loadMidi(buffer, fileName){
   });
 
   notes.sort((a, b) => a.time - b.time);
+   console.log("最初のノート", notes[0]);
+
 
   let currentChordId = 0;
   for (let i = 0; i < notes.length; i++) {
