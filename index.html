@@ -99,7 +99,7 @@ body.mobile #keyboard-top {
 
 #keyboard-top {
   position: relative;
-  top: 10px;
+  top: 15px;
   left: 0;
   width: 100%;
   height: 210px; /* 💡2行がきれいに収まるように高さを広げました */
@@ -109,14 +109,17 @@ body.mobile #keyboard-top {
 
 
 #keyboard-top .key {
-  border: 2px solid rgba(60,60,60,0.7) !important;
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+  border: 2px solid #b8b09a;
+   box-shadow:
+        inset 0 2px 2px rgba(255,255,255,0.9),
+        inset 0 -2px 2px rgba(0,0,0,0.12),
+        0 3px 6px rgba(0,0,0,0.18);
+  background: #fffae8;
     transition: transform 0.05s ease;
     position: absolute;
     top: 85px !important;
     width: 23px;
-    height: 65px !important;
-    background: #fffae8;
+    height: 50px !important; 
     border-radius: 6px;
     z-index: 10 !important;
     transition: background 0.15s ease, box-shadow 0.15s ease;
@@ -129,20 +132,11 @@ body.mobile #keyboard-top {
     user-select: none;
     cursor: pointer;
 }
-/* 
-#keyboard-top .key.hit,
-#keyboard-top .black.hit {
-  transform: scale(0.95) ;
-  filter: brightness(1.4);
-  transition: transform 0.0s ease-out, filter 0.0s ease-out !important;
-  z-index: auto !important;
-}
-
-
 
 /* 【1行目・奥】：すべての黒鍵を一番上にぴったり固定 */
 #keyboard-top .black {
-    box-shadow: 0 3px 0 #111;
+    box-shadow: 0 3px 0 #111,
+    0 4px 8px rgba(0,0,0,0.45);
     transition: transform 0.05s ease;
     position: absolute;
     top: 35px !important;
@@ -166,14 +160,24 @@ body.mobile #keyboard-top {
     cursor: pointer;
 }
 .black.hit {
- transform: translateY(10px);
-  background: #111;
-  /*border: 2px solid rgba(255,255,255,0.9) !important;*/
+  transform: translateY(5px);
+
+  background: rgba(60,60,60,0.85);
+
+  box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.15),
+      inset 0 -2px 4px rgba(0,0,0,0.5),
+      0 0 12px rgba(255,255,255,0.35);
 }
+
 .key.hit {
- transform: translateY(10px);
-  background: #111;
-  /*border: 2px solid rgba(255,255,255,0.9) !important;*/
+  transform: translateY(5px);
+  background: rgba(255,255,255,0.6);
+
+    box-shadow:
+        inset 0 2px 4px rgba(255,255,255,0.8),
+        inset 0 -2px 3px rgba(0,0,0,0.18),
+       0 4px 10px rgba(0,0,0,0.3);
 }
 
 /* C4（まん中のド）の下に▲を表示 */
@@ -385,7 +389,7 @@ box-shadow: none;
 }*/
 
 .pre-hit-right {
-    background:#ff66cc !important;
+    background:#efbbde !important;
 }
 
 .pre-hit-left {
@@ -393,7 +397,7 @@ box-shadow: none;
 }
 
 .guide-right {
-    box-shadow:0 0 15px #ff66cc;
+    box-shadow:0 0 15px #efbbde;
 }
 
 .guide-left {
@@ -449,23 +453,14 @@ box-shadow: none;
     /* 最初は透明にしておく */
     opacity: 0;
     animation: spawnNote 0.2s ease-out forwards;
-    transition: none;
     width: 24px;
     height: 24px;
-    border-radius: 30%;
-    /*border: 1px solid rgba(255,255,255,0.9);*/
+    border-radius: 6px;
+    border: 3px solid white;
     background: radial-gradient(circle, #fff8c0, #ffd860);
     will-change: transform;
-    opacity: 0.15;
-    transform: none;
-    transition: none;
+    transition: opacity 0.6s ease, transform 0.6s ease;
     z-index: 10001 !important;
-}
-
-.note-hit-effect {
-    opacity: 0 !important;
-    transform: scale(0.5) !important;
-    pointer-events: none;
 }
 
 .note.note-active {
@@ -506,9 +501,11 @@ box-shadow: none;
 }
 
 .note-suck {
-    animation: suckToLine 0.25s ease-in forwards;
+    animation-name: suckToLine;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
 }
-
+/*
 @keyframes suckToLine {
     0% {
         transform: scale(1);
@@ -520,7 +517,7 @@ box-shadow: none;
         filter: blur(6px);
         opacity: 0;
     }
-}
+}*/
 
 .note-trail {
     position: absolute;
@@ -535,7 +532,7 @@ box-shadow: none;
 }
 
 .note-trail-right {
-    background: linear-gradient(90deg, rgba(255,74,74,0.8), rgba(255,74,74,0));
+    background: linear-gradient(90deg, rgba(197, 86, 86, 0.8), rgba(255,74,74,0));
 }
 
 .note-trail-left {
@@ -602,7 +599,7 @@ box-shadow: none;
 
 
 .icon-btn:hover {
-  background: #ff3399;
+  background: #e29ec0;
   transform: scale(1.1);
 }
 
@@ -626,20 +623,6 @@ box-shadow: none;
 .bubble-out {
   animation: bubblePop 0.12s ease-out forwards;
 }
-
-/*.hit-flash{
-  position:absolute;
-  left:50%;
-  transform:translateX(-100%);
-  width:90%;
-  height:24px;
-  border-radius:20px;
-  background: radial-gradient(ellipse, rgba(255,255,255,0.95), rgba(120,220,255,0.7), rgba(120,220,255,0));
-  pointer-events:none;
-  animation:flashAnim 0.10s ease-out forwards;
-  z-index:500;
-}*/
-
 
 .chord-surround {
   position: absolute;
@@ -721,45 +704,15 @@ box-shadow: none;
 }
 
 
-
-
-/* #lineLayer {
-    position:absolute; 
-    left:0; 
-    top:0; 
-    width:100%; 
-    height:100%; 
-    pointer-events:none; 
-    z-index:90; 
-} 
-*/
-
-/* 白鍵：透け感のある光 
-.key.pre-hit {
-    background:  #ffffff !important;
-    border: 2px solid #ffffff !important;
-    z-index: 50 !important; 
-}*/
-
-/* 黒鍵：鮮やかな蛍光色（HIT時と同じ色） 
-.black.pre-hit {
-    background: #ffffff !important;
-    border: 2px solid #ffffff !important;
-    box-shadow: 0 0 10px#ffffff !important;
-    z-index: 150 !important; 
-}*/
-
 /* 左手：水色 */
 .guide-left {
-    background: #4aa3ff !important;
-    box-shadow: 0 0 10px #4aa3ff !important;
+    background: #c3b5f5 !important;
     opacity: 1 !important;
 }
 
 /* 右手：ピンク */
 .guide-right {
-    background: #ff4a4a !important;
-    box-shadow: 0 0 10px #ff4a4a !important;
+    background: #f57caa !important;
     opacity: 1 !important;
 }
 
@@ -823,15 +776,7 @@ box-shadow: none;
 .hidden {
   display: none;
 }
-/* 優先度を上げて、確実に光らせる */
 
-
-/*#keyboard-top .black.guide-left,
-#keyboard-top .black.guide-right {
-    background: #ffffff; 
-    box-shadow: 0 0 15px #ffffff;
-     opacity: 30 !important;
-}*/
 #keyboard-top .key.guide-left{
     background: #6CCBFF; 
     box-shadow: 0 0 50px #6EDFD3;
@@ -868,12 +813,6 @@ box-shadow: none;
     0%   { transform: rotate(-6deg) translateY(0px) scale(0.9); }
     50%  { transform: rotate(-3deg) translateY(-3px) scale(0.92); }
     100% { transform: rotate(-6deg) translateY(0px) scale(0.9); }
-}
-/* ポヨンと跳ねるアニメーション */
-@keyframes bounceNote {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.3); }
-    100% { transform: scale(1); }
 }
 
 .note-bounce {
@@ -2131,6 +2070,7 @@ if (sol.includes("♯")) {
     keyTop,
     hand: note.hand,
     chordId: note.chordId,
+     duration: note.duration,
 
     y: 0,
     v: 0,
@@ -2147,32 +2087,36 @@ if (sol.includes("♯")) {
 
 
 function success(best) {
-  if (best.done) return; 
+  if (best.done) return;
   best.done = true;
 
+const fadeTime = Math.min(800, 100 + best.duration * 200);
 
-  
-  best.el.classList.add("note-hit-effect");
+best.el.style.animationDuration = fadeTime + "ms";
+best.el.classList.add("note-suck");
 
-  // 2. 0.1秒（transitionの時間）だけ待ってからDOMから完全に削除する
-  setTimeout(() => { 
-      if (best.el) best.el.remove(); 
-  }, 100); // ここを短くするほど速く消えます
+best.removed = true;
+
+setTimeout(() => {
+    best.el?.remove();
+    active = active.filter(n => n !== best);
+}, fadeTime);
 
   best.keyTop?.classList.remove(
-  "pre-hit-left",
-  "pre-hit-right",
-  "guide-left",
-  "guide-right"
-);
+    "pre-hit-left",
+    "pre-hit-right",
+    "guide-left",
+    "guide-right"
+  );
+
 
   best.el.classList.add("note-suck");
   best.removed = true;
 
-  setTimeout(() => { best.el?.remove(); }, 250);
-  active = active.filter(n => n !== best);
-  hitCount++;
-  update();
+setTimeout(() => {
+    best.el?.remove();
+    active = active.filter(n => n !== best);
+}, fadeTime);
 }
 
 function hitNearest() {
