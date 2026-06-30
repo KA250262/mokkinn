@@ -860,6 +860,15 @@ box-shadow: none;
   flex-direction:column;
   align-items:center;
 }
+#judge {
+    position: absolute;
+    left: 50%;
+    top: 120px;
+    transform: translateX(-50%);
+    z-index: 10000;
+    opacity: 0;
+}
+
 
 </style>
 </head>
@@ -1009,6 +1018,7 @@ let rewindHolding = false;
 let rewindTimer = null;
 let lastNoteTime = {};
 let practiceIndex = 0;
+let autoLoadInitial = false;
 
 // =========================
 // 🎹 synth（音源）の再生
@@ -1328,23 +1338,10 @@ loop();
 
 function stopAll() {
   hardStop();
-notes.forEach(n => n.played = false);
-  running = false;
-  paused = false;
-  stepMode = false;
 
-  if (loopId) {
-    cancelAnimationFrame(loopId);
-    loopId = null;
-  }
+  notes.forEach(n => n.played = false);
 
-  active.forEach(n => n.el?.remove());
-  active = [];
-
-  index = 0;
-  stepIndex = 0;
-
-   gameStarted = false;
+  gameStarted = false;
 }
 
 
@@ -1722,26 +1719,36 @@ async function startMic() {
 
 let mic;
 
-function loadInitialMidi() {
 
-  window.songBpm =
-  midi.header.tempos?.[0]?.bpm || 120;
+
+
+function loadInitialMidi() {
 
     const saved = localStorage.getItem("savedMidi");
     if (saved) {
         try {
             const obj = JSON.parse(saved);
             const uint = new Uint8Array(obj.data);
-            loadMidi(uint.buffer, obj.name);
-            return Promise.resolve();
-        } catch (e) { console.warn("saved MIDI破損:", e); }
+            return loadMidi(uint.buffer, obj.name);
+        } catch (e) {}
     }
-    return loadMidiFromUrl("./songs/55.mid", "55.mid");
+
+    if (!autoLoadInitial) return Promise.resolve();
+
+    if (songList.length > 0) {
+        return loadMidiFromUrl("./songs/" + songList[0].file, songList[0].file);
+    }
+
+    return Promise.resolve();
 }
+
+
 
 function getNoteColor(note){
   return note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
 }
+
+
 
 async function loadMidiFromUrl(url, fileName){
 
@@ -1751,10 +1758,14 @@ async function loadMidiFromUrl(url, fileName){
 }
 
 
+
+
 function loadMidi(buffer, fileName){
   
   chordSpawnIndex = {};
   const midi = new Midi(buffer);
+
+  window.songBpm = midi.header.tempos?.[0]?.bpm || 120;
 
   console.log("PPQ =", midi.header.ppq);
   console.log("Time Signatures =", midi.header.timeSignatures);
@@ -1820,6 +1831,7 @@ function paintKeyboard(){
 
 
 async function startGame() {
+console.log("startGame", notes?.length);
 if (running) {
   console.warn("startGame blocked (already running)");
   return;
@@ -1829,14 +1841,25 @@ if (running) {
   // 曲がないとき
   if (!notes || notes.length === 0) {
     const judge = document.getElementById("judge");
-    judge.style.opacity = "1";
-    judge.textContent = "曲を選んでね";
+console.log("表示前", judge.textContent);
+
+judge.style.opacity = "1";
+judge.textContent = "曲を選んでね";
+
+console.log("表示後", judge.textContent);
+setTimeout(() => {
+    console.log("消す直前", judge.textContent);
+    judge.style.opacity = "0";
+    judge.textContent = "";
+}, 1200);
+
     setTimeout(() => {
       judge.style.opacity = "0";
       judge.textContent = "";
     }, 1200);
     gameStarted = false;
     return;
+    
   }
 
   // Audio 初期化
@@ -2268,14 +2291,9 @@ function showJudge(text, time = 800){
 
 
 
-
-
-
-
 function loadSong(fileName){
   loadMidiFromUrl("./songs/" + fileName, fileName);
 }
-
 
 // ... (前略)
 function initSongMenu() {
@@ -2288,10 +2306,15 @@ function initSongMenu() {
         const btn = document.createElement("button");
         btn.className = "songBtn";
         btn.textContent = song.title;
+
   
         btn.onclick = () => {
+         stopAll();
+          clearKeyHighlights();
+
             document.querySelectorAll(".songBtn").forEach(b => b.classList.remove("selected"));
             btn.classList.add("selected");
+
             loadSong(song.file);
 
             document.getElementById("songListRow").classList.remove("show");
@@ -2343,9 +2366,10 @@ function initApp() {
 
     const btn = document.getElementById("songSelector");
     if (btn) {
-        btn.textContent = "🎵 " + songList[0].title + " ▼";
+       btn.textContent = "🎵 曲をえらんでね ▼";
     }
 }
+
 
 function toggleSongList() {
     const el = document.getElementById("songListRow");
