@@ -17,6 +17,7 @@
 html {
   transform-origin: top left;
     height: 100%;
+    overflow-y: auto;
   margin: 0;
 }
 
@@ -34,6 +35,7 @@ body{
   box-sizing: border-box;
   flex-direction: column;
   height: 100%;
+  overflow-y: auto;
   margin: 0;
 }
 
@@ -55,20 +57,22 @@ body.mobile #keyboard-top {
 
 /* ====== Layout ====== */
 #gameArea {
-  position: relative;
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
 
   width: 100%;
-  height: 60dvh;
+    min-height: 100dvh;
 
   background-image: linear-gradient(rgba(0,77,64,.7), rgba(0,77,64,.7)), url("melokoro.png");
   background-size: cover;
   background-position: center;
   overflow: hidden;
 }
-
+#keyboard-top {
+  margin-bottom: 10px;
+}
 
 /* ====== Components ====== */
 #mascot{
@@ -207,13 +211,18 @@ overflow-x: auto;
   flex-direction:row;
   flex-wrap:nowrap;
   justify-content:center;
+
   align-items:center;
   gap:3px;
   width:100%;
   max-width:240px;
   padding:4px 8px;
- left: 30%;
-   position: absolute;    /* staticでもOK */
+  
+   top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+
+   position: fixed;   /* staticでもOK */
   margin-top:8px;      /* 鍵盤との間隔 */
 transform: translateX(-50%);
   background:transparent;
@@ -228,42 +237,48 @@ transform: translateX(-50%);
     z-index: 10000;
     opacity: 0;
 }
-#songSelector{
-    position:absolute;
-    left:50%;
-    top:5px;
-    transform:translateX(-50%);
-width:180px;          /* 固定幅 */
-    height:30px;
 
-    white-space: nowrap;  /* 1行表示 */
-    overflow: hidden;     /* はみ出した文字を隠す */
-    text-overflow: ellipsis; /* …を表示 */
+#songSelector {
+  /* 幅を広げる（または自動調整） */
+  min-width: 150px; 
+  width: auto; 
+  max-width: 80vw;
 
-    font-size:14px;
-    z-index:2000;
+  height: 32px;
+
+  border: 2px solid #b8b09a;
+  border-radius: 6px;
+
+  font-size: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  white-space: nowrap;
+  padding: 0 10px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  cursor: pointer;
+
+position: fixed !important;
+    z-index: 999999 !important;
+    pointer-events: auto !important;
 }
-#songSelector.selectedSong{
-   position: fixed;
-
-    left: 50%;
-    top: 5px;
-
-     transform: translateX(-50%);
-
-    z-index: 2000;
+#songSelector:hover {
+  /* ホバーした時に自動で幅を広げる */
+  width: auto;
+  max-width: 90vw;
 }
-#songSelectBtn{
-  min-width:180px;
-  height:40px;
-  padding:0 12px;
-  border:none;
-  border-radius:20px;
-  background:#ff7ac8;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  white-space:nowrap;
+
+#songSelector.selectedSong {
+  position: fixed;
+  left: 50%;
+  top: 5px;
+  transform: translateX(-50%);
+  z-index: 2000;
 }
 
 /* ====== UI ====== */
@@ -291,7 +306,9 @@ width:180px;          /* 固定幅 */
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
 }
-
+#songListRow.show {
+    display: flex !important; /* クラス付与で強制表示 */
+}
 #hitCount, #score-display {
   font-size: 25px;
   color: rgb(12, 46, 2);
@@ -359,7 +376,33 @@ width:180px;          /* 固定幅 */
      opacity: 1!important;
 }
 
+#songToggleBtn {
+  width: 44px;
+  height: 28px;
+  border: 2px solid #b8b09a;
+  border-radius: 6px;
+  background: #fffae8;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#uiBar {
+  position: fixed;
+  top: 200px; /* ←あとでJSで鍵盤下に合わせてもOK */
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  z-index: 2000;
+}
 
 /* ============ */
 .black.hit {
@@ -389,6 +432,11 @@ width:180px;          /* 固定幅 */
   align-items: center; 
   gap: 20px;
   white-space: nowrap;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .group{
@@ -649,13 +697,16 @@ padding:0;
 </style>
 </head>
 <body>
+
+
 <div id="rotateMessage">
   ♫ 横向きにして遊んでください
 </div> 
-<div data-midi="60"></div>
  <button id="songSelector" onclick="toggleSongList()">
   🎵 曲を選ぶ ▼
  </button>
+
+
 <div id="gameArea">
 
 
@@ -664,13 +715,13 @@ padding:0;
       <div class="white-keys"></div>
       <div class="black-keys"></div>
     </div>
+   <div data-midi="60"></div>
 
-
-  <div id="songListRow"></div>
+   <div id="songListRow"></div>
 </div>
 
 
-  <div id="ui">
+  <div id="uiBar">
     <div id="speed-control">
      <button onclick="changeSpeed(-1)">-</button>
      <span id="speedLabel">1.0</span>
@@ -684,8 +735,9 @@ padding:0;
 
      <button id="stopBtn" class="icon-btn">■</button>
      <button id="pauseBtn" class="icon-btn">⏸</button>
+  
     </div>
-
+   <button id="songToggleBtn" onclick="toggleSongList()">♫▼</button>
     <div id="judge"></div>
    
   </div>
@@ -2140,20 +2192,39 @@ function initApp() {
 
     const btn = document.getElementById("songSelector");
     if (btn) {
-       btn.textContent = "🎵 曲をえらんでね ▼";
+       btn.textContent = "♫▼";
     }
 }
 
 
 function toggleSongList() {
-    const el = document.getElementById("songListRow");
-    if (!el) {
-        console.error("songListRow が見つかりません");
-        return;
+
+console.log("ボタンが押されました")
+  const songList = document.getElementById("songListRow");
+
+  if (!songList) {
+    console.error("songListRow が見つかりません");
+    return;
+  }
+
+// showクラスの有無で表示を切り替える
+    songList.classList.toggle("show");
+    
+    // 表示された時に中身を flex にする（既存のCSS設定用）
+    if (songList.classList.contains("show")) {
+        songList.style.display = "flex";
+    } else {
+        songList.style.display = "none";
     }
-    const isHidden = window.getComputedStyle(el).display === "none";
-    el.style.display = isHidden ? "flex" : "none";
+    
+    // ソングセレクターボタンのスタイル修正
+    const songBtn = document.querySelector("#songSelector");
+    songBtn.classList.remove("selectedSong");
+    songBtn.style.setProperty("transform", "none", "important");
+    songBtn.style.setProperty("left", "10px", "important");
+    songBtn.style.setProperty("top", "10px", "important");
 }
+
 
 function resetAll() {
     // 1. まず現在の処理を完全に停止
