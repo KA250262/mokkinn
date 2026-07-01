@@ -12,34 +12,12 @@
 <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
 
 <style>
-#rotateMessage{
-  display:none;
-}
 
-@media (orientation: portrait) {
-  #rotateMessage{
-    display:flex;
-    position:fixed;
-    inset:0;
-    background:black;
-    color:white;
-    font-size:32px;
-    z-index:999999;
-    justify-content:center;
-    align-items:center;
-  }
-
-  #gameArea,
-  #ui,
-  #songListRow{
-    display:none;
-  }
-}
-
-
-
+/* ====== Base ====== */
 html {
   transform-origin: top left;
+    height: 100%;
+  margin: 0;
 }
 
 body{
@@ -55,35 +33,44 @@ body{
   display: flex;
   box-sizing: border-box;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
   margin: 0;
 }
 
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+/* ====== 縦向きの仕様 ====== */
 body.mobile {
-    transform: none !important;
-    overflow-x: auto !important;
+    transform: none ;
 }
 body.mobile #keyboard-top {
-    width: max-content;
+    width: 100%;
     position: absolute; 
     top: 0;
 }
 
+
+/* ====== Layout ====== */
 #gameArea {
-  position:relative;
-  aspect-ratio: 2 / 1; 
-  justify-content: flex-start;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   width: 100%;
   height: 60dvh;
-  background-image: linear-gradient(rgba(0, 77, 64, 0.7), rgba(0, 77, 64, 0.7)), url("melokoro.png");
+
+  background-image: linear-gradient(rgba(0,77,64,.7), rgba(0,77,64,.7)), url("melokoro.png");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   overflow: hidden;
-  flex: 1;
-  min-height: 0;
 }
 
+
+/* ====== Components ====== */
 #mascot{
   position:absolute;
   width:100%;
@@ -96,153 +83,190 @@ body.mobile #keyboard-top {
   z-index:1;
 }
 
+/* ====== Keyboard ====== */
 
-#keyboard-top {
-  position: relative;
-  top: 15px;
-  left: 0;
+#keyboard-top{
+  position: relative;   /* absoluteをやめる */
   width: 100%;
-  height: 210px; /* 💡2行がきれいに収まるように高さを広げました */
+  height: 180px;
+ margin-top: 20px;
+
+overflow-x: auto;
+  scrollbar-gutter: stable;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  white-space: nowrap;
   flex-shrink: 0;
-  z-index: 100;
+}
+#bottomArea {
+  flex: 1;
 }
 
+#keyboard-inner {
+  position: relative;
+  height: 180px;
+  width: max-content;
+}
+
+#notes-layer {
+    position: absolute;
+    left: 0;
+    top: 30px;
+    width: 100%;
+    height: 100%;
+    /* 💡 鍵盤のz-index(最高100)よりも大きく設定 */
+    z-index: 10000 ; 
+    pointer-events: none;
+}
 
 #keyboard-top .key {
+  position: absolute;
+  top: 65px;
+
+  width: 23px;
+  height: 45px;
+
   border: 2px solid #b8b09a;
-   box-shadow:
-        inset 0 2px 2px rgba(255,255,255,0.9),
-        inset 0 -2px 2px rgba(0,0,0,0.12),
-        0 3px 6px rgba(0,0,0,0.18);
+  border-radius: 6px;
   background: #fffae8;
-    transition: transform 0.05s ease;
-    position: absolute;
-    top: 85px !important;
-    width: 23px;
-    height: 50px !important; 
-    border-radius: 6px;
-    z-index: 10 !important;
-    transition: background 0.15s ease, box-shadow 0.15s ease;
-    transform-origin: center center !important; 
-    text-align: center;
-    font-weight: bold;
-    font-size: 10px;
-    padding-top: 60px;
-    box-sizing: border-box;
-    user-select: none;
-    cursor: pointer;
-}
-
-/* 【1行目・奥】：すべての黒鍵を一番上にぴったり固定 */
-#keyboard-top .black {
-    box-shadow: 0 3px 0 #111,
-    0 4px 8px rgba(0,0,0,0.45);
-    transition: transform 0.05s ease;
-    position: absolute;
-    top: 35px !important;
-    width: 23px;
-    height: 60px !important;
-    background: #222;
-    border: 2px solid rgba(255,255,255,0.8);
-    border-radius: 5px 5px 4px 4px;
-
-    z-index: 20 !important; 
-    transition: background 0.15s ease, box-shadow 0.15s ease;
-    transform-origin: center center !important;
-    
-    text-align: center;
-    font-weight: bold;
-    font-size: 11px;
-    color: white;
-    padding-top: 40px;
-    box-sizing: border-box;
-    user-select: none;
-    cursor: pointer;
-}
-.black.hit {
-  transform: translateY(5px);
-
-  background: rgba(60,60,60,0.85);
 
   box-shadow:
-      inset 0 2px 4px rgba(255,255,255,0.15),
-      inset 0 -2px 4px rgba(0,0,0,0.5),
-      0 0 12px rgba(255,255,255,0.35);
+    inset 0 2px 2px rgba(255,255,255,.9),
+    inset 0 -2px 2px rgba(0,0,0,.12),
+    0 3px 6px rgba(0,0,0,.18);
+
+  z-index: 10;
+
+  box-sizing: border-box;
+  text-align: center;
+  font-weight: bold;
+  font-size: 10px;
+  padding-top: 40px;
+
+  user-select: none;
+  cursor: pointer;
+
+  transition:
+    transform .05s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+
+  transform-origin: center;
 }
 
-.key.hit {
-  transform: translateY(5px);
-  background: rgba(255,255,255,0.6);
+#keyboard-top .black {
+  position: absolute;
+  top: 35px;
 
-    box-shadow:
-        inset 0 2px 4px rgba(255,255,255,0.8),
-        inset 0 -2px 3px rgba(0,0,0,0.18),
-       0 4px 10px rgba(0,0,0,0.3);
+  width: 23px;
+  height: 45px;
+
+  background: #222;
+  border: 2px solid rgba(255,255,255,.8);
+  border-radius: 5px 5px 4px 4px;
+
+  box-shadow:
+    0 3px 0 #111,
+    0 4px 8px rgba(0,0,0,.45);
+
+  z-index: 20;
+
+  box-sizing: border-box;
+  text-align: center;
+  font-weight: bold;
+  font-size: 11px;
+  color: white;
+  padding-top: 40px;
+
+  user-select: none;
+  cursor: pointer;
+
+  transition:
+    transform .05s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+
+  transform-origin: center;
 }
 
 /* C4（まん中のド）の下に▲を表示 */
 #keyboard-top .key[data-note="C4"]::after {
-    content: "▲";
-    position: absolute;
-    bottom: -20px; /* 鍵盤の下に配置 */
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    color: #ff3399; /* お好みの色に */
-    pointer-events: none;
+  content: "▲";
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #ff3399;
+  pointer-events: none;
 }
 
-#ui {
-  display: flex;
-  flex-direction: row;     /* 横並びを強制 */
-  flex-wrap: nowrap;
+/* ====== UI ====== */
+#ui{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
   justify-content:center;
-  align-items: center;     /* 縦中央揃え */
-  gap: 5px;
-  margin-top:0px;
-  width:max-content;
-  min-width:max-content;        /* ←追加 */
-  max-width:none;      /* ←追加 */
-  margin-top:-15px;
-  padding: 4px 8px; 
-  position: static; 
-
-  transform: none;
-
-  flex-shrink: 0;  
-  background: rgba(255,255,255,0.10);
-  backdrop-filter: blur(6px);
-  border-radius: 20px;
- 
-  background: transparent;
-  backdrop-filter: none;
-  z-index: 1000;
-
+  align-items:center;
+  gap:3px;
+  width:100%;
+  max-width:240px;
+  padding:4px 8px;
+ left: 30%;
+   position: absolute;    /* staticでもOK */
+  margin-top:8px;      /* 鍵盤との間隔 */
+transform: translateX(-50%);
+  background:transparent;
+  z-index:100;
 }
 
+#judge {
+    position: absolute;
+    left: 50%;
+    top: 120px;
+    transform: translateX(-50%);
+    z-index: 10000;
+    opacity: 0;
+}
+#songSelector{
+    position:absolute;
+    left:50%;
+    top:5px;
+    transform:translateX(-50%);
+width:180px;          /* 固定幅 */
+    height:30px;
 
+    white-space: nowrap;  /* 1行表示 */
+    overflow: hidden;     /* はみ出した文字を隠す */
+    text-overflow: ellipsis; /* …を表示 */
 
-/* スマホの時だけスライダーを少し小さくする */
-@media (max-width: 600px) {
-  #speed-slider {
-    width: 60px; /* 100pxから60pxへ短縮 */
-  }
-  .group {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 12px;
-  }
+    font-size:14px;
+    z-index:2000;
+}
+#songSelector.selectedSong{
+   position: fixed;
+
+    left: 50%;
+    top: 5px;
+
+     transform: translateX(-50%);
+
+    z-index: 2000;
+}
+#songSelectBtn{
+  min-width:180px;
+  height:40px;
+  padding:0 12px;
+  border:none;
+  border-radius:20px;
+  background:#ff7ac8;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  white-space:nowrap;
 }
 
-.controls-container {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center; 
-  gap: 20px;
-  white-space: nowrap;
-}
-
+/* ====== UI ====== */
 #songListRow {
     display:none;
     flex-direction: column;
@@ -267,84 +291,106 @@ body.mobile #keyboard-top {
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
 }
-#songSelector {
-  position: fixed;
- left: 50%;
-    top: 10px;
-  transform: translateX(-50%);
-
-  width:250px;
-  height:40px;
-
-  font-size: 22px;
-
-  z-index: 2000;
-}
-#songSelector.selectedSong{
-   position: fixed;
-
-    left: 50%;
-    top: 10px;
-
-     transform: translateX(-50%);
-
-    min-width: 250px;
-    height: 40px;
-
-    font-size: 14px;
-
-    z-index: 2000;
-}
-
-@media (max-width:768px){
-
-  #ui{
-    transform:none;
-    }
-
-    #songSelector{
-     width:180px;
-     }
-}
-.songBtn {
-    width: 100%;
-    min-height: 50px;
-    height: 40px;
-
-    text-align: left;
-    padding-left: 15px;
-
-    background: #ff7ac8;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    position: static 
-}
-
-.songBtn.selected {
-    background: #ff3399;
-    border-left: 6px solid white;
-}
-
-#songSelectBtn{
-  min-width:180px;
-  height:40px;
-  padding:0 12px;
-  border:none;
-  border-radius:20px;
-  background:#ff7ac8;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  white-space:nowrap;
-}
 
 #hitCount, #score-display {
   font-size: 25px;
   color: rgb(12, 46, 2);
 }
+
+#score{
+  color:gold;
+  display:inline-block;
+  transition:0.1s;
+}
+
+#debug{
+  display: none ;
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  font-size: 14px;
+  text-align: left;
+  border-radius: 8px;
+  color: white;
+}
+
+/* ====== Rotate Message ====== */
+#rotateMessage{
+  display:none;
+}
+
+#speed-control{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+#speed-control button{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+   display:flex;
+    align-items:center;
+    justify-content:center;
+  cursor:pointer;
+    border:none;
+  padding:0;
+  font-size:30px;
+}
+
+
+#speedLabel{
+  min-width:60px;
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+}
+
+#keyboard-top .key.guide-left{
+    background: #6CCBFF; 
+    box-shadow: 0 0 50px #6EDFD3;
+     opacity: 1!important;
+}
+#keyboard-top .key.guide-right{
+    background: #FF7FB0; 
+    box-shadow: 0 0 50px #FF86C2;
+     opacity: 1!important;
+}
+
+
+
+/* ============ */
+.black.hit {
+  transform: translateY(5px);
+
+  background: rgba(60,60,60,0.85);
+
+  box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.15),
+      inset 0 -2px 4px rgba(0,0,0,0.5),
+      0 0 12px rgba(255,255,255,0.35);
+}
+
+.key.hit {
+  transform: translateY(5px);
+  background: rgba(255,255,255,0.6);
+
+    box-shadow:
+        inset 0 2px 4px rgba(255,255,255,0.8),
+        inset 0 -2px 3px rgba(0,0,0,0.18),
+       0 4px 10px rgba(0,0,0,0.3);
+}
+
+.controls-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center; 
+  gap: 20px;
+  white-space: nowrap;
+}
+
 .group{
   display:flex;
   flex-direction:row;
@@ -353,99 +399,11 @@ body.mobile #keyboard-top {
   gap:8px;
 }
 
-/* 鍵盤にリングを出す */
-.now-hit {
-    animation: nowPulse 0.3s ease-out;
-}
 
-@keyframes nowPulse {
-    0% {
-        transform: scale(1);
-        box-shadow:
-          0 0 0 0 rgba(255,255,255,0.9);
-    }
-
-    50% {
-        transform: scale(1.15);
-        box-shadow:
-          0 0 20px 10px rgba(255,255,255,0.8);
-    }
-
-    100% {
-        transform: scale(1);
-        box-shadow:
-          0 0 0 0 rgba(255,255,255,0);
-    }
-}
-
-
-/* ========================================================
-   鍵盤ヒット・ガイド（上の鍵盤・木琴専用スタイル）
-   ======================================================== */
-/*.hit {
-  background: #c6e0ca !important; 
-  border-color: rgba(0,0,0,0.35) !important;
-box-shadow: none;
-}*/
-
-.pre-hit-right {
-    background:#efbbde !important;
-}
-
-.pre-hit-left {
-    background:#66ddff !important;
-}
-
-.guide-right {
-    box-shadow:0 0 15px #efbbde;
-}
-
-.guide-left {
-    box-shadow:0 0 15px #66ddff;
-}
-
-@keyframes guidePulse {
-    0% {
-        transform: scaleY(1);
-    }
-    50% {
-        transform: scaleY(0.92);
-    }
-    100% {
-        transform: scaleY(1);
-    }
-}
-/* ========================================================
-   木琴鍵盤から湧き出るノーツ（音符）システム
-   ======================================================== */
-
-#notes-layer {
-    position: absolute;
-    left: 0;
-    top: 30px;
-    width: 100%;
-    height: 100%;
-    /* 💡 鍵盤のz-index(最高100)よりも大きく設定 */
-    z-index: 10000 ; 
-    pointer-events: none;
-}
-
-
+/* =====note======= */
 .single-note{
     transition:none;
     transform-origin:center center;
-}
-
-@keyframes spawnNote {
-    0% {
-        opacity: 0;
-        transform: scale(0.1) rotate(-12deg); 
-        
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);    
-    }
 }
 
 .note {
@@ -491,10 +449,6 @@ box-shadow: none;
     font-size: 25px !important;
 }
 
-.note-spawn {
-    animation: none;
-}
-
 .note-hit {
     box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
     filter: brightness(1.8);
@@ -505,19 +459,6 @@ box-shadow: none;
     animation-timing-function: ease-in;
     animation-fill-mode: forwards;
 }
-/*
-@keyframes suckToLine {
-    0% {
-        transform: scale(1);
-        filter: blur(0px);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(0.1);
-        filter: blur(6px);
-        opacity: 0;
-    }
-}*/
 
 .note-trail {
     position: absolute;
@@ -543,18 +484,8 @@ box-shadow: none;
   animation: quickFade 0.15s ease-out forwards;
 }
 
-@keyframes quickFade {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.6); }
-}
 
-
-/* #ui 内にスライダー用のスタイルを追加 */
-#speed-slider {
-    width: 100px;
-    vertical-align: middle;
-}
-
+/* =====btn======= */
 /* 再生*/
 .play-btn {
   transform: scale(1.1);
@@ -573,268 +504,102 @@ box-shadow: none;
 .step-btn:hover,.back-btn:hover{
   background: #2980b9;
 }
+.songBtn {
+    width: 100%;
+    min-height: 50px;
+    height: 40px;
+
+    text-align: left;
+    padding-left: 15px;
+
+    background: #ff7ac8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    position: static 
+}
+
+.songBtn.selected {
+    background: #ff3399;
+    border-left: 6px solid white;
+}
 
 .icon-btn {
   background: #3498db;
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 12px;
-  width: 60px;
-  height: 60px;
-  font-size: 27px;
+padding:0;
+  border-radius:50%; 
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 .icon-btn,
 #speed-control button,
 #songSelectBtn {
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
-
-
 .icon-btn:hover {
   background: #e29ec0;
   transform: scale(1.1);
 }
-
 .icon-btn:active {
   transform: scale(0.95);
 }
 
-@keyframes comboBounce {
-  0%{ transform:scale(1); }
-  30%{ transform:scale(1.03) rotate(-1deg); }
-  60%{ transform:scale(1.03) rotate(1deg); }
-  100%{ transform:scale(1); }
-}
-
-@keyframes bubblePop {
-  0%{ transform:translateX(-50%) scale(1); opacity:1; }
-  50%{ transform:translateX(-50%) scale(1.3); opacity:1; }
-  100%{ transform:translateX(-50%) scale(2.2); opacity:0; }
-}
-
-.bubble-out {
-  animation: bubblePop 0.12s ease-out forwards;
-}
-
-.chord-surround {
-  position: absolute;
-  pointer-events: none;
-  z-index: 90; 
-}
-
-.chord-surround-right { filter: drop-shadow(0 0 8px #ff4a4a) !important; }
-.chord-surround-left { filter: drop-shadow(0 0 8px #4aa3ff) !important; }
-
-@keyframes lineFlash {
-  0% { opacity: 1; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(0); }
-}
-
-@keyframes flashFade {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-#score{
-  color:gold;
-  display:inline-block;
-  transition:0.1s;
-}
-
-#debug{
-  display: none !important;
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  background: rgba(0,0,0,0.7);
-  padding: 10px;
-  font-size: 14px;
-  text-align: left;
-  border-radius: 8px;
-  color: white;
-}
-
-
-.bird {
-  font-size: 40px;
-  transform-origin: center;
-  animation: wing 0.4s infinite alternate;
-}
-
-.leftBird { transform: scaleX(-1); }
-.rightBird { transform: scaleX(1); }
-
-.piano-hand {
-  display: none !important;
-  position: absolute;
-  height: 200px;
-  z-index: 30;
-  pointer-events: none;
-  top: 650px;           
-  left: 0px;
-  transition: left 0.08s ease-out, top 0.1s ease-out, transform 0.05s ease-out, opacity 0.05s linear;
-  opacity: 0;
-}
-
-.piano-hand.tap {
-  transform: scale(0.88) translateY(-5px);
-}
-
-.tape {
-  background: gold;
-  color: #222;
-  font-weight: bold;
-  padding: 6px 16px;
-  border-radius: 6px;
-  letter-spacing: 2px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
-@keyframes popIn {
-  0%   { transform: scale(0.05); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-
+/* =====guide======= */
 /* 左手：水色 */
 .guide-left {
     background: #c3b5f5 !important;
     opacity: 1 !important;
 }
-
 /* 右手：ピンク */
 .guide-right {
     background: #f57caa !important;
     opacity: 1 !important;
 }
-
 /* 選択中のボタン用のスタイル*/
 .songBtn.selected {
     background: #ff3399;
     border: 2px solid white;
     box-shadow: 0 0 12px #ff3399;
 }
-/* ゴール表示用クラス */
-.goal-visible {
-    display: flex !important;
+
+/* ====== Media Queries ====== */
+
+@keyframes flashFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes quickFade {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6); }
 }
 
-/* 画面の枠や線を強制的に消す */
-#gameArea, #lineLayer, .chord-surround {
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
+@keyframes spawnNote {
+    0% {
+        opacity: 0;
+        transform: scale(0.1) rotate(-12deg); 
+        
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);    
+    }
 }
 
-/* もしこれでも残る場合は以下も追加 */
-#lineLayer {
-    display: none !important;
-}
-
-#lineWarning{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:#000c;
-  color:white;
-  z-index:999999;
-  justify-content:center;
-  align-items:center;
-  text-align:center;
-  font-size:24px;
-}
-#speed-control{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-#speed-control button{
-  width:48px;
-  height:48px;
-  padding:0;
-  font-size:22px;
-}
-
-
-#speedLabel{
-  min-width:60px;
-  font-size:24px;
-  font-weight:bold;
-  text-align:center;
-}
-
-/* 隠す用 */
-.hidden {
-  display: none;
-}
-
-#keyboard-top .key.guide-left{
-    background: #6CCBFF; 
-    box-shadow: 0 0 50px #6EDFD3;
-     opacity: 1!important;
-}
-#keyboard-top .key.guide-right{
-    background: #FF7FB0; 
-    box-shadow: 0 0 50px #FF86C2;
-     opacity: 1!important;
-}
-
-
-#startOverlay,
-#goalOverlay {
-  position: fixed;
-  inset: 0;
-  top: 200px;
-  display: none;
-  justify-content: center;
-  z-index: 999999;
-}
-
-.goalScene {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.note-pre {
-    animation: preFloat 1.2s ease-in-out infinite;
-}
-
-@keyframes preFloat {
-    0%   { transform: rotate(-6deg) translateY(0px) scale(0.9); }
-    50%  { transform: rotate(-3deg) translateY(-3px) scale(0.92); }
-    100% { transform: rotate(-6deg) translateY(0px) scale(0.9); }
-}
-
-.note-bounce {
-    animation: bounceNote 0.2s ease-out;
-}
-/* 鍵盤エリアの枠 */
-#keyboard-wrapper {
-    width: 100%;
-    overflow-x: scroll; /* はみ出たら横スクロールさせる */
-    touch-action: pan-x; /* スクロールをスムーズにする */
-}
 
 /* スマホ用：鍵盤のズーム設定 */
-@media (max-width: 768px) {
-    #keyboard-top {
-        /* ここで鍵盤を1.5倍〜2倍に拡大する */
-        transform: scale(1.5);
-        transform-origin: left top;
-        
-        /* 拡大した分、全体の横幅を調整 */
-        width: 150%; 
-    }
+@media (max-width: 700px) {
+
       #songSelector{
     position: fixed;
     left: 50%;
@@ -848,25 +613,36 @@ box-shadow: none;
     overflow-y: auto;
   }
 }
+@media (max-width:768px){
 
-#keyboard-wrapper{
-  position:absolute;
-  left:50%;
-  top:20px;
-  transform:translateX(-50%);
-  bottom:0;
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+  #ui{
+    transform:none;
+    }
+
+    #songSelector{
+     width:180px;
+     }
 }
-#judge {
-    position: absolute;
-    left: 50%;
-    top: 120px;
-    transform: translateX(-50%);
-    z-index: 10000;
-    opacity: 0;
+
+/* ====== スマホ縦向きになったら表示する====== */
+@media (orientation: portrait) {
+  #rotateMessage{
+    display:flex;
+    position:fixed;
+    inset:0;
+    background:black;
+    color:white;
+    font-size:32px;
+    z-index:999999;
+    justify-content:center;
+    align-items:center;
+  }
+
+  #gameArea,
+  #ui,
+  #songListRow{
+    display:none;
+  }
 }
 
 
@@ -877,34 +653,30 @@ box-shadow: none;
   ♫ 横向きにして遊んでください
 </div> 
 <div data-midi="60"></div>
-
+ <button id="songSelector" onclick="toggleSongList()">
+  🎵 曲を選ぶ ▼
+ </button>
 <div id="gameArea">
 
-   <button id="songSelector" onclick="toggleSongList()">
-    🎵 曲を選ぶ ▼
-   </button>
 
-   <div id="songListRow"></div>
-   
-  <div id="keyboard-wrapper">
-    <div id="keyboard-top">
-
+   <div id="keyboard-top">
       <div id="notes-layer"></div>
-
       <div class="white-keys"></div>
       <div class="black-keys"></div>
-
     </div>
 
 
-   <div id="ui">
+  <div id="songListRow"></div>
+</div>
 
+
+  <div id="ui">
     <div id="speed-control">
      <button onclick="changeSpeed(-1)">-</button>
      <span id="speedLabel">1.0</span>
      <button onclick="changeSpeed(1)">+</button>
     </div>
-
+  
     <div class="group">
      <button id="backBtn" class="icon-btn back-btn">⏪</button>
      <button id="playBtn" class="icon-btn play-btn">▶</button>
@@ -915,10 +687,8 @@ box-shadow: none;
     </div>
 
     <div id="judge"></div>
-   </div>
- </div>
-</div>
-
+   
+  </div>
 <div id="debug"></div>
 
 <script>
@@ -1534,29 +1304,32 @@ renderKeyboard("keyboard-top");
 function renderKeyboard(id) {
     const kb = document.getElementById(id);
     if (!kb) return;
-    
+
     kb.querySelectorAll(".key,.black").forEach(e => e.remove());
+
     const whiteNotes = keys.filter(n => !n.includes("#"));
-    const isMobile = window.innerWidth <= 768;
-    const whiteWidth = isMobile ? 35 : (window.innerWidth / whiteNotes.length);
-    
+    const base = kb;
+    const whiteWidth = base.clientWidth / whiteNotes.length;
+
     let whiteIndex = 0;
     keys.forEach(note => {
         const isBlack = note.includes("#");
         const key = document.createElement("div");
         key.dataset.note = note;
-        
+
         if (isBlack) {
             key.className = "black";
-            key.style.left = (whiteIndex * whiteWidth - 11) + "px"; 
+            key.style.left = (whiteIndex * whiteWidth - 11) + "px";
         } else {
             key.className = "key";
             key.style.left = (whiteIndex * whiteWidth) + "px";
             key.style.width = whiteWidth + "px";
             whiteIndex++;
         }
+
         kb.appendChild(key);
     });
+
     paintKeyboard();
 }
 
@@ -1567,6 +1340,7 @@ function applyScale() {
     } else {
         document.body.classList.remove("mobile");
     }
+
 }
 
 function applyScaleDebounced() {
