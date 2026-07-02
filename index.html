@@ -784,26 +784,10 @@ window.synth = new Tone.Sampler({
 },
   baseUrl: "./samples/",
   maxPolyphony: 32, // ←これ追加
-  onload: () => {
-    console.log("音源ロード完了");
-  }
 }).toDestination();
 
 
 window.synth.volume.value = 0;
-
-// ★ここに置く（Sampler 初期化のすぐ下）
-window.synth.context.on('statechange', () => {
-  console.log("AudioContext state:", window.synth.context.state);
-});
-
-
-// 音源読み込みの成否をチェック
-Tone.loaded().then(() => {
-    console.log("すべてのサンプルがロードされました");
-}).catch((e) => {
-    console.error("ロード中にエラー発生:", e);
-});
 
 
 let lastPlayTime = 0;
@@ -1147,7 +1131,6 @@ if (!stepMode) {
     showGoal();
     cancelAnimationFrame(loopId);
   }
-console.log(active.length);
 }
 loop();
 
@@ -1247,8 +1230,6 @@ pauseBtn?.addEventListener("click", () => {
 
 
 function stepBack() {
-
-    console.log("stepBackが呼ばれた");
 
   if (index <= 0) return;
 // 現在のtick
@@ -1586,21 +1567,12 @@ async function loadMidiFromUrl(url, fileName){
 }
 
 
-
-
 function loadMidi(buffer, fileName){
   
   chordSpawnIndex = {};
   const midi = new Midi(buffer);
 
   window.songBpm = midi.header.tempos?.[0]?.bpm || 120;
-
-  console.log("PPQ =", midi.header.ppq);
-  console.log("Time Signatures =", midi.header.timeSignatures);
-  console.log("Tempos =", midi.header.tempos);
-  console.log(midi.header);
-
-
   window.ppq = midi.header.ppq;
   timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
   const keySig = midi.header.keySignatures?.[0];
@@ -1615,9 +1587,6 @@ function loadMidi(buffer, fileName){
   midi.tracks.forEach(t => {
     if (t.notes.length === 0) return;
     t.notes.forEach(n => {
-
-       console.log("time=", n.time, "ticks=", n.ticks);
-
       notes.push({
         time: n.time,
         ticks: n.ticks,
@@ -1632,9 +1601,6 @@ function loadMidi(buffer, fileName){
   });
 
   notes.sort((a, b) => a.time - b.time);
-   console.log("最初のノート", notes[0]);
-
-
   let currentChordId = 0;
   for (let i = 0; i < notes.length; i++) {
     if (i > 0 && Math.abs(notes[i].time - notes[i - 1].time) > 0.01) {
@@ -1659,7 +1625,6 @@ function paintKeyboard(){
 
 
 async function startGame() {
-console.log("startGame", notes?.length);
 if (running) {
   console.warn("startGame blocked (already running)");
   return;
@@ -1669,14 +1634,11 @@ if (running) {
   // 曲がないとき
   if (!notes || notes.length === 0) {
     const judge = document.getElementById("judge");
-console.log("表示前", judge.textContent);
 
 judge.style.opacity = "1";
 judge.textContent = "曲を選んでね";
 
-console.log("表示後", judge.textContent);
 setTimeout(() => {
-    console.log("消す直前", judge.textContent);
     judge.style.opacity = "0";
     judge.textContent = "";
 }, 1200);
@@ -1693,7 +1655,6 @@ setTimeout(() => {
   // Audio 初期化
   try {
     await Tone.start();
-    console.log("AudioContext 開始");
   } catch (e) {
     console.error("AudioContext 開始失敗:", e);
   }
@@ -1735,10 +1696,8 @@ setTimeout(() => {
 
   // モード起動
   if (stepMode) {
-    console.log("STEP MODE 起動");
     startStepMode();
   } else {
-    console.log("AUTO MODE 起動");
     startAutoMode();
   }
 }
@@ -1972,7 +1931,6 @@ setTimeout(() => {
 }
 
 function hitNearest() {
-   console.log("🔥 hitNearest fired");
   const now = getTime();
 
   // guideが出てる & 未処理のノーツだけ対象
@@ -2029,8 +1987,6 @@ function hit(note){
     console.warn("keyTop missing", n);
     return;
   }
-  console.log(n.keyTop.className);
-
     if (n.note !== note) return;
     const diff = n.hit - t;
     if (Math.abs(diff) > JUDGE_WINDOW) return;
@@ -2201,7 +2157,6 @@ function initApp() {
 
 function toggleSongList() {
 
-console.log("ボタンが押されました")
   const songList = document.getElementById("songListRow");
 
   if (!songList) {
@@ -2272,7 +2227,6 @@ function resetAll() {
     
     // 9. 鍵盤の光りなどをリセット
     paintKeyboard();
-    console.log("リセット完了: 画面とデータをクリアしました");
 }
 
 function nextNote() {
