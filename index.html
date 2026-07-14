@@ -16,8 +16,8 @@
 /* ====== Base ====== */
 html {
   transform-origin: top left;
-    height: 100%;
-    overflow-y: auto;
+  height: 100%;
+  overflow-y: auto;
   margin: 0;
 }
 
@@ -28,7 +28,7 @@ body{
   color:white;
   text-align:center;
   font-family:sans-serif;
-    overflow-x:hidden;
+  overflow-x:hidden;
   overflow-y:auto;
   transition: background-color 0.05s ease, filter 0.05s ease;
   display: flex;
@@ -63,15 +63,19 @@ body.mobile #keyboard-top {
   align-items: center;
 
   width: 100%;
-    min-height: 100dvh;
+  min-height: 100dvh;
 
-  background-image: linear-gradient(rgba(0,77,64,.3), rgba(0,77,64,.3)), url("melokoro.png");
+background-image:
+    linear-gradient(
+        rgba(255,255,255,0.18),
+        rgba(255,255,255,0.18)
+    ),
+    url("melokoro.png");
+
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   overflow: hidden;
-}
-#keyboard-top {
-  margin-bottom: 10px;
 }
 
 /* ====== Components ====== */
@@ -92,24 +96,22 @@ body.mobile #keyboard-top {
 #keyboard-top{
   position: relative;   /* absoluteをやめる */
   width: 100%;
-  height: 180px;
- margin-top: 50px;
-
-overflow-x: auto;
-  scrollbar-gutter: stable;
-  overflow-y: hidden;
+  height: 200px;
+  margin-top: 45px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none; 
   touch-action: pan-x;
   white-space: nowrap;
   flex-shrink: 0;
-}
-#bottomArea {
-  flex: 1;
-}
 
-#keyboard-inner {
-  position: relative;
-  height: 180px;
-  width: max-content;
+    padding:0;
+    border:2px solid #8c7b5b;
+    border-radius:12px;
+    background: #d8c8a8;
+}
+#keyboard-top::-webkit-scrollbar{
+  display: none;              /* Chrome, Edge */
 }
 
 #notes-layer {
@@ -126,7 +128,6 @@ overflow-x: auto;
 #keyboard-top .key {
   position: absolute;
   top: 65px;
-
   width: 23px;
   height: 45px;
 
@@ -192,7 +193,7 @@ overflow-x: auto;
 
   transform-origin: center;
 }
-
+/*
 #keyboard-top .key[data-note="C4"]::after {
   content: "♢ド";
   position: absolute;
@@ -230,8 +231,7 @@ overflow-x: auto;
   white-space: nowrap;
   pointer-events: none;
 }
-
-/* ====== UI ====== */
+ ====== UI ====== */
 #ui{
   display:flex;
   flex-direction:row;
@@ -244,13 +244,12 @@ overflow-x: auto;
   max-width:240px;
   padding:4px 8px;
   
-   top: 10px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
 
-   position: fixed;   /* staticでもOK */
+  position: fixed;   /* staticでもOK */
   margin-top:8px;      /* 鍵盤との間隔 */
-transform: translateX(-50%);
   background:transparent;
   z-index:100;
 }
@@ -265,46 +264,32 @@ transform: translateX(-50%);
 }
 
 #songSelector {
-  /* 幅を広げる（または自動調整） */
-  min-width: 150px; 
-  width: 150px; 
-  max-width: 150px;
-
+  min-width: 150px;
+  width: fit-content;      /* 曲名に合わせて広がる */
+  max-width: 90vw;         /* 画面より広がりすぎない */
   height: 32px;
 
   border: 2px solid #b8b09a;
   border-radius: 6px;
-
   font-size: 14px;
 
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;   /* ←文字を中央に */
 
   white-space: nowrap;
-  padding: 0 10px;
+  padding: 0 14px;
 
-  overflow: hidden;
-  text-overflow: ellipsis;
-
+  overflow: visible;          /* ←省略しない */
+  text-overflow: clip;
   cursor: pointer;
 
-position: fixed !important;
-    z-index: 999999 !important;
-    pointer-events: auto !important;
-}
-#songSelector:hover {
-  /* ホバーした時に自動で幅を広げる */
-  width: auto;
-  max-width: 90vw;
-}
-
-#songSelector.selectedSong {
-  position: fixed;
+  position: fixed ;
   left: 50%;
   top: 5px;
   transform: translateX(-50%);
-  z-index: 2000;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
 }
 
 /* ====== UI ====== */
@@ -438,7 +423,7 @@ position: fixed !important;
 #scalePreview {
     position:relative;
     padding-left:40px; /* 手の分のスペース */
-  left: 21%;
+  left: 25%;
   transform: translateX(-50%);
   
  top: 5px;   /* ←この数字だけで上下調整できる */
@@ -679,7 +664,7 @@ padding:0;
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
 .icon-btn:hover {
-  background: #e29ec0;
+  background: #60eb6b;
   transform: scale(1.1);
 }
 .icon-btn:active {
@@ -2083,7 +2068,7 @@ function loadInitialMidi() {
 function paintKeyboard(){
   document.querySelectorAll(".key, .black").forEach(key=>{
     if(key.classList.contains("black")){
-      key.style.background = "#2f4f6f";
+      key.style.background =  "#4b6177";
     } else {
       key.style.background = "#fffae8"; /* ⭐初期色をアイボリーに変更 */
     }
@@ -2099,10 +2084,12 @@ renderKeyboard("keyboard-top");
 
 
 function renderKeyboard(id) {
+ 
     const kb = document.getElementById(id);
     if (!kb) return;
 
     kb.querySelectorAll(".key,.black").forEach(e => e.remove());
+
 
     const whiteNotes = keys.filter(n => !n.includes("#"));
     const base = kb;
@@ -2126,17 +2113,14 @@ function renderKeyboard(id) {
     } else if (pitch === "G#") {
         key.classList.add("black-middle");
     }
-
         } else {
             key.className = "key";
             key.style.left = (whiteIndex * whiteWidth) + "px";
             key.style.width = whiteWidth + "px";
             whiteIndex++;
         }
-
         kb.appendChild(key);
     });
-
     paintKeyboard();
 }
 
@@ -2840,8 +2824,6 @@ function initSongMenu() {
             const selector = document.getElementById("songSelector");
             if (selector) {
                 selector.textContent = "🎵 " + song.title + " ▼";
-
-               selector.classList.add("selectedSong");
             }
 
             // リストを閉じる
@@ -2889,22 +2871,11 @@ function initApp() {
 
 
 function toggleSongList() {
-
-  const songList = document.getElementById("songListRow");
+    const songList = document.getElementById("songListRow");
     songList.classList.toggle("show");
-    
-    if (songList.classList.contains("show")) {
-        songList.style.display = "flex";
-    } else {
-        songList.style.display = "none";
-    }
-
-    const songBtn = document.querySelector("#songSelector");
-    songBtn.classList.remove("selectedSong");
-    songBtn.style.setProperty("transform", "none", "important");
-    songBtn.style.setProperty("left", "10px", "important");
-    songBtn.style.setProperty("top", "10px", "important");
+    songList.style.display = songList.classList.contains("show") ? "flex" : "none";
 }
+
 
 
 function resetAll() {
