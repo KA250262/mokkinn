@@ -264,11 +264,14 @@ background-image:
 }
 
 #songSelector {
+  position:absolute;
+  top: 8px;
+  height: 32px;
+  z-index: 9999;
   min-width: 150px;
   width: fit-content;      /* 曲名に合わせて広がる */
   max-width: 90vw;         /* 画面より広がりすぎない */
-  height: 32px;
-
+  
   border: 2px solid #b8b09a;
   border-radius: 6px;
   font-size: 14px;
@@ -283,33 +286,27 @@ background-image:
   overflow: visible;          /* ←省略しない */
   text-overflow: clip;
   cursor: pointer;
-
-  position: fixed ;
+ 
   left: 50%;
-  top: 5px;
   transform: translateX(-50%);
-  z-index: 999999 !important;
   pointer-events: auto !important;
 }
 
 /* ====== UI ====== */
 #songListRow {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform:translateX(-50%);
+    max-height: 60vh;
+    overflow-y: auto;
+
     display:none;
     flex-direction: column;
-
-    position: fixed;
-    left: 50%;
-    top: 40%;
-    transform: translate(-50%, -50%);
-
     width: min(80vw, 400px);
-
     z-index: 9999;
     padding: 12px;
     gap: 8px;
-
-    max-height: 60vh;
-    overflow-y: auto;
 
     background: rgba(255,255,255,0.95);
     border-radius: 12px;
@@ -317,6 +314,7 @@ background-image:
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
 }
+
 #songListRow.show {
     display: flex !important; /* クラス付与で強制表示 */
 }
@@ -727,32 +725,19 @@ padding:0;
     }
 }
 
-
-/* スマホ用：鍵盤のズーム設定 */
-@media (max-width: 700px) {
-
-      #songSelector{
-    position: fixed;
-    left: 50%;
-    top: 50%;
-
-    transform: translate(-50%, -50%);
-
-    max-width: 90vw;
-    max-height: 80vh;
-
-    overflow-y: auto;
-  }
-}
 @media (max-width:768px){
 
   #ui{
     transform:none;
-    }
+  }
 
-    #songSelector{
-     width:180px;
-     }
+  #songSelector{
+    width: fit-content;   /* 曲名に合わせて広がる */
+    max-width: 90vw;      /* 画面幅まで */
+    overflow-x: auto;     /* 長い曲名なら横スクロール */
+    overflow-y: hidden;
+    white-space: nowrap;
+  }
 }
 
 /* ====== スマホ縦向きになったら表示する====== */
