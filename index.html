@@ -648,17 +648,21 @@ button:focus-visible {
   background: #3498db;
   color: white;
   border: none;
-padding:0;
+  padding:0;
   border-radius:50%; 
   width: 36px;
   height: 36px;
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
+
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.icon-btn span {
+  display: block;
+  line-height: 1;
 }
 .icon-btn,
 #speed-control button,
@@ -856,24 +860,123 @@ padding:0;
     display:inline-flex;
     letter-spacing:-0.45em;
 }
-.icon-btn:focus,
-.icon-btn:focus-visible {
-    outline: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
+
+.pause-btn{
+  position:relative;
 }
 
-.icon-btn {
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
+.pause-btn::before,
+.pause-btn::after{
+  content:"";
+  position:absolute;
+  top:10px;
+  width:4px;
+  height:16px;
+  background:white;
+  border-radius:2px;
 }
 
-.icon-btn:focus,
-.icon-btn:focus-visible {
-    outline: none !important;
+.pause-btn::before{
+  left:12px;
 }
-.icon-btn {
-    appearance: none;
-    -webkit-appearance: none;
+
+.pause-btn::after{
+  right:12px;
+}
+
+.back-btn {
+  position: relative;
+}
+
+/* 左向き矢印 */
+.back-btn::before {
+  content:"";
+  position:absolute;
+  left:6px;
+  top:10px;
+
+  width:0;
+  height:0;
+
+  border-top:8px solid transparent;
+  border-bottom:8px solid transparent;
+  border-right:12px solid white;
+}
+
+/* 棒 */
+.back-btn::after {
+  content:"";
+  position:absolute;
+  right:10px;
+  top:10px;
+
+  width:3px;
+  height:15px;
+  background:white;
+  border-radius:2px;
+}
+.step-btn {
+  position:relative;
+}
+
+/* 三角 */
+.step-btn::before {
+  content:"";
+  position:absolute;
+  right:8px;
+  top:10px;
+
+  width:0;
+  height:0;
+
+  border-top:7px solid transparent;
+  border-bottom:7px solid transparent;
+  border-left:11px solid white;
+}
+
+/* 終点の棒 */
+.step-btn::after {
+  content:"";
+  position:absolute;
+  left:12px;
+  top:9px;
+
+  width:3px;
+  height: 16px;
+  background:white;
+  border-radius:2px;
+}
+.stop-btn {
+  position: relative;
+}
+
+.stop-btn::before {
+  content:"";
+  position:absolute;
+
+  width:14px;
+  height:14px;
+
+  background:white;
+  border-radius:2px;
+}
+.play-btn {
+  position: relative;
+}
+
+.play-btn::before {
+  content:"";
+  position:absolute;
+
+  width:0;
+  height:0;
+
+  border-top:9px solid transparent;
+  border-bottom:9px solid transparent;
+  border-left:15px solid white;
+
+  left:12px;
+  top:9px;
 }
 
 </style>
@@ -934,12 +1037,12 @@ padding:0;
     </div>
   
    <div class="group">
-     <button id="backBtn" class="icon-btn back-btn">⏪</button>
-     <button id="playBtn" class="icon-btn play-btn">▶</button>
-     <button id="stepBtn" class="icon-btn step-btn">⏭</button>
+     <button id="backBtn" class="icon-btn back-btn"></button>
+     <button id="playBtn" class="icon-btn play-btn"></button>
+     <button id="stepBtn" class="icon-btn step-btn"></button>
 
-     <button id="stopBtn" class="icon-btn">■</button>
-     <button id="pauseBtn" class="icon-btn">p</button>
+     <button id="stopBtn" class="icon-btn stop-btn"></button>
+     <button id="pauseBtn" class="icon-btn pause-btn"></button>
      <button id="melodyGuideBtn">🎵ガイド OFF</button>
     </div>
    
