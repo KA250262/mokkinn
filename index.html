@@ -127,9 +127,9 @@ background-image:
 
 #keyboard-top .key {
   position: absolute;
-  top: 65px;
+  top: 55px;
   width: 23px;
-  height: 45px;
+  height: 50px;
 
   border: 2px solid #b8b09a;
   border-radius: 3px;
@@ -419,15 +419,12 @@ background-image:
 
 #scalePreview {
     position:relative;
-    padding-left:40px; /* 手の分のスペース */
-  left: 25%;
-  transform: translateX(-50%);
+    padding-left:30px; /* 手の分のスペース */
   
  top: 5px;   /* ←この数字だけで上下調整できる */
   
-  width: 45%;
-  max-width: 500px; /* PCでも広がりすぎない */
-  min-width: 260px; /* スマホでも小さくなりすぎない */
+  max-width: 600px; /* PCでも広がりすぎない */
+  min-width: 600px; /* スマホでも小さくなりすぎない */
   height: 60px;
 
   display: flex;
@@ -445,7 +442,6 @@ background-image:
 #scalePreview .row {
  display:flex; 
   align-items: center;
-  gap: 6px;
   white-space: nowrap;
 }
 
@@ -453,12 +449,11 @@ background-image:
 #leftHandRow{
     position:relative;
     height:28px;
-    overflow:hidden;
+    width: 65%;
+    overflow: visible;
     white-space:nowrap;
     justify-content: flex-start;
     align-items: center;
-    gap: 4px;
-    margin-left:40px;
 }
 
 #rightHandRow span,
@@ -685,15 +680,12 @@ button:focus-visible {
 
 #fingerGuide{
     position:absolute;
+    display:none;
     left:0;
     top:0;
-
     font-size:28px;
-
     z-index:1000;
-
     pointer-events:none;
-
     transition:left .15s linear,
                top .15s linear;
 }
@@ -787,7 +779,7 @@ button:focus-visible {
     margin:0 4px;
     white-space:nowrap;
     position:relative;
-    transform:translateX(-0.8em);
+
 
 }
 
@@ -1294,7 +1286,7 @@ function updatePreview() {
     const currentTicks = current.ticks;
 
     const ticksPerMeasure = window.ppq * timeSignature;
-const previewTicks = ticksPerMeasure * 2; 
+    const previewTicks = ticksPerMeasure * 2; 
 
     const currentMeasure =
         Math.floor(currentTicks / ticksPerMeasure);
@@ -1308,10 +1300,10 @@ const previewTicks = ticksPerMeasure * 2;
         currentMeasure * ticksPerMeasure;
 
     // この小節だけ取得
-const preview = notes.filter(n =>
+    const preview = notes.filter(n =>
     n.ticks >= measureStartTicks &&
     n.ticks < measureStartTicks + previewTicks
-);
+    );
 
     const rightHand = mergeChords(
         preview.filter(n => n.hand === "right")
@@ -1424,9 +1416,7 @@ function showRow(id, list, currentTicks, previewTicks) {
               x = lastRight + 6;
               span.style.left = x + "px";
             }
-            lastRight = x + w;
-
-        
+            lastRight = x + w;       
     });
 }
 
@@ -1869,6 +1859,7 @@ function applyScaleDebounced() {
 
 const songList = [
     { file: "とてと_パペットスンスン.mid", title: "「とてと」_パペットスンスン" },
+    { file: "クスシキ.mid", title: "クスシキ" },
     { file: "カントリーロード.mid", title: "「カントリーロード」_耳をすませば" },
     { file: "中級_海の見える街.mid", title: "「海の見える街」_魔女の宅急便" },
     { file: "人生のメリーゴーランド.mid", title: "「人生のメリーゴーランド」_ハウルの動く城" },
@@ -2110,7 +2101,11 @@ function markMelodyBass() {
 // =========================
 function moveFingerGuide() {
 
-  if (!melodyGuide) return;
+  if (!melodyGuide) {
+    const guide = document.getElementById("fingerGuide");
+    if (guide) guide.style.display = "none";
+    return;
+}
 
     const guide = document.getElementById("fingerGuide");
     if (!guide) return;
@@ -2137,7 +2132,7 @@ function moveFingerGuide() {
         (key.offsetLeft + key.offsetWidth / 2 - guide.offsetWidth / 2) + "px";
 
     guide.style.top =
-        (key.offsetTop +5) + "px";
+        (key.offsetTop +10) + "px";
 }
 
 
