@@ -1150,7 +1150,7 @@ function play(note){
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 1, now);
+        window.synth.triggerAttackRelease(note, 0.3, now);
     } catch (e) {
         console.error("再生エラー:", e);
     }
