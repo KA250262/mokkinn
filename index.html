@@ -1067,24 +1067,26 @@ button:focus-visible {
  // window.synth の定義部分を以下のように書き換えてください
  window.synth = new Tone.Sampler({
   urls: {
-  C3: "C3.wav",
-  D3: "D3.wav",
-  E3: "E3.wav",
-  F3: "F3.wav",
-  G3: "G3.wav",
-  A3: "A3.wav",
-  B3: "B3.wav",
-  C4: "C4.wav",
-  D4: "D4.wav",
-  E4: "E4.wav",
-  F4: "F4.wav",
-  G4: "G4.wav",
-  A4: "A4.wav",
-  B4: "B4.wav",
-  C5: "C5.wav"
+  C3: "C3.mp3",
+  D3: "D3.mp3",
+  E3: "E3.mp3",
+  F3: "F3.mp3",
+  G3: "G3.mp3",
+  A3: "A3.mp3",
+  B3: "B3.mp3",
+  C4: "C4.mp3",
+  "C#4": "Csharp4.mp3",
+  D4: "D4.mp3",
+  "D#4": "Dsharp4.mp3",
+  E4: "E4.mp3",
+  F4: "F4.mp3",
+  G4: "G4.mp3",
+  A4: "A4.mp3",
+  B4: "B4.mp3",
+  C5: "C5.mp3"
  },
   baseUrl: "./samples/",
-  maxPolyphony: 32, // ←これ追加
+  maxPolyphony: 16, // ←これ追加
  }).toDestination();
 
 
@@ -1150,7 +1152,7 @@ function play(note){
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 0.3, now);
+        window.synth.triggerAttackRelease(note, 1, now);
     } catch (e) {
         console.error("再生エラー:", e);
     }
@@ -1161,8 +1163,8 @@ function play(note){
 // =========================
 // 🎚 音量調整（安全な処理）
 // =========================
-if (window.synth?.volume) {
-  window.synth.volume.rampTo(-3, 0.05);
+if (window.synth?.volume != null) {
+    window.synth.volume.rampTo(-3, 0.05);
 }
 
 // =========================
