@@ -1109,6 +1109,7 @@ let pausedTime = 0;
 let notes = [];
 let active = [];
 let index = 0;
+let playIndex = 0;
 let combo = 0;
 let hitCount = 0;
 let totalCount = 0;
@@ -1457,7 +1458,7 @@ window.__gameVersion = (window.__gameVersion || 0) + 1;
   });
 
   if (!running) return;
-if (loopId) cancelAnimationFrame(loopId);
+
   loopId = requestAnimationFrame(loop);
  
   if (paused) return;
@@ -1491,39 +1492,12 @@ if (!stepMode) {
 
     const remain = n.hit - gameTime;
 
-// ★追加：ヒット0.15秒前にポヨンとさせる
-    /*if (!n.bounced && remain < 0.1 && remain > 0) {
-        n.bounced = true;
-        n.el.classList.add("note-bounce");
-        
-        // アニメーションが終わったらクラスを外す（再利用できるように）
-        setTimeout(() => {
-            n.el.classList.remove("note-bounce");
-        }, 50);
-    }*/
     // ガイドの点灯処理
     if (!n.guideShown && remain < 0.05 && remain > 0) {
       n.guideShown = true;
       const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
       n.keyTop.classList.add(guideClass);
     }
-
-    // --- ここから修正した物理演算 ---
-   /* const gravity = 0.8; 
-    const ground = 0; 
-
-    n.v += gravity;
-    n.y += n.v;
-
-    if (n.y >= ground) {
-      n.y = ground;
-      if (n.v > 0) n.v *= -0.5; // 跳ね返り係数
-      if (Math.abs(n.v) < 1.5) n.v = 0;
-    }
-
-    // ★重要：CSSへの反映（鍵盤位置 + 跳ねた分）
-    n.el.style.transform = `translateY(${n.y}px)`;
-    // --- 修正終わり ---*/
 
     // 判定処理：通り過ぎてから0.2秒経ったらミス扱い＆消滅
     if (!n.missed && remain < -0.15) {
@@ -1540,43 +1514,37 @@ if (!stepMode) {
     }
   }
 
+  
 // 6. 音声再生処理
-  notes.forEach(n => {
-    if (n.played) return;
-    
-    // 現在時刻がノーツの時間を過ぎていたら音を鳴らす
-    const diff = gameTime - n.time;
+while (
+    playIndex < notes.length &&
+    notes[playIndex].time <= gameTime
+) {
+    const n = notes[playIndex];
 
-    // --- ★安全装置★ ---
-    // もしノーツの時間が現在より1秒以上前なら、巻き戻し時の誤動作とみなして
-    // 再生せずに「played」扱いにして無視する
-    if (diff > 1.0) {
-      n.played = true;
-      return;
-    }
-    // ------------------
-
-    const key = document.querySelector(
-      `#keyboard-top [data-note="${n.note}"]`
-    );
-
-   if (!n.played && diff > 0) {
     play(n.note);
     n.played = true;
 
-   if (melodyGuide && n.isMelody) {
-    moveFingerGuide();
-}
-}
-
-    if (diff > 0 && diff < 0.12) {
-      key.classList.add("hit");
-
-      setTimeout(() => {
-        key.classList.remove("hit");
-      }, 400);
+    if (melodyGuide && n.isMelody) {
+        moveFingerGuide();
     }
-  });
+
+    const key = document.querySelector(
+        `#keyboard-top [data-note="${n.note}"]`
+    );
+
+    if (key) {
+        key.classList.add("hit");
+
+        setTimeout(() => {
+            key.classList.remove("hit");
+        }, 400);
+    }
+
+    playIndex++;
+}
+
+
 updatePreview();
   // 7. 終了チェック
   if (index >= notes.length && active.length === 0) {
@@ -1613,6 +1581,7 @@ playBtn.addEventListener("click", () => {
 // 曲が最後まで終わっていたら最初へ戻す
 if (index >= notes.length) {
     index = 0;
+    playIndex = 0;
 }
 const t = notes[index]?.time ?? 0;
 startTime = performance.now() - (t * 1000) / speed;
@@ -1682,6 +1651,7 @@ function hardStop() {
   active = [];
 
   index = 0;
+  playIndex = 0;
   stepIndex = 0;
 }
 
@@ -2273,10 +2243,9 @@ if (note.isMelody) {
   const sol = noteToSolfege(note.note);
   text.textContent = sol;
 
-if (sol.includes("♯")) {
+  if (sol.includes("♯")) {
   text.classList.add("small");
   }
-
   el.appendChild(text);
 
   // DOM追加
@@ -2293,19 +2262,17 @@ if (sol.includes("♯")) {
     isMelody: note.isMelody,
     chordId: note.chordId,
     duration: note.duration,
-
     y: 0,
     v: 0,
-
     guideShown: false,
     done: false,
     missed: false
   };
-
   active.push(obj);
-
   return obj;
 }
+
+
 
 function fixMidiNoteName(name){
 
@@ -2319,14 +2286,9 @@ function fixMidiNoteName(name){
     "D#":"Eb",
     "G#":"Ab"
   };
-
-
     return (flatMap[pitch] || pitch) + octave;
-  
-
   return name;
 }
-
 
 
 
@@ -2441,6 +2403,7 @@ judge.textContent = "曲を選んでね";
   notes.forEach(n => n.played = false);
 
   index = 0;
+  playIndex = 0;
   stepIndex = 0;
   pausedTime = 0;
   running = false;
@@ -3003,6 +2966,7 @@ function resetAll() {
     
     // 7. インデックスと時間の初期化
     index = 0;
+    playIndex = 0;
     stepIndex = 0;
     startTime = 0;
     
