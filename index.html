@@ -1514,7 +1514,7 @@ if (!stepMode) {
     }
   }
 
-  
+
 // 6. 音声再生処理
 while (
     playIndex < notes.length &&
@@ -1529,9 +1529,7 @@ while (
         moveFingerGuide();
     }
 
-    const key = document.querySelector(
-        `#keyboard-top [data-note="${n.note}"]`
-    );
+   const key = n.keyTop;
 
     if (key) {
         key.classList.add("hit");
@@ -1544,7 +1542,6 @@ while (
     playIndex++;
 }
 
-
 updatePreview();
   // 7. 終了チェック
   if (index >= notes.length && active.length === 0) {
@@ -1552,12 +1549,8 @@ updatePreview();
     showGoal();
     cancelAnimationFrame(loopId);
   }
- 
 }
 loop();
-
-
-
 
 
 function stopAll() {
@@ -1567,8 +1560,6 @@ function stopAll() {
 
   gameStarted = false;
 }
-
-
 
 // =========================
 // ▶ 再生開始（最初から）
@@ -2195,12 +2186,10 @@ function renderKeyboard(id) {
 
 function spawn(note, now = getTime()) {
 
-
 const myVersion = window.__gameVersion;
 
-  const keyTop = document.querySelector(
-    `#keyboard-top [data-note="${note.note}"]`
-  );
+const keyTop = note.keyTop;
+
   if (!keyTop) return;
 
   const el = document.createElement("div");
@@ -2326,6 +2315,10 @@ window.currentScale = keySig?.scale || "major";
 
 const fixedName = fixMidiNoteName(n.name);
 
+const keyTop = document.querySelector(
+    `#keyboard-top [data-note="${n.name}"]`
+);
+
 notes.push({
   played: false,
   time: n.time,
@@ -2334,7 +2327,8 @@ notes.push({
   doremi: toDoremi(fixMidiNoteName(n.name)),
   midi: n.midi,
   duration: n.duration,
-  hand: (playableTrackCount === 0) ? "right" : "left"
+  hand: (playableTrackCount === 0) ? "right" : "left",
+  keyTop
 });
 
       usedNotes.add(fixMidiNoteName(n.name));
