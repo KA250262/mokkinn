@@ -523,9 +523,9 @@ background-image:
     height: 24px;
     border-radius: 6px;
     border: 3px solid white;
-    background: radial-gradient(circle, #fff8c0, #ffd860);
+    background: #ffd860;
     will-change: transform;
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transition: none;
     z-index: 10001 !important;
 }
 
@@ -1211,14 +1211,15 @@ function startStepMode(){
 
 
 
-function updatePosition(n, now) {
+function updatePosition(n) {
   if (!n.el) return;
 
-  const travelTime = 3.0; // ノーツが降りてくる時間（秒）
+  const travelTime = 3.0;
+
+  const now = getTime();   // ← Tone.now() をやめる
 
   const y =
-    ((n.time - now) / travelTime) * 300 * speed; 
-    // ↑ speed（1.0〜1.5）をちゃんと効かせる
+      ((n.time - now) / travelTime) * 300 * speed;
 
   n.el.style.transform = `translateY(${y}px)`;
 }
@@ -1464,10 +1465,10 @@ window.__gameVersion = (window.__gameVersion || 0) + 1;
   loopId = requestAnimationFrame(loop);
  
   if (paused) return;
-  const now = Tone.now();
+  //const now = Tone.now();
 
- active.forEach(n => {
-  updatePosition(n, now);
+active.forEach(n => {
+    updatePosition(n);
 });
 
   // 3. 基本情報取得
@@ -1476,6 +1477,8 @@ gameTime = getTime();
 // 4. ノーツの出現処理（AUTO MODEのみ）
 if (!stepMode) {
 
+    let spawnCount = 0;
+
     while (
         index < notes.length &&
         notes[index].time <= gameTime + 0.25
@@ -1483,8 +1486,8 @@ if (!stepMode) {
 
         spawn(notes[index]);
         index++;
+        spawnCount++;
     }
-
 }
 
 // 5. 判定と位置の更新
@@ -1543,6 +1546,7 @@ while (
 
     playIndex++;
 }
+
 
 updatePreview();
   // 7. 終了チェック
@@ -1748,6 +1752,7 @@ while (index < notes.length && notes[index].time <= targetTime + 0.25) {
     spawn(notes[index]);
     index++;
 }
+
 
 index = previewIndex;
 
@@ -2203,6 +2208,7 @@ function renderKeyboard(id) {
 // spawn
 
 function spawn(note, now = getTime()) {
+
 const myVersion = window.__gameVersion;
 const keyTop = note.keyTop;
   if (!keyTop) return;
