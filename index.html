@@ -494,8 +494,8 @@ background: #dff3ff;
     /* 最初は透明にしておく */
     opacity: 0;
     animation: spawnNote 0.2s ease-out forwards;
-    width: 25px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 6px;
     border: 3px solid white;
     background: #ffd860;
@@ -541,26 +541,6 @@ background: #dff3ff;
     animation-name: suckToLine;
     animation-timing-function: ease-in;
     animation-fill-mode: forwards;
-}
-
-.note-trail {
-    position: absolute;
-    height: 8px;
-    border-radius: 999px;
-    pointer-events: none;
-    z-index: 40;
-    opacity: 0.5;
-    transform-origin: left center;
-    filter: blur(3px);
-    box-shadow: 0 0 8px currentColor;
-}
-
-.note-trail-right {
-    background: linear-gradient(90deg, rgba(197, 86, 86, 0.8), rgba(255,74,74,0));
-}
-
-.note-trail-left {
-    background: linear-gradient(90deg, rgba(74,163,255,0.8), rgba(74,163,255,0));
 }
 
 .note-fade-out {
@@ -973,9 +953,39 @@ button:focus-visible {
     display:none;
   }
 }
-
-
-
+.key.octave-edge {
+  background: #eee0c2 !important;
+}
+.treble-clef {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: #d1b081;
+  pointer-events: none;
+  line-height: 1;
+}
+.bass-clef {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: #d1b081;
+  pointer-events: none;
+  line-height: 1;
+}
+.middle-do {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  color: #d1b081;
+  transform: translateX(-50%);
+  font-size: 18px;
+  pointer-events: none;
+  line-height: 1;
+}
 </style>
 </head>
 <body>
@@ -1361,21 +1371,25 @@ function mergeChords(list){
     });
 
 
-    return Object.values(groups).map(chord => {
+return Object.values(groups).map(chord => {
 
-        return {
-            ticks: chord[0].ticks,
+    const sorted = chord.sort((a,b)=>a.midi-b.midi);
 
-            doremi: chord
-                .sort((a,b)=>a.midi-b.midi)
-                .map(n=>n.doremi)
-                .join(""),
+    return {
+        ticks: chord[0].ticks,
 
-            isChord: chord.length > 1
-        };
+        notes: sorted,
 
-    });
-}
+        doremi: sorted
+            .map(n => n.doremi)
+            .join(""),
+
+        isChord: sorted.length > 1
+    };
+
+});
+} 
+
 
 
 
@@ -1405,9 +1419,17 @@ function showRow(id, list, currentTicks, previewTicks) {
     row.innerHTML = "";
     const previewWidth = row.clientWidth;
     let lastRight = -9999; 
+
     list.forEach(n => {
+      console.log("preview note:", n);
         const span = document.createElement("span");
-        span.innerHTML = formatDoremi(n.doremi);
+
+span.innerHTML = formatDoremi(
+    n.notes.map(note =>
+        noteToSolfege(note.note, note.keyInfo)
+    ).join("")
+);
+
         if (n.isChord) {
         span.classList.add("chord");
         }
@@ -1991,40 +2013,6 @@ async function startMic() {
 let mic;
 
 
-
-
-
-function getNoteColor(note){
-  return note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
-}
-
-
-const noteToDoremi = {
-  "C": "ド",
-  "C#": "ド♯",
-  "Db": "レ♭",
-  "D": "レ",
-  "D#": "レ♯",
-  "Eb": "ミ♭",
-  "E": "ミ",
-  "F": "ファ",
-  "F#": "ファ♯",
-  "Gb": "ソ♭",
-  "G": "ソ",
-  "G#": "ソ♯",
-  "Ab": "ラ♭",
-  "A": "ラ",
-  "A#": "ラ♯",
-  "Bb": "シ♭",
-  "B": "シ"
-};
-
-function toDoremi(noteName) {
-  const key = noteName.replace(/[0-9]/g, "");
-  return noteToDoremi[key] || noteName;
-}
-
-
 // MIDI読み込み時に一度だけ実行
 // 同じticks内で
 // 右手最高音 → isMelody
@@ -2128,6 +2116,92 @@ function moveFingerGuide(targetIndex = index) {
 
 
 
+
+function loadMidi(buffer, fileName){
+     
+  chordSpawnIndex = {};
+  const midi = new Midi(buffer);
+  window.songBpm = midi.header.tempos?.[0]?.bpm || 120;
+  window.keyChanges = midi.header.keySignatures || [];
+
+  window.ppq = midi.header.ppq;
+  timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
+  
+ const keySig = midi.header.keySignatures?.[0];
+
+ window.currentKey = keySig?.key || "C";
+ window.currentScale = keySig?.scale || "major";
+
+  notes = [];
+  usedNotes.clear();
+
+  let playableTrackCount = 0;
+
+  midi.tracks.forEach(t => {
+    if (t.notes.length === 0) return;
+    t.notes.forEach(n => {
+
+ const keyInfo = getKeyAtTicks(n.ticks);
+const fixedName = fixMidiNoteName(n.name, keyInfo);
+
+ const keyTop = document.querySelector(
+    `#keyboard-top [data-note="${n.name}"]`
+);
+
+const isBlack = keyTop.classList.contains("black");
+
+const x =
+    keyTop.offsetLeft +
+    keyTop.offsetWidth / 2 -
+    12 +
+    (isBlack ? 1 : 0);
+
+const y =
+    keyTop.offsetTop +
+    40 +
+    (isBlack ? -10 : 0);
+
+ notes.push({
+  played: false,
+  time: n.time,
+  ticks: n.ticks,
+ note: fixedName,
+  keyInfo: keyInfo,
+ doremi: noteToSolfege(fixedName),
+  midi: n.midi,
+  duration: n.duration,
+  hand: (playableTrackCount === 0) ? "right" : "left",
+  keyTop,
+      x,
+    y
+});
+
+      usedNotes.add(fixMidiNoteName(n.name));
+  });
+    playableTrackCount++;
+  });
+
+notes.sort((a, b) => a.time - b.time);
+markMelodyBass();
+if (melodyGuide) {
+  moveFingerGuide(0);
+}
+paintKeyboard();
+
+
+}
+
+
+
+async function loadMidiFromUrl(url, fileName){
+
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+  loadMidi(buf, fileName);
+}
+
+
+
 function loadInitialMidi() {
 
     const saved = localStorage.getItem("savedMidi");
@@ -2150,16 +2224,142 @@ function loadInitialMidi() {
 
 
 
+
+function getNoteColor(note){
+  return note.hand === "left" ? "#4aa3ff" : "#ff4a4a";
+}
+
+
+const noteToDoremi = {
+  "C": "ド",
+  "C#": "ド♯",
+  "Db": "レ♭",
+  "D": "レ",
+  "D#": "レ♯",
+  "Eb": "ミ♭",
+  "E": "ミ",
+  "F": "ファ",
+  "F#": "ファ♯",
+  "Gb": "ソ♭",
+  "G": "ソ",
+  "G#": "ソ♯",
+  "Ab": "ラ♭",
+  "A": "ラ",
+  "A#": "ラ♯",
+  "Bb": "シ♭",
+  "B": "シ"
+};
+
+function getKeyAtTicks(ticks){
+
+  let current = {
+    key: "C",
+    scale: "major"
+  };
+
+  for(const k of window.keyChanges){
+
+    if(k.ticks <= ticks){
+      current = k;
+    } else {
+      break;
+    }
+
+  }
+
+  return current;
+}
+
+function fixMidiNoteName(name){
+
+  return name;
+}
+
+
+
+function toDoremi(noteName) {
+  const key = noteName.replace(/[0-9]/g, "");
+  return noteToDoremi[key] || noteName;
+}
+
+
+
+
+
 function paintKeyboard(){
+
   document.querySelectorAll(".key, .black").forEach(key=>{
     if(key.classList.contains("black")){
-      key.style.background =  "#4b6177";
+      key.style.background = "#4b6177";
     } else {
-      key.style.background = "#fffae8"; /* ⭐初期色をアイボリーに変更 */
+      key.style.background = "#fffae8";
     }
     key.style.opacity = "1";
   });
+
+  const whites = [...document.querySelectorAll("#keyboard-top .key:not(.black)")];
+
+  // いったん解除
+  whites.forEach(k => k.classList.remove("octave-edge"));
+
+  // 両端1オクターブを濃くする
+  whites.slice(0,7).forEach(k => k.classList.add("octave-edge"));
+  whites.slice(-8).forEach(k => k.classList.add("octave-edge"));
+addTrebleClef();
+addBassClef();
+addMiddleDo();
+
 }
+
+function addBassClef(){
+
+  const c3 = document.querySelector('#keyboard-top [data-note="C3"]');
+
+  if(!c3) return;
+
+  if(c3.querySelector(".bass-clef")) return;
+
+  const clef = document.createElement("div");
+  clef.className = "bass-clef";
+  clef.textContent = "ド";
+
+  c3.appendChild(clef);
+}
+
+function addMiddleDo(){
+
+  const c4 = document.querySelector('#keyboard-top [data-note="C4"]');
+
+  if(!c4) return;
+
+  if(c4.querySelector(".middle-do")) return;
+
+  const mark = document.createElement("div");
+  mark.className = "middle-do";
+  mark.textContent = "ド";
+
+  c4.appendChild(mark);
+}
+
+function addTrebleClef(){
+
+  const c5 = document.querySelector('#keyboard-top [data-note="C5"]');
+
+  if(!c5) return;
+
+  // すでにあれば追加しない
+  if(c5.querySelector(".treble-clef")) return;
+
+  const clef = document.createElement("div");
+  clef.className = "treble-clef";
+  clef.textContent = "ド";
+
+  c5.appendChild(clef);
+}
+
+
+
+
 
 // =========================
 // 🎹 描画
@@ -2223,8 +2423,10 @@ function spawn(note, now = getTime()) {
 const myVersion = window.__gameVersion;
 const keyTop = note.keyTop;
   if (!keyTop) return;
+
   const el = document.createElement("div");
   el.className = "note";
+  
     if (note.isMelody) {
     el.classList.add("melody");
 }
@@ -2235,7 +2437,7 @@ el.style.top = note.y + "px";
 
 el.style.background =
     "radial-gradient(circle, #fff8c0, #ffd860)";
-    
+
   // z-index管理（後勝ち表示）
   el.style.zIndex = noteZCounter++;
 
@@ -2243,11 +2445,11 @@ el.style.background =
   const text = document.createElement("div");
   text.className = "note-text";
 
-  // ここはあなたの関数使ってOK
-  const sol = noteToSolfege(note.note);
-  text.textContent = sol;
+console.log("spawn確認:", note);
+const solfege = noteToSolfege(note.note, note.keyInfo);
+ text.textContent = solfege;
 
-  if (sol.includes("♯")) {
+  if (solfege.includes("♯")) {
   text.classList.add("small");
   }
   el.appendChild(text);
@@ -2275,114 +2477,6 @@ el.style.background =
   active.push(obj);
   return obj;
 }
-
-
-
-function fixMidiNoteName(name){
-
-  const flatKeys = ["F","Bb","Eb","Ab","Db","Gb","Cm","Dm","Fm","Gm","Bbm","Ebm"];
-
-  const pitch = name.replace(/[0-9]/g,"");
-  const octave = name.match(/[0-9]+/)?.[0] || "";
-
-  const flatMap = {
-    "A#":"Bb",
-    "D#":"Eb",
-    "G#":"Ab"
-  };
-    return (flatMap[pitch] || pitch) + octave;
-  return name;
-}
-
-
-
-
-function loadMidi(buffer, fileName){
-  
-  chordSpawnIndex = {};
-  const midi = new Midi(buffer);
-
-  window.songBpm = midi.header.tempos?.[0]?.bpm || 120;
-  window.ppq = midi.header.ppq;
-  timeSignature = midi.header.timeSignatures?.[0]?.timeSignature?.[0] || 4;
-  
-const keySig = midi.header.keySignatures?.[0];
-
-const keyFix = { 
-  "D#":"Eb", "Eb":"Eb",
-  "C#":"Db", "Db":"Db",
-  "F#":"Gb", "Gb":"Gb",
-  "G#":"Ab", "Ab":"Ab",
-  "A#":"Bb", "Bb":"Bb"
-};
-
-window.currentKey = keyFix[keySig?.key] || "C";
-window.currentScale = keySig?.scale || "major";
-
-  notes = [];
-  usedNotes.clear();
-
-  let playableTrackCount = 0;
-
-  midi.tracks.forEach(t => {
-    if (t.notes.length === 0) return;
-    t.notes.forEach(n => {
-
-const fixedName = fixMidiNoteName(n.name);
-
-const keyTop = document.querySelector(
-    `#keyboard-top [data-note="${n.name}"]`
-);
-
-const isBlack = keyTop.classList.contains("black");
-
-const x =
-    keyTop.offsetLeft +
-    keyTop.offsetWidth / 2 -
-    12 +
-    (isBlack ? 1 : 0);
-
-const y =
-    keyTop.offsetTop +
-    40 +
-    (isBlack ? -10 : 0);
-
-notes.push({
-  played: false,
-  time: n.time,
-  ticks: n.ticks,
-  note: n.name,   // ← A#3のまま
-  doremi: toDoremi(fixMidiNoteName(n.name)),
-  midi: n.midi,
-  duration: n.duration,
-  hand: (playableTrackCount === 0) ? "right" : "left",
-  keyTop,
-      x,
-    y
-});
-
-      usedNotes.add(fixMidiNoteName(n.name));
-  });
-    playableTrackCount++;
-  });
-
-notes.sort((a, b) => a.time - b.time);
-markMelodyBass();
-if (melodyGuide) {
-  moveFingerGuide(0);
-}
-paintKeyboard();
-
-}
-
-
-async function loadMidiFromUrl(url, fileName){
-
-  const res = await fetch(url);
-  const buf = await res.arrayBuffer();
-  loadMidi(buf, fileName);
-}
-
 
 
 
@@ -2580,111 +2674,86 @@ const scaleNotes = {
 };
 
 
-function noteToSolfege(noteName){
-  noteName = fixMidiNoteName(noteName);
-
-    const pitch = noteName.replace(/[0-9]/g, "");
-  console.log("元:", noteName, "pitch:", pitch);
-    // MIDI表記をそのまま保持
-    const normalize = {
-        "C":"C",
-        "C#":"C#",
-        "Db":"Db",
-        "D":"D",
-        "D#":"D#",
-        "Eb":"Eb",
-        "E":"E",
-        "Fb":"E",
-        "F":"F",
-        "E#":"F",
-        "F#":"F#",
-        "Gb":"Gb",
-        "G":"G",
-        "G#":"G#",
-        "Ab":"Ab",
-        "A":"A",
-        "A#":"A#",
-        "Bb":"Bb",
-        "B":"B",
-        "Cb":"B"
-    };
-
-    const p = normalize[pitch];
-    if(!p) return pitch;
 
 
-    const key = window.currentKey || "C";
-    const scaleType = window.currentScale || "major";
+function noteToSolfege(noteName, keyInfo){
+
+  if(!noteName){
+    console.warn("noteToSolfege 空:", noteName);
+    return "";
+  }
+
+ let pitch = noteName.replace(/[0-9]/g,"");
+
+// 調号による異名同音変換
+const flatConvertKeys = [
+  "F",
+  "Bb",
+  "Eb",
+  "Ab",
+  "Db",
+  "Gb"
+];
+
+if(flatConvertKeys.includes(keyInfo?.key)){
+
+const flatConvert = {
+  "A#":"Bb",
+  "D#":"Eb",
+  "G#":"Ab",
+  "C#":"Db",
+  "F#":"Gb"
+};
+
+if(flatConvert[pitch]){
+  pitch = flatConvert[pitch];
+}
+}
+
+  const key = keyInfo?.key || "C";
+  const scaleType = keyInfo?.scale || "major";
+
+  console.log("表示調:", key, "音:", pitch);
+
+  const normalize = {
+    "C":"C",
+    "C#":"C#",
+    "Db":"Db",
+    "D":"D",
+    "D#":"D#",
+    "Eb":"Eb",
+    "E":"E",
+    "Fb":"E",
+    "F":"F",
+    "E#":"F",
+    "F#":"F#",
+    "Gb":"Gb",
+    "G":"G",
+    "G#":"G#",
+    "Ab":"Ab",
+    "A":"A",
+    "A#":"A#",
+    "Bb":"Bb",
+    "B":"B",
+    "Cb":"B"
+  };
+
+  const p = normalize[pitch];
+  if(!p) return pitch;
+  return noteToDoremi[p] || pitch;
 
 
-    // 長調・短調のキー名
-    let scaleKey = key;
-
-    if(scaleType === "minor"){
-        scaleKey += "m";
-    }
-
-
-    const scale = scaleNotes[scaleKey];
+notes.push({
+  note: n.name,
+  keyInfo:keyInfo,
+});
+}
 
 
-    // 調の構成音ならドレミ表示
-    if(scale){
 
-        const idx = scale.indexOf(p);
+function fixMidiNoteName(name, keyInfo){
 
-        if(idx !== -1){
-
-            const solfege = [
-                "ド",
-                "レ",
-                "ミ",
-                "ファ",
-                "ソ",
-                "ラ",
-                "シ"
-            ];
-
-            return solfege[idx];
-        }
-    }
-
-
-    // 調外の音（臨時記号）
-    const kana = {
-
-        "C":"ド",
-
-        "C#":"ド♯",
-        "Db":"レ♭",
-
-        "D":"レ",
-
-        "D#":"レ♯",
-        "Eb":"ミ♭",
-
-        "E":"ミ",
-
-        "F":"ファ",
-
-        "F#":"ファ♯",
-        "Gb":"ソ♭",
-
-        "G":"ソ",
-
-        "G#":"ソ♯",
-        "Ab":"ラ♭",
-
-        "A":"ラ",
-
-        "A#":"ラ♯",
-        "Bb":"シ♭",
-
-        "B":"シ"
-    };
-
-
-    return kana[p] || p;
+  return name;
 }
 
 const NOTE_EARLY = 0.3;
