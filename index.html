@@ -61,16 +61,10 @@ body.mobile #keyboard-top {
   display: flex;
   flex-direction: column;
   align-items: center;
-
   width: 100%;
   min-height: 100dvh;
 
-background-image:
-    linear-gradient(
-        rgba(255,255,255,0.18),
-        rgba(255,255,255,0.18)
-    ),
-    url("melokoro.png");
+background: #dff3ff;
 
   background-size: cover;
   background-position: center;
@@ -2239,16 +2233,9 @@ const keyTop = note.keyTop;
 el.style.left = note.x + "px";
 el.style.top = note.y + "px";
 
-  // 色（手の分離）
-if (note.isMelody) {
-    el.style.background = "#ffd400";   // 黄
-} else if (note.isBass) {
-    el.style.background = "#00c853";   // 緑
-} else {
-    el.style.background = note.hand === "left"
-        ? "#4aa3ff"
-        : "#ff4a4a";
-}
+el.style.background =
+    "radial-gradient(circle, #fff8c0, #ffd860)";
+    
   // z-index管理（後勝ち表示）
   el.style.zIndex = noteZCounter++;
 
