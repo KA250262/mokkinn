@@ -159,6 +159,24 @@ background-image:
   transform-origin: center;
 }
 
+#keyboard-top .key.octave-line{
+    box-shadow:
+        -2px 0 0 rgba(80,80,80,.45),
+        inset 0 2px 2px rgba(255,255,255,.9),
+        inset 0 -2px 2px rgba(0,0,0,.12),
+        0 3px 6px rgba(0,0,0,.18);
+}
+
+#keyboard-top .key.octave-line-main{
+  box-shadow:
+    -3px 0 0 rgba(80,80,80,.45),
+    inset 0 2px 2px rgba(255,255,255,.9),
+    inset 0 -2px 2px rgba(0,0,0,.12),
+    0 3px 6px rgba(0,0,0,.18);
+}
+
+
+
 #keyboard-top .black {
   position: absolute;
   top: 35px;
@@ -192,45 +210,8 @@ background-image:
 
   transform-origin: center;
 }
-/*
-#keyboard-top .key[data-note="C4"]::after {
-  content: "♢ド";
-  position: absolute;
-  left: 50%;
-  bottom: -20px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #666;
-  font-weight: bold;
-  white-space: nowrap;
-  pointer-events: none;
-}
-#keyboard-top .key[data-note="C3"]::after {
-  content: "▼ド";
-  position: absolute;
-  left: 50%;
-  bottom: -20px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #666;
-  font-weight: bold;
-  white-space: nowrap;
-  pointer-events: none;
-}
 
-#keyboard-top .key[data-note="C5"]::after {
-  content: "▲ド";
-  position: absolute;
-  left: 50%;
-  bottom: -20px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #666;
-  font-weight: bold;
-  white-space: nowrap;
-  pointer-events: none;
-}
- ====== UI ====== */
+/* ====== UI ====== */
 #ui{
   display:flex;
   flex-direction:row;
@@ -969,6 +950,38 @@ button:focus-visible {
   left:12px;
   top:9px;
 }
+#rotateMessage{
+  display:none;
+}
+
+@media (orientation: portrait){
+
+  #rotateMessage{
+    display:flex;
+    position:fixed;
+    inset:0;
+    background:#000;
+    justify-content:center;
+    align-items:center;
+    z-index:999999;
+    padding:12px;
+  }
+
+  #rotateMessage img{
+    width:100%;
+    max-width:420px;
+    height:auto;
+    border-radius:12px;
+  }
+
+  #gameArea,
+  #ui,
+  #songListRow{
+    display:none;
+  }
+}
+
+
 
 </style>
 </head>
@@ -976,8 +989,11 @@ button:focus-visible {
 
 
 <div id="rotateMessage">
-  ♫ 横向きにして遊んでください
-</div> 
+
+  <img src="images/tutorial.png" alt="メロころの使い方">
+
+</div>
+
  <button id="songSelector" onclick="toggleSongList()">
   🎵 曲を選ぶ ▼
  </button>
@@ -1465,7 +1481,6 @@ window.__gameVersion = (window.__gameVersion || 0) + 1;
   loopId = requestAnimationFrame(loop);
  
   if (paused) return;
-  //const now = Tone.now();
 
 active.forEach(n => {
     updatePosition(n);
@@ -1531,7 +1546,7 @@ while (
     n.played = true;
 
     if (melodyGuide && n.isMelody) {
-        moveFingerGuide();
+        moveFingerGuide(index);
     }
 
    const key = n.keyTop;
@@ -1546,7 +1561,6 @@ while (
 
     playIndex++;
 }
-
 
 updatePreview();
   // 7. 終了チェック
@@ -1603,7 +1617,7 @@ updateScoreDisplay();
 
   // 👇ガイドを最初へ
   if (melodyGuide) {
-    moveFingerGuide();
+    moveFingerGuide(index);
   }
 
   // 判定の光を消す
@@ -1700,7 +1714,7 @@ melodyGuideBtn.onclick = () => {
         melodyGuide ? "block" : "none";
 
     if (melodyGuide) {
-        moveFingerGuide();
+        moveFingerGuide(index);
     }
 
 };
@@ -1765,7 +1779,7 @@ if (playIndex === -1) {
 
 // ガイド・プレビュー更新
 if (melodyGuide) {
-    moveFingerGuide();
+  moveFingerGuide(index);
 }
 
 updatePreview();
@@ -2083,7 +2097,7 @@ function markMelodyBass() {
 // =========================
 // ⬇️ 次に弾くメロディへ移動
 // =========================
-function moveFingerGuide() {
+function moveFingerGuide(targetIndex = index) {
 
   if (!melodyGuide) {
     const guide = document.getElementById("fingerGuide");
@@ -2094,10 +2108,10 @@ function moveFingerGuide() {
     const guide = document.getElementById("fingerGuide");
     if (!guide) return;
 
-    // まだ弾いていないメロディを探す
-    const next = notes.find(n =>
-        n.isMelody && !n.played
-    );
+    // targetIndex以降のメロディを探す
+    const next = notes
+        .slice(targetIndex)
+        .find(n => n.isMelody);
 
     if (!next) {
         guide.style.display = "none";
@@ -2161,14 +2175,10 @@ renderKeyboard("keyboard-top");
 
 
 
-function renderKeyboard(id) {
- 
+function renderKeyboard(id) { 
     const kb = document.getElementById(id);
     if (!kb) return;
-
     kb.querySelectorAll(".key,.black").forEach(e => e.remove());
-
-
     const whiteNotes = keys.filter(n => !n.includes("#"));
     const base = kb;
     const whiteWidth = base.clientWidth / whiteNotes.length;
@@ -2195,8 +2205,16 @@ function renderKeyboard(id) {
             key.className = "key";
             key.style.left = (whiteIndex * whiteWidth) + "px";
             key.style.width = whiteWidth + "px";
-            whiteIndex++;
+    if (note === "C2" || note === "C3" || note === "C5" || note === "C6" || note === "C7") {
+        key.classList.add("octave-line");
+    }
+
+    if (note === "C4") {
+        key.classList.add("octave-line-main");
+    }
+      whiteIndex++;
         }
+      
         kb.appendChild(key);
     });
     paintKeyboard();
@@ -2365,7 +2383,7 @@ notes.push({
 notes.sort((a, b) => a.time - b.time);
 markMelodyBass();
 if (melodyGuide) {
-    moveFingerGuide();
+  moveFingerGuide(0);
 }
 paintKeyboard();
 
@@ -2865,7 +2883,7 @@ function changeSpeed(dir) {
 
     // ガイド矢印・プレビューも更新
     if (melodyGuide) {
-        moveFingerGuide();
+        moveFingerGuide(index);
     }
 
     updatePreview();
@@ -3096,6 +3114,8 @@ function rebuildVisibleNotes() {
     }
 }
 
+
+
 function stepForward() {
 
   document.getElementById("notes-layer").innerHTML = "";
@@ -3129,6 +3149,8 @@ function stepForward() {
 
     stepIndex = notes.findIndex(n => n.time > currentTime);
     if (stepIndex === -1) stepIndex = notes.length;
+
+    moveFingerGuide(stepIndex);
 }
 
 </script>
