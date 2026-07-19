@@ -15,10 +15,8 @@
 
 /* ====== Base ====== */
 html {
-  transform-origin: top left;
   height: 100%;
   overflow-y: auto;
-  margin: 0;
 }
 
 body{
@@ -30,20 +28,12 @@ body{
   font-family:sans-serif;
   overflow-x:hidden;
   overflow-y:auto;
-  transition: background-color 0.05s ease, filter 0.05s ease;
   display: flex;
   box-sizing: border-box;
   flex-direction: column;
   height: 100%;
-  overflow-y: auto;
-  margin: 0;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
 /* ====== 縦向きの仕様 ====== */
 body.mobile {
     transform: none ;
@@ -54,7 +44,6 @@ body.mobile #keyboard-top {
     top: 0;
 }
 
-
 /* ====== Layout ====== */
 #gameArea {
   position: absolute;
@@ -63,30 +52,11 @@ body.mobile #keyboard-top {
   align-items: center;
   width: 100%;
   min-height: 100dvh;
-
-background: #dff3ff;
-
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: #dff3ff;
   overflow: hidden;
 }
 
-/* ====== Components ====== */
-#mascot{
-  position:absolute;
-  width:100%;
-  height:70%;
-  left:0;
-  top:0;
-  object-fit:contain;
-  object-position:top;
-  pointer-events:none;
-  z-index:1;
-}
-
 /* ====== Keyboard ====== */
-
 #keyboard-top{
   position: relative;   /* absoluteをやめる */
   width: 100%;
@@ -98,7 +68,7 @@ background: #dff3ff;
   touch-action: pan-x;
   white-space: nowrap;
   flex-shrink: 0;
-
+  z-index:100;
     padding:0;
     border:2px solid #8c7b5b;
     border-radius:12px;
@@ -114,8 +84,7 @@ background: #dff3ff;
     top: 30px;
     width: 100%;
     height: 100%;
-    /* 💡 鍵盤のz-index(最高100)よりも大きく設定 */
-    z-index: 10000 ; 
+    z-index: 200; 
     pointer-events: none;
 }
 
@@ -191,7 +160,6 @@ background: #dff3ff;
   font-size: 11px;
   color: white;
   padding-top: 40px;
-
   user-select: none;
   cursor: pointer;
 
@@ -209,19 +177,15 @@ background: #dff3ff;
   flex-direction:row;
   flex-wrap:nowrap;
   justify-content:center;
-
   align-items:center;
   gap:3px;
   width:100%;
   max-width:240px;
   padding:4px 8px;
-  
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-
-  position: fixed;   /* staticでもOK */
-  margin-top:8px;      /* 鍵盤との間隔 */
+  position: fixed;  
   background:transparent;
   z-index:100;
 }
@@ -231,7 +195,7 @@ background: #dff3ff;
     left: 50%;
     top: 120px;
     transform: translateX(-50%);
-    z-index: 10000;
+    z-index:300;
     opacity: 0;
 }
 
@@ -261,10 +225,9 @@ background: #dff3ff;
  
   left: 50%;
   transform: translateX(-50%);
-  pointer-events: auto !important;
+  pointer-events: auto;
 }
 
-/* ====== UI ====== */
 #songListRow {
     position: absolute;
     top: 60px;
@@ -276,7 +239,7 @@ background: #dff3ff;
     display:none;
     flex-direction: column;
     width: min(80vw, 400px);
-    z-index: 9999;
+    z-index:300;
     padding: 12px;
     gap: 8px;
 
@@ -329,15 +292,14 @@ background: #dff3ff;
   width:32px;
   height:32px;
   border-radius:50%;
-   display:flex;
-    align-items:center;
-    justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   cursor:pointer;
-    border:none;
+  border:none;
   padding:0;
   font-size:30px;
 }
-
 
 #speedLabel{
   min-width:60px;
@@ -346,19 +308,13 @@ background: #dff3ff;
   text-align:center;
 }
 
-#keyboard-top .key.guide-left{
+#keyboard-top .key.guide-left,
+#keyboard-top .key.guide-right {
     background:white;
     box-shadow:
         0 0 12px white,
         0 0 24px rgba(255,255,255,.8);
-     opacity: 1!important;
-}
-#keyboard-top .key.guide-right{
-    background:white;
-    box-shadow:
-        0 0 12px white,
-        0 0 24px rgba(255,255,255,.8);
-     opacity: 1!important;
+    opacity:1 !important;
 }
 
 #songToggleBtn {
@@ -371,41 +327,32 @@ background: #dff3ff;
   font-size: 14px;
   cursor: pointer;
   user-select: none;
-
   display: flex;
   align-items: center;
   justify-content: center;
 }
 #uiBar {
   position: fixed;
-  top: 200px; /* ←あとでJSで鍵盤下に合わせてもOK */
+  top: 200px; 
   left: 50%;
   transform: translateX(-50%);
-
   display: flex;
   align-items: center;
   gap: 10px;
-
-  z-index: 2000;
+  z-index: 250;
 }
 
-
 #scalePreview {
-    position:relative;
-    padding-left:30px; /* 手の分のスペース */
-  
- top: 5px;   /* ←この数字だけで上下調整できる */
-  
-  max-width: 600px; /* PCでも広がりすぎない */
-  min-width: 600px; /* スマホでも小さくなりすぎない */
-  height: 60px;
-
+  position:relative;
+  padding-left:30px;
+  top: 5px;  
+  max-width: 600px; 
+  width:90vw;
+  min-width:0;
   display: flex;
   flex-direction: column;
-
   border: 1px solid rgba(255,255,255,0.3);
   border-radius: 8px;
-
   background: rgba(0,0,0,0.4);
   color: white;
   font-size: 14px;
@@ -413,7 +360,7 @@ background: #dff3ff;
 }
 
 #scalePreview .row {
- display:flex; 
+  display:flex; 
   align-items: center;
   white-space: nowrap;
 }
@@ -421,6 +368,7 @@ background: #dff3ff;
 #rightHandRow,
 #leftHandRow{
     position:relative;
+    display:flex;
     height:28px;
     width: 65%;
     overflow: visible;
@@ -436,11 +384,8 @@ background: #dff3ff;
     font-weight:bold;
 }
 
-
-/* ============ */
 .black.hit {
-  transform: translateY(5px);
-
+  transform: translateY(3px);
   background: rgba(60,60,60,0.85);
 
   box-shadow:
@@ -450,7 +395,7 @@ background: #dff3ff;
 }
 
 .key.hit {
-  transform: translateY(5px);
+  transform: translateY(3px);
   background: rgba(255,255,255,0.6);
 
     box-shadow:
@@ -459,27 +404,11 @@ background: #dff3ff;
        0 4px 10px rgba(0,0,0,0.3);
 }
 
-.controls-container {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center; 
-  gap: 20px;
-  white-space: nowrap;
-}
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .group{
   display:flex;
-  flex-direction:row;
-  flex-wrap:nowrap;
   align-items:center;
   gap:8px;
 }
-
 
 /* =====note======= */
 .single-note{
@@ -489,7 +418,6 @@ background: #dff3ff;
 
 .note {
     position: absolute;
-    /* 最初は透明にしておく */
     opacity: 0;
     animation: spawnNote 0.2s ease-out forwards;
     width: 20px;
@@ -499,7 +427,7 @@ background: #dff3ff;
     background: #ffd860;
     will-change: transform;
     transition: none;
-    z-index: 10001 !important;
+    z-index:1;
 }
 
 .note.note-active {
@@ -518,7 +446,7 @@ background: #dff3ff;
     font-weight: 800; 
     color: white; 
     text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
-    z-index: 300; 
+    z-index:auto; 
 }
 
 .note-text.small {
@@ -532,7 +460,6 @@ background: #dff3ff;
 
 .note-hit {
     box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.9);
-    filter: brightness(1.8);
 }
 
 .note-suck {
@@ -544,13 +471,30 @@ background: #dff3ff;
 .note-fade-out {
   animation: quickFade 0.15s ease-out forwards;
 }
+
+.note-fa{
+    display:inline-flex;
+    letter-spacing:-0.45em;
+}
+
+.note-base{
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap;
+    vertical-align:middle;
+}
+
+.note-name{
+  display:inline-block;
+}
+
+
+/* =====btn======= */
 button:focus,
 button:focus-visible {
     outline: none;
     box-shadow: none;
 }
-
-/* =====btn======= */
 /* 再生*/
 .play-btn {
   transform: scale(1.1);
@@ -561,7 +505,6 @@ button:focus-visible {
 }
 
 /* ⏪ コマ戻し */
-
 /* ⏭ コマ送り */
 .step-btn,.back-btn {
   background: #3498db;
@@ -572,23 +515,14 @@ button:focus-visible {
 .songBtn {
     width: 100%;
     min-height: 50px;
-    height: 40px;
-
     text-align: left;
     padding-left: 15px;
-
     background: #ff7ac8;
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 18px;
     font-weight: bold;
-    position: static 
-}
-
-.songBtn.selected {
-    background: #ff3399;
-    border-left: 6px solid white;
 }
 
 .icon-btn {
@@ -624,9 +558,9 @@ button:focus-visible {
   transform: scale(0.95);
 }
 
-
 .songBtn.selected {
     background: #ff3399;
+    border-left: 6px solid white;
     border: 2px solid white;
     box-shadow: 0 0 12px #ff3399;
 }
@@ -643,12 +577,7 @@ button:focus-visible {
                top .15s linear;
 }
 
-/* ====== Media Queries ====== */
-
-@keyframes flashFade {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
-}
+/* ====== Animations ====== */
 @keyframes quickFade {
   0% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(0.6); }
@@ -657,8 +586,7 @@ button:focus-visible {
 @keyframes spawnNote {
     0% {
         opacity: 0;
-        transform: scale(0.1) rotate(-12deg); 
-        
+        transform: scale(0.1) rotate(-12deg);   
     }
     100% {
         opacity: 1;
@@ -666,12 +594,9 @@ button:focus-visible {
     }
 }
 
+
+/* ====== Mobile ====== */
 @media (max-width:768px){
-
-  #ui{
-    transform:none;
-  }
-
   #songSelector{
     width: fit-content;   /* 曲名に合わせて広がる */
     max-width: 90vw;      /* 画面幅まで */
@@ -701,6 +626,8 @@ button:focus-visible {
     display:none;
   }
 }
+
+
 #keyboard-top .black.black-left{
     border-radius: 8px 5px 4px 4px;
 }
@@ -715,7 +642,7 @@ button:focus-visible {
 .note.melody{
     background: #ffd400;
     border-color: #ffef88;
-    color: black;   /* 黄色は白文字だと見えにくい */
+    color: black;   
 }
 #melodyGuideBtn.active{
     background:#ffd400;
@@ -732,19 +659,6 @@ button:focus-visible {
     margin:0 4px;
     white-space:nowrap;
     position:relative;
-
-
-}
-
-.note-base{
-    display:inline-flex;
-    align-items:center;
-    white-space:nowrap;
-    vertical-align:middle;
-}
-
-.note-name{
-  display:inline-block;
 }
 
 .accidental{
@@ -753,7 +667,6 @@ button:focus-visible {
   line-height:1;
   position:relative;
   top:-0.35em;
-  margin-left:-0.15em;
   margin-left:1px;
 }
 
@@ -800,10 +713,7 @@ button:focus-visible {
 #pageNext{
     transform: translateX(100%);
 }
-.note-fa{
-    display:inline-flex;
-    letter-spacing:-0.45em;
-}
+
 
 .pause-btn{
   position:relative;
