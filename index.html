@@ -1155,7 +1155,7 @@ let shownMeasure = -1;
 // =========================
 
 
-function play(note){
+function play(note, when = Tone.now()) {
     const now = Tone.now();
 
     // ★ ノートごとにガード（和音はブロックしない）
@@ -1169,7 +1169,7 @@ function play(note){
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 1, now);
+        window.synth.triggerAttackRelease(note, 1, when);
     } catch (e) {
         console.error("再生エラー:", e);
     }
@@ -1525,10 +1525,7 @@ while (
 
     if (key) {
         key.classList.add("hit");
-
-        setTimeout(() => {
-            key.classList.remove("hit");
-        }, 400);
+        key.hitUntil = performance.now() + 400;
     }
 
     playIndex++;
@@ -1540,6 +1537,10 @@ while (
     showGoal();
     cancelAnimationFrame(loopId);
   }
+
+  if (performance.now() > key.hitUntil) {
+    key.classList.remove("hit");
+}
 }
 loop();
 
