@@ -1443,7 +1443,7 @@ function loop() {
   }
 
   loopRunning = true;
-window.__gameVersion = (window.__gameVersion || 0) + 1;
+  window.__gameVersion = (window.__gameVersion || 0) + 1;
 
 
   if (!running) return;
@@ -1453,11 +1453,11 @@ window.__gameVersion = (window.__gameVersion || 0) + 1;
   if (paused) return;
 
   // 3. 基本情報取得
-gameTime = getTime();
+  gameTime = getTime();
 
 // 4. ノーツの出現処理（AUTO MODEのみ）
-if (!stepMode) {
-while (
+  if (!stepMode) {
+  while (
     index < notes.length &&
     notes[index].time <= gameTime + 0.25
 ) {
@@ -1514,6 +1514,9 @@ while (
 ) {
     const n = notes[playIndex];
 
+    const diff = gameTime - n.time;
+    console.log(diff);
+
     play(n.note);
     n.played = true;
 
@@ -1525,7 +1528,11 @@ while (
 
     if (key) {
         key.classList.add("hit");
-        key.hitUntil = performance.now() + 400;
+        
+setTimeout(() => {
+    key.classList.remove("hit");
+}, 400);
+
     }
 
     playIndex++;
@@ -1537,10 +1544,6 @@ while (
     showGoal();
     cancelAnimationFrame(loopId);
   }
-
-  if (performance.now() > key.hitUntil) {
-    key.classList.remove("hit");
-}
 }
 loop();
 
