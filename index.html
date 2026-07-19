@@ -169,13 +169,11 @@ background: #dff3ff;
     0 3px 6px rgba(0,0,0,.18);
 }
 
-
-
 #keyboard-top .black {
   position: absolute;
   top: 35px;
   width: 20px;
-  height: 43px;
+  height: 40px;
 
   background: #222;
   border: 2px solid rgba(255,255,255,.8);
@@ -1229,20 +1227,13 @@ function startStepMode(){
 }
 
 
-
 function updatePosition(n) {
   if (!n.el) return;
-
-  const travelTime = 3.0;
-
-  const now = getTime();   // ← Tone.now() をやめる
-
+  const now = getTime();
   const y =
       ((n.time - now) / travelTime) * 300 * speed;
-
   n.el.style.transform = `translateY(${y}px)`;
 }
-
 
 
 // =========================
@@ -1298,27 +1289,10 @@ function refreshNotes() {
 
 }
 
-
-function updatePreview() {
-
-    const now = getTime();
-
-    const current = notes.findLast(n => n.time <= now);
-    if (!current) return;
-
-    const currentTicks = current.ticks;
+function updatePreview(currentMeasure, currentTicks)  {
 
     const ticksPerMeasure = window.ppq * timeSignature;
     const previewTicks = ticksPerMeasure * 2; 
-
-    const currentMeasure =
-        Math.floor(currentTicks / ticksPerMeasure);
-
-    // 小節が変わってなければ何もしない
-    if (currentMeasure === shownMeasure) return;
-
-    shownMeasure = currentMeasure;
-
     const measureStartTicks =
         currentMeasure * ticksPerMeasure;
 
@@ -1421,7 +1395,6 @@ function showRow(id, list, currentTicks, previewTicks) {
     let lastRight = -9999; 
 
     list.forEach(n => {
-      console.log("preview note:", n);
         const span = document.createElement("span");
 
 span.innerHTML = formatDoremi(
@@ -1472,24 +1445,6 @@ function loop() {
   loopRunning = true;
 window.__gameVersion = (window.__gameVersion || 0) + 1;
 
-  document.querySelectorAll(
-    "#keyboard-top .guide-left, #keyboard-top .guide-right"
-  ).forEach(key => {
-
-    const alive = active.some(
-      n =>
-        n.keyTop === key &&
-        !n.done &&
-        !n.missed
-    );
-
-    if (!alive) {
-      key.classList.remove(
-        "guide-left",
-        "guide-right"
-      );
-    }
-  });
 
   if (!running) return;
 
@@ -1497,34 +1452,36 @@ window.__gameVersion = (window.__gameVersion || 0) + 1;
  
   if (paused) return;
 
-active.forEach(n => {
-    updatePosition(n);
-});
-
   // 3. 基本情報取得
 gameTime = getTime();
 
 // 4. ノーツの出現処理（AUTO MODEのみ）
 if (!stepMode) {
+while (
+    index < notes.length &&
+    notes[index].time <= gameTime + 0.25
+) {
 
-    let spawnCount = 0;
+const currentTicks = notes[index].ticks;
 
-    while (
-        index < notes.length &&
-        notes[index].time <= gameTime + 0.25
-    ) {
+const currentMeasure =
+    Math.floor(currentTicks / (window.ppq * timeSignature));
 
-        spawn(notes[index]);
-        index++;
-        spawnCount++;
-    }
+if (currentMeasure !== shownMeasure) {
+    shownMeasure = currentMeasure;
+    updatePreview(currentMeasure, currentTicks);
+}
+
+    spawn(notes[index]);
+    index++;
+}
 }
 
 // 5. 判定と位置の更新
-  for (let i = active.length - 1; i >= 0; i--) {
+for (let i = active.length - 1; i >= 0; i--) {
     const n = active[i];
     if (n.removed) continue;
-
+    updatePosition(n);
     const remain = n.hit - gameTime;
 
     // ガイドの点灯処理
@@ -1577,7 +1534,6 @@ while (
     playIndex++;
 }
 
-updatePreview();
   // 7. 終了チェック
   if (index >= notes.length && active.length === 0) {
     running = false;
@@ -2445,7 +2401,6 @@ el.style.background =
   const text = document.createElement("div");
   text.className = "note-text";
 
-console.log("spawn確認:", note);
 const solfege = noteToSolfege(note.note, note.keyInfo);
  text.textContent = solfege;
 
@@ -2712,9 +2667,6 @@ if(flatConvert[pitch]){
 
   const key = keyInfo?.key || "C";
   const scaleType = keyInfo?.scale || "major";
-
-  console.log("表示調:", key, "音:", pitch);
-
   const normalize = {
     "C":"C",
     "C#":"C#",
