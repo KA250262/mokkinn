@@ -1103,7 +1103,7 @@ button:focus-visible {
   C5: "C5.mp3"
  },
   baseUrl: "./samples/",
-  maxPolyphony: 8 
+  maxPolyphony: 16, // ←これ追加
  }).toDestination();
 
 
@@ -1155,18 +1155,21 @@ let shownMeasure = -1;
 // =========================
 
 
-function play(note, duration = 1, when = Tone.now()) {
-    // ノートごとのガード
-    if (!lastNoteTime[note]) lastNoteTime[note] = 0;
-    if (when - lastNoteTime[note] < 0.03) return;
-    lastNoteTime[note] = when;
+function play(note, when = Tone.now()) {
+    const now = Tone.now();
 
+    // ★ ノートごとにガード（和音はブロックしない）
+    if (!lastNoteTime[note]) lastNoteTime[note] = 0;
+    if (now - lastNoteTime[note] < 0.03) return; 
+    lastNoteTime[note] = now;
+
+    // AudioContext が止まっていたら再開
     if (window.synth.context.state !== "running") {
         window.synth.context.resume();
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 0.8, when);
+        window.synth.triggerAttackRelease(note, 1, when);
     } catch (e) {
         console.error("再生エラー:", e);
     }
@@ -1430,19 +1433,27 @@ span.innerHTML = formatDoremi(
 // =========================
 function loop() {
 
-    if (!running) {
-        loopRunning = false;
-        loopId = null;
-        return;
-    }
-
+  if (loopRunning && !running) {
+    loopRunning = false;
+    loopId = null;
+    return;
+  }
+   if (loopRunning === false) {
     loopRunning = true;
+  }
 
-    loopId = requestAnimationFrame(loop);
+  loopRunning = true;
+  window.__gameVersion = (window.__gameVersion || 0) + 1;
 
-    if (paused) return;
 
-    gameTime = getTime();
+  if (!running) return;
+
+  loopId = requestAnimationFrame(loop);
+ 
+  if (paused) return;
+
+  // 3. 基本情報取得
+  gameTime = getTime();
 
 // 4. ノーツの出現処理（AUTO MODEのみ）
   if (!stepMode) {
@@ -1504,8 +1515,9 @@ while (
     const n = notes[playIndex];
 
     const diff = gameTime - n.time;
+    console.log(diff);
 
-    play(n.note, n.duration);
+    play(n.note);
     n.played = true;
 
     if (melodyGuide && n.isMelody) {
@@ -1594,9 +1606,7 @@ updateScoreDisplay();
   paused = false;
   pausedTime = 0;
 
- if (!loopRunning) {
-    requestAnimationFrame(loop);
-}
+  requestAnimationFrame(loop);
 });
 
 
@@ -2456,7 +2466,6 @@ judge.textContent = "曲を選んでね";
   // Audio 初期化
   try {
     await Tone.start();
-    await Tone.loaded();
   } catch (e) {
     console.error("AudioContext 開始失敗:", e);
   }
@@ -3139,7 +3148,7 @@ function stepForward() {
 
     chordNotes.forEach(n => {
         spawn(n);
-        play(n.note, n.duration);
+        play(n.note);
         const key = document.querySelector(`#keyboard-top [data-note="${n.note}"]`);
         
         function flashKey(k, cls = "hit") {
