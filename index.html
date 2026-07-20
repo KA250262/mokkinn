@@ -894,11 +894,6 @@ button:focus-visible {
   pointer-events: none;
   line-height: 1;
 }
-#scalePreview,
-#previewArea,
-#previewWindow {
-    display:none;
-}
 
 </style>
 </head>
@@ -1019,7 +1014,7 @@ button:focus-visible {
   C5: "C5.mp3"
  },
   baseUrl: "./samples/",
-  maxPolyphony: 16, // ←これ追加
+  maxPolyphony: 8, 
  }).toDestination();
 
 
@@ -1085,7 +1080,7 @@ function play(note, when = Tone.now()) {
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 1, when);
+        window.synth.triggerAttackRelease(note, 0.5, when);
     } catch (e) {
         console.error("再生エラー:", e);
     }
