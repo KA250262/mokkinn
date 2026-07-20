@@ -1014,7 +1014,7 @@ button:focus-visible {
   C5: "C5.mp3"
  },
   baseUrl: "./samples/",
-  maxPolyphony: 8, 
+  maxPolyphony: 16, 
  }).toDestination();
 
 
@@ -1080,7 +1080,7 @@ function play(note, when = Tone.now()) {
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 0.5, when);
+        window.synth.triggerAttackRelease(note, 1);
     } catch (e) {
         console.error("再生エラー:", e);
     }
@@ -1481,7 +1481,7 @@ if (index >= notes.length) {
     playIndex = 0;
 }
 const t = notes[index]?.time ?? 0;
-startTime = performance.now();
+startTime = performance.now() - (t * 1000) / speed;
 
   // ノーツを消す
   document.getElementById("notes-layer").innerHTML = "";
@@ -1691,7 +1691,7 @@ stepBtn?.addEventListener("click", async () => {
 // ⏱ 時間計算
 // =========================
 function getTime() {
-  return (performance.now() - startTime) / 1000;
+  return ((performance.now() - startTime) / 1000) * speed;
 }
 
 
