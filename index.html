@@ -1068,8 +1068,7 @@ let shownMeasure = -1;
 
 function play(note, when = Tone.now()) {
 
-  console.log("PLAY", note, "when:", when, "now:", Tone.now());
-
+  
     const now = Tone.now();
 
     // ★ ノートごとにガード（和音はブロックしない）
@@ -1079,22 +1078,9 @@ function play(note, when = Tone.now()) {
     if (now - lastNoteTime[note] < 0.03) return; 
     lastNoteTime[note] = now;
 
-    // AudioContext が止まっていたら再開
-    if (window.synth.context.state !== "running") {
-        window.synth.context.resume();
-    }
 
-    try {
-      console.log(
-  "音",
-  note,
-  "Tone",
-  Tone.now()
-);
-window.synth.triggerAttackRelease(note, 1, when);
-    } catch (e) {
-        console.error("再生エラー:", e);
-    }
+    window.synth.triggerAttackRelease(note, 1, when);
+
 }
 
 
@@ -1158,10 +1144,19 @@ function updatePosition(n) {
 }
 
 
+
+
 // =========================
 // オートモード（自動再生）の開始
 // =========================
-function startAutoMode() {
+async function startAutoMode(){
+
+    await Tone.start();
+
+    if (window.synth.context.state !== "running") {
+        await window.synth.context.resume();
+    }
+
   // 1. まず残留しているノーツを物理的に全消去
   const notesLayer = document.getElementById("notes-layer");
   if (notesLayer) {
@@ -1176,14 +1171,12 @@ function startAutoMode() {
   running = true;
   paused = false;
 
-  // 4. 現在の時刻から再生を再開するために startTime を補正
-  // 現在の再生位置(getTime())を考慮してスタート時間を設定し直す
-  startTime = performance.now() - (getTime() / speed) * 1000;
+  startTime = performance.now();
 
-  // 5. ループを開始
-  requestAnimationFrame(loop);
+  if (!loopId) {
+    loopId = requestAnimationFrame(loop);
+  }
 }
-
 
 
 // =========================
@@ -1472,6 +1465,7 @@ play(n.note, baseWhen);
     running = false;
     showGoal();
     cancelAnimationFrame(loopId);
+    loopId = null;
   }
 }
 loop();
