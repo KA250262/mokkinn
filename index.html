@@ -1080,7 +1080,7 @@ function play(note, when = Tone.now()) {
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 1);
+window.synth.triggerAttackRelease(note, 1, Tone.now() + 0.05);
     } catch (e) {
         console.error("再生エラー:", e);
     }
