@@ -1079,7 +1079,7 @@ function play(note, when = Tone.now()) {
     //lastNoteTime[note] = now;
 
 
-    window.synth.triggerAttackRelease(note, 1, when);
+    window.synth.triggerAttackRelease(note, 0.3, when);
 
 }
 
