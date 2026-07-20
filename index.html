@@ -1067,10 +1067,15 @@ let shownMeasure = -1;
 
 
 function play(note, when = Tone.now()) {
+
+  console.log("PLAY", note, "when:", when, "now:", Tone.now());
+
     const now = Tone.now();
 
     // ★ ノートごとにガード（和音はブロックしない）
     if (!lastNoteTime[note]) lastNoteTime[note] = 0;
+
+
     if (now - lastNoteTime[note] < 0.03) return; 
     lastNoteTime[note] = now;
 
@@ -1080,7 +1085,13 @@ function play(note, when = Tone.now()) {
     }
 
     try {
-window.synth.triggerAttackRelease(note, 1, Tone.now() + 0.05);
+      console.log(
+  "音",
+  note,
+  "Tone",
+  Tone.now()
+);
+window.synth.triggerAttackRelease(note, 1, when);
     } catch (e) {
         console.error("再生エラー:", e);
     }
@@ -1419,34 +1430,41 @@ for (let i = active.length - 1; i >= 0; i--) {
 
 
 // 6. 音声再生処理
-while (
-    playIndex < notes.length &&
-    notes[playIndex].time <= gameTime
+if (
+  playIndex < notes.length &&
+  notes[playIndex].time <= gameTime
 ) {
-    const n = notes[playIndex];
 
-    const diff = gameTime - n.time;
-    console.log(diff);
+    const firstTime = notes[playIndex].time;
 
-    play(n.note);
-    n.played = true;
+    const baseWhen = Tone.now() + 0.05;
 
-    if (melodyGuide && n.isMelody) {
-        moveFingerGuide(index);
+    while (
+        playIndex < notes.length &&
+        Math.abs(notes[playIndex].time - firstTime) < 0.001
+    ) {
+
+        const n = notes[playIndex];
+
+play(n.note, baseWhen);
+        n.played = true;
+
+        if (melodyGuide && n.isMelody) {
+            moveFingerGuide(index);
+        }
+
+        const key = n.keyTop;
+
+        if (key) {
+            key.classList.add("hit");
+
+            setTimeout(() => {
+                key.classList.remove("hit");
+            }, 400);
+        }
+
+        playIndex++;
     }
-
-   const key = n.keyTop;
-
-    if (key) {
-        key.classList.add("hit");
-        
-setTimeout(() => {
-    key.classList.remove("hit");
-}, 400);
-
-    }
-
-    playIndex++;
 }
 
   // 7. 終了チェック
