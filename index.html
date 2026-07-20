@@ -1347,6 +1347,7 @@ span.innerHTML = formatDoremi(
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
 function loop() {
+const t1 = performance.now();
 
   if (loopRunning && !running) {
     loopRunning = false;
@@ -1467,6 +1468,9 @@ play(n.note, baseWhen);
     cancelAnimationFrame(loopId);
     loopId = null;
   }
+  if (Math.random() < 0.02) {
+    console.log("loop:", (t1 - t0).toFixed(2), "ms");
+}
 }
 loop();
 
