@@ -1075,8 +1075,8 @@ function play(note, when = Tone.now()) {
     if (!lastNoteTime[note]) lastNoteTime[note] = 0;
 
 
-    if (now - lastNoteTime[note] < 0.03) return; 
-    lastNoteTime[note] = now;
+    //if (now - lastNoteTime[note] < 0.03) return; 
+    //lastNoteTime[note] = now;
 
 
     window.synth.triggerAttackRelease(note, 1, when);
