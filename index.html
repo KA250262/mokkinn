@@ -993,29 +993,17 @@ button:focus-visible {
   }
 
  // window.synth の定義部分を以下のように書き換えてください
- window.synth = new Tone.Sampler({
-  urls: {
-  C3: "C3.mp3",
-  D3: "D3.mp3",
-  E3: "E3.mp3",
-  F3: "F3.mp3",
-  G3: "G3.mp3",
-  A3: "A3.mp3",
-  B3: "B3.mp3",
-  C4: "C4.mp3",
-  "C#4": "Csharp4.mp3",
-  D4: "D4.mp3",
-  "D#4": "Dsharp4.mp3",
-  E4: "E4.mp3",
-  F4: "F4.mp3",
-  G4: "G4.mp3",
-  A4: "A4.mp3",
-  B4: "B4.mp3",
-  C5: "C5.mp3"
- },
-  baseUrl: "./samples/",
-  maxPolyphony: 8, 
- }).toDestination();
+window.synth = new Tone.PolySynth(Tone.Synth, {
+  oscillator: {
+    type: "triangle"
+  },
+  envelope: {
+    attack: 0.01,
+    decay: 0.1,
+    sustain: 0.3,
+    release: 0.5
+  }
+}).toDestination();
 
 
  window.synth.volume.value = 0;
@@ -1080,7 +1068,7 @@ function play(note, when = Tone.now()) {
     }
 
     try {
-        window.synth.triggerAttackRelease(note, 0.5, when);
+        window.synth.triggerAttackRelease(note, 0.8, when);
     } catch (e) {
         console.error("再生エラー:", e);
     }
