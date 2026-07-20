@@ -1481,7 +1481,7 @@ if (index >= notes.length) {
     playIndex = 0;
 }
 const t = notes[index]?.time ?? 0;
-startTime = performance.now() - (t * 1000) / speed;
+startTime = performance.now();
 
   // ノーツを消す
   document.getElementById("notes-layer").innerHTML = "";
@@ -1691,7 +1691,7 @@ stepBtn?.addEventListener("click", async () => {
 // ⏱ 時間計算
 // =========================
 function getTime() {
-  return ((performance.now() - startTime) / 1000) * speed;
+  return (performance.now() - startTime) / 1000;
 }
 
 
