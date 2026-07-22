@@ -1060,9 +1060,9 @@ let autoLoadInitial = false;
 let gameTime = 0;
 let melodyGuide = false;
 let shownMeasure = -1;
+let currentGuideIndex = -1;
 
-
-
+const GUIDE_AHEAD = 0.20;
 const LOOKAHEAD = 0.15;   // 150ms先まで予約
 // =========================
 // 🎹 synth（音源）の再生
@@ -1086,6 +1086,8 @@ function play(note, when = Tone.now()) {
 
 }
 
+
+
 function scheduleAudio() {
 const gameTime = getTime();
     while (
@@ -1100,9 +1102,7 @@ const when =
     (n.time - gameTime);
 
         play(n.note, when);
-        if (melodyGuide && n.isMelody) {
-    moveFingerGuide(playIndex);
-}
+
 const key = n.keyTop;
 
 if (key) {
@@ -1410,6 +1410,28 @@ function loop() {
 
   // 3. 基本情報取得
   gameTime = getTime();
+
+let guideNote = null;
+
+for (let i = playIndex; i < notes.length; i++) {
+
+    if (notes[i].isMelody) {
+        guideNote = notes[i];
+        break;
+    }
+}
+
+if (
+    guideNote &&
+    guideNote.time <= gameTime + GUIDE_AHEAD
+) {
+   const guideIndex = notes.indexOf(guideNote);
+
+if (guideIndex !== currentGuideIndex) {
+    currentGuideIndex = guideIndex;
+    moveFingerGuide(guideIndex);
+}
+}
 
 // 4. ノーツの出現処理（AUTO MODEのみ）
   if (!stepMode) {
