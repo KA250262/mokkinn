@@ -1061,6 +1061,9 @@ let gameTime = 0;
 let melodyGuide = false;
 let shownMeasure = -1;
 
+
+
+const LOOKAHEAD = 0.15;   // 150ms先まで予約
 // =========================
 // 🎹 synth（音源）の再生
 // =========================
@@ -1083,7 +1086,26 @@ function play(note, when = Tone.now()) {
 
 }
 
+function scheduleAudio() {
 
+    while (
+        playIndex < notes.length &&
+        notes[playIndex].time <= getTime() + LOOKAHEAD
+    ) {
+
+        const n = notes[playIndex];
+
+        const when =
+            Tone.now() +
+            (n.time - getTime());
+
+        play(n.note, when);
+
+        n.played = true;
+
+        playIndex++;
+    }
+}
 
 // =========================
 // 🎚 音量調整（安全な処理）
@@ -1347,7 +1369,6 @@ span.innerHTML = formatDoremi(
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
 function loop() {
-const t1 = performance.now();
 
   if (loopRunning && !running) {
     loopRunning = false;
@@ -1422,44 +1443,7 @@ for (let i = active.length - 1; i >= 0; i--) {
     }
   }
 
-
-// 6. 音声再生処理
-if (
-  playIndex < notes.length &&
-  notes[playIndex].time <= gameTime
-) {
-
-    const firstTime = notes[playIndex].time;
-
-    const baseWhen = Tone.now() + 0.05;
-
-    while (
-        playIndex < notes.length &&
-        Math.abs(notes[playIndex].time - firstTime) < 0.001
-    ) {
-
-        const n = notes[playIndex];
-
-play(n.note, baseWhen);
-        n.played = true;
-
-        if (melodyGuide && n.isMelody) {
-            moveFingerGuide(index);
-        }
-
-        const key = n.keyTop;
-
-        if (key) {
-            key.classList.add("hit");
-
-            setTimeout(() => {
-                key.classList.remove("hit");
-            }, 400);
-        }
-
-        playIndex++;
-    }
-}
+scheduleAudio();
 
   // 7. 終了チェック
   if (index >= notes.length && active.length === 0) {
@@ -1469,7 +1453,6 @@ play(n.note, baseWhen);
     loopId = null;
   }
   if (Math.random() < 0.02) {
-    console.log("loop:", (t1 - t0).toFixed(2), "ms");
 }
 }
 loop();
