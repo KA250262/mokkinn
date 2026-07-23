@@ -895,6 +895,29 @@ button:focus-visible {
   line-height: 1;
 }
 
+#resumeOverlay{
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: rgba(0,0,0,0.35);
+
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+
+    z-index: 99999;
+
+    cursor: pointer;
+}
+
+#resumeOverlay.hidden{
+    display: none;
+}
+
 </style>
 </head>
 <body>
@@ -948,6 +971,10 @@ button:focus-visible {
  
 </div>
 
+<div id="resumeOverlay" class="hidden">
+  ▶ タップして再開
+</div>
+
   <div id="uiBar">
     <div id="speed-control">
      <button onclick="changeSpeed(-1)">-</button>
@@ -991,6 +1018,10 @@ button:focus-visible {
     `;
    throw new Error("LINE Browser");
   }
+
+const resumeOverlay =
+    document.getElementById("resumeOverlay");
+
 
  // window.synth の定義部分を以下のように書き換えてください
  window.synth = new Tone.Sampler({
@@ -1061,6 +1092,7 @@ let gameTime = 0;
 let melodyGuide = false;
 let shownMeasure = -1;
 let currentGuideIndex = -1;
+let waitingResume = false;
 
 const GUIDE_AHEAD = 0.30;
 const LOOKAHEAD = 0.15;   // 150ms先まで予約
@@ -1384,6 +1416,32 @@ span.innerHTML = formatDoremi(
     });
 }
 
+function checkOrientation() {
+
+    const portrait = window.innerHeight > window.innerWidth;
+
+    if (portrait) {
+
+        resumeOverlay.classList.add("hidden");
+
+        if (running && !paused) {
+            pauseGame();
+            waitingResume = true;
+        }
+
+    } else {
+
+        if (waitingResume) {
+            resumeOverlay.classList.remove("hidden");
+        }
+
+    }
+}
+
+
+
+
+
 // =========================
 // 🔄 ループ処理（ゲームの心臓部）
 // =========================
@@ -1645,7 +1703,7 @@ melodyGuideBtn.onclick = () => {
 
 };
 
-
+// 4小節戻る
 function stepBack() {
 
   if (index <= 0) return;
@@ -1742,6 +1800,19 @@ function changeButtonColor(activeButton) {
   buttons.forEach(btn => btn?.classList.remove("active"));
   if (activeButton) activeButton.classList.add("active");
 }
+
+
+resumeOverlay.addEventListener("pointerdown", () => {
+
+    if (!waitingResume) return;
+
+    waitingResume = false;
+
+    resumeOverlay.classList.add("hidden");
+
+    pauseGame();
+
+});
 
 // =========================
 // 🎹 キーボード設定
@@ -1871,7 +1942,7 @@ function pauseGame(){
 });
 }
 
-
+resumeOverlay.classList.add("hidden");
 
 async function startMic() {
     try {
