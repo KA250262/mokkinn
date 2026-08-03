@@ -894,6 +894,27 @@ button:focus-visible {
   pointer-events: none;
   line-height: 1;
 }
+#sheetButton{
+  position: fixed;
+  top: 5px;
+  left: 10px;
+  z-index: 9999;
+
+  padding: 8px 14px;
+  border: none;
+  border-radius: 20px;
+  background: #ffb74d;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+
+#sheetButton:hover{
+  opacity: 0.9;
+}
 
 </style>
 </head>
@@ -909,6 +930,11 @@ button:focus-visible {
  <button id="songSelector" onclick="toggleSongList()">
   🎵 曲を選ぶ ▼
  </button>
+
+ <button id="sheetButton"
+        onclick="window.open('https://drive.google.com/drive/folders/1MxgrLLBymWzbaGXeBZOfdwAKB9-Kscom?usp=drive_link', '_blank')">
+  🎵 楽譜
+</button>
 
 
 <div id="gameArea">
