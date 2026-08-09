@@ -308,13 +308,20 @@ body.mobile #keyboard-top {
   text-align:center;
 }
 
+#keyboard-top .key.guide-right,
+#keyboard-top .black.guide-right {
+    background: rgb(246, 196, 235) !important;
+    transform: translateY(-5px) scaleY(1.05);
+    box-shadow: none;
+    opacity: 1 !important;
+}
+
 #keyboard-top .key.guide-left,
-#keyboard-top .key.guide-right {
-    background:white;
-    box-shadow:
-        0 0 12px white,
-        0 0 24px rgba(255,255,255,.8);
-    opacity:1 !important;
+#keyboard-top .black.guide-left {
+    background: rgb(172, 218, 243) !important;
+    transform: translateY(-5px) scaleY(1.05);
+    box-shadow: none;
+    opacity: 1 !important;
 }
 
 #songToggleBtn {
@@ -422,8 +429,8 @@ body.mobile #keyboard-top {
     animation: spawnNote 0.2s ease-out forwards;
     width: 20px;
     height: 20px;
-    border-radius: 6px;
-    border: 3px solid white;
+    /*border-radius: 6px;
+    border: 3px solid white;*/
     background: #ffd860;
     will-change: transform;
     transition: none;
@@ -441,11 +448,11 @@ body.mobile #keyboard-top {
     transform: translate(-50%, -50%)scaleX(0.9); 
     transition: opacity 0.1s linear;
     opacity: 1;
-    font-size: 18px; 
+    font-size: 16px; 
     white-space: nowrap; 
     font-weight: 800; 
     color: white; 
-    text-shadow: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1); /* 影を濃くする */
+    text-shadow: 0 0 4px rgb(244, 244, 3);
     z-index:auto; 
 }
 
@@ -864,36 +871,6 @@ button:focus-visible {
 .key.octave-edge {
   background: #eee0c2 !important;
 }
-.treble-clef {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 18px;
-  color: #d1b081;
-  pointer-events: none;
-  line-height: 1;
-}
-.bass-clef {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 18px;
-  color: #d1b081;
-  pointer-events: none;
-  line-height: 1;
-}
-.middle-do {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  color: #d1b081;
-  transform: translateX(-50%);
-  font-size: 18px;
-  pointer-events: none;
-  line-height: 1;
-}
 #sheetButton{
   position: fixed;
   top: 5px;
@@ -915,7 +892,19 @@ button:focus-visible {
 #sheetButton:hover{
   opacity: 0.9;
 }
-
+.solfege-label {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: #d1b081;
+  pointer-events: none;
+  line-height: 1;
+}
+#scalePreview {
+  display: none;
+}
 </style>
 </head>
 <body>
@@ -1489,7 +1478,7 @@ for (let i = active.length - 1; i >= 0; i--) {
     const remain = n.hit - gameTime;
 
     // ガイドの点灯処理
-    if (!n.guideShown && remain < 0.05 && remain > 0) {
+    if (!n.guideShown && remain < 0.25 && remain > 0) {
       n.guideShown = true;
       const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
       n.keyTop.classList.add(guideClass);
@@ -2245,9 +2234,7 @@ function paintKeyboard(){
   // 両端1オクターブを濃くする
   whites.slice(0,7).forEach(k => k.classList.add("octave-edge"));
   whites.slice(-8).forEach(k => k.classList.add("octave-edge"));
-addTrebleClef();
-addBassClef();
-addMiddleDo();
+addSolfegeLabels();
 
 }
 
@@ -2304,6 +2291,40 @@ function addTrebleClef(){
 // =========================
 // 🎹 描画
 // =========================
+function addSolfegeLabels(){
+
+  const solfege = {
+    C: "ド",
+    D: "レ",
+    E: "ミ",
+    F: "ファ",
+    G: "ソ",
+    A: "ラ",
+    B: "シ"
+  };
+
+  document.querySelectorAll("#keyboard-top .key").forEach(key => {
+
+    const note = key.dataset.note;
+    if(!note) return;
+
+    // C#4 のような音名から C の部分だけ取り出す
+    const letter = note[0];
+
+    // 黒鍵は対象外
+    if(!solfege[letter]) return;
+
+    // すでにあれば追加しない
+    if(key.querySelector(".solfege-label")) return;
+
+    const label = document.createElement("div");
+    label.className = "solfege-label";
+    label.textContent = solfege[letter];
+
+    key.appendChild(label);
+  });
+}
+
 renderKeyboard("keyboard-top");
 
 
