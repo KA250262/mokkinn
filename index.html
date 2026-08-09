@@ -519,6 +519,35 @@ button:focus-visible {
 .step-btn:hover,.back-btn:hover{
   background: #2980b9;
 }
+
+.back-btn {
+  position: relative;
+}
+
+/* 左側の棒 */
+.back-btn::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 3px;
+  height: 15px;
+  background: white;
+  border-radius: 2px;
+}
+
+/* 左向き矢印 */
+.back-btn::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 12px solid white;
+}
 .songBtn {
     width: 100%;
     min-height: 50px;
@@ -633,7 +662,16 @@ button:focus-visible {
     display:none;
   }
 }
-
+@media (max-width: 600px) {
+  #backBtn,
+  #playBtn,
+  #stepBtn,
+  #stopBtn,
+  #pauseBtn {
+    width: 48px;
+    height: 48px;
+  }
+}
 
 #keyboard-top .black.black-left{
     border-radius: 8px 5px 4px 4px;
@@ -745,67 +783,33 @@ button:focus-visible {
   right:12px;
 }
 
-.back-btn {
+.step-btn {
   position: relative;
 }
 
-/* 左向き矢印 */
-.back-btn::before {
-  content:"";
-  position:absolute;
-  left:6px;
-  top:10px;
-
-  width:0;
-  height:0;
-
-  border-top:8px solid transparent;
-  border-bottom:8px solid transparent;
-  border-right:12px solid white;
-}
-
-/* 棒 */
-.back-btn::after {
-  content:"";
-  position:absolute;
-  right:10px;
-  top:10px;
-
-  width:3px;
-  height:15px;
-  background:white;
-  border-radius:2px;
-}
-.step-btn {
-  position:relative;
-}
-
-/* 三角 */
+/* 右向き三角 */
 .step-btn::before {
-  content:"";
-  position:absolute;
-  right:8px;
-  top:10px;
-
-  width:0;
-  height:0;
-
-  border-top:7px solid transparent;
-  border-bottom:7px solid transparent;
-  border-left:11px solid white;
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid white;
 }
 
-/* 終点の棒 */
+/* 右側の棒 */
 .step-btn::after {
-  content:"";
-  position:absolute;
-  left:12px;
-  top:9px;
-
-  width:3px;
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 9px;
+  width: 3px;
   height: 16px;
-  background:white;
-  border-radius:2px;
+  background: white;
+  border-radius: 2px;
 }
 .stop-btn {
   position: relative;
@@ -905,6 +909,10 @@ button:focus-visible {
 #scalePreview {
   display: none;
 }
+#melodyGuideBtn {
+  width: 60px;
+  white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -977,7 +985,7 @@ button:focus-visible {
 
      <button id="stopBtn" class="icon-btn stop-btn"></button>
      <button id="pauseBtn" class="icon-btn pause-btn"></button>
-     <button id="melodyGuideBtn">🎵ガイド OFF</button>
+     <button id="melodyGuideBtn">⬇️メロ</button>
     </div>
    
     <button id="songToggleBtn" onclick="toggleSongList()">♫▼</button>
@@ -1669,7 +1677,7 @@ const currentTick = notes[index].ticks;
 
 // 4小節前
 const ticksPerMeasure = window.ppq * timeSignature;
-const targetTick = Math.max(0, currentTick - ticksPerMeasure * 2);
+const targetTick = Math.max(0, currentTick - ticksPerMeasure * 4);
 
 // ジャンプ先を探す
 let newIndex = 0;
