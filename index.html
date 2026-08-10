@@ -142,7 +142,8 @@ body.mobile #keyboard-top {
   position: absolute;
   top: 35px;
   width: 20px;
-  height: 40px;
+  height: 35px;
+  padding-top: 35px;
 
   background: #222;
   border: 2px solid rgba(255,255,255,.8);
@@ -157,9 +158,8 @@ body.mobile #keyboard-top {
   box-sizing: border-box;
   text-align: center;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 10px;
   color: white;
-  padding-top: 40px;
   user-select: none;
   cursor: pointer;
 
@@ -429,8 +429,7 @@ body.mobile #keyboard-top {
     animation: spawnNote 0.2s ease-out forwards;
     width: 20px;
     height: 20px;
-    /*border-radius: 6px;
-    border: 3px solid white;*/
+    border-radius: 8px;
     background: #ffd860;
     will-change: transform;
     transition: none;
@@ -448,7 +447,7 @@ body.mobile #keyboard-top {
     transform: translate(-50%, -50%)scaleX(0.9); 
     transition: opacity 0.1s linear;
     opacity: 1;
-    font-size: 16px; 
+    font-size: 12px; 
     white-space: nowrap; 
     font-weight: 800; 
     color: white; 
@@ -901,7 +900,7 @@ button:focus-visible {
   top: 25px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
+  font-size: 16px;
   color: #d1b081;
   pointer-events: none;
   line-height: 1;
@@ -912,6 +911,9 @@ button:focus-visible {
 #melodyGuideBtn {
   width: 60px;
   white-space: nowrap;
+}
+.key-fa {
+    transform: translateX(-15px);
 }
 </style>
 </head>
@@ -1128,7 +1130,7 @@ const when =
 
 const key = n.keyTop;
 
-if (key) {
+/*if (key) {
 
     const delay = Math.max(0, (when - Tone.now()) * 1000);
 
@@ -1141,7 +1143,7 @@ if (key) {
         }, 400);
 
     }, delay);
-}
+}*/
 
         n.played = true;
 
@@ -1460,7 +1462,7 @@ if (guideIndex !== currentGuideIndex) {
   if (!stepMode) {
   while (
     index < notes.length &&
-    notes[index].time <= gameTime + 0.25
+    notes[index].time <= gameTime + 0.10
 ) {
 
 const currentTicks = notes[index].ticks;
@@ -1485,26 +1487,31 @@ for (let i = active.length - 1; i >= 0; i--) {
     updatePosition(n);
     const remain = n.hit - gameTime;
 
-    // ガイドの点灯処理
-    if (!n.guideShown && remain < 0.25 && remain > 0) {
-      n.guideShown = true;
-      const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
-      n.keyTop.classList.add(guideClass);
-    }
+// ガイドの点灯処理
+if (!n.guideShown && remain < 0.90 && remain > 0) {
+  n.guideShown = true;
+  const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
+  n.keyTop.classList.add(guideClass);
+}
+/*
+// ガイドを少し早めに消す
+if (n.guideShown && remain < 0.01 && remain > 0) {
+  n.keyTop?.classList.remove("guide-left", "guide-right");
+}*/
 
-    // 判定処理：通り過ぎてから0.2秒経ったらミス扱い＆消滅
-    if (!n.missed && remain < -0.15) {
-      n.missed = true;
-      n.keyTop?.classList.remove("guide-left", "guide-right");
-      n.el.classList.add("note-fade-out");
-      
-      setTimeout(() => {
-        if (n.el) n.el.remove();
-      }, 1);
+// 判定処理：通り過ぎてから0.2秒経ったらミス扱い＆消滅
+if (!n.missed && remain < -0.15) {
+  n.missed = true;
+  n.keyTop?.classList.remove("guide-left", "guide-right");
+  n.el.classList.add("note-fade-out");
 
-      active.splice(i, 1);
-      continue;
-    }
+  setTimeout(() => {
+    if (n.el) n.el.remove();
+  }, 1);
+
+  active.splice(i, 1);
+  continue;
+}
   }
 
 scheduleAudio();
@@ -1933,7 +1940,7 @@ async function startMic() {
                 }
 
                 const attackMode = currentRMS > 0.015 && currentRMS > baseline * 2 && (flux > 0.15 || delta > baseline * 1.2);
-                if (attackMode && now - lastHitDetect > 300) {
+                if (attackMode && now - lastHitDetect > 80) {
                     hitNearest();
                     lastHitDetect = now;
                 }
@@ -2131,6 +2138,7 @@ paintKeyboard();
 
 
 async function loadMidiFromUrl(url, fileName){
+ console.log("MIDI URL:", url);
 
   const res = await fetch(url);
   const buf = await res.arrayBuffer();
@@ -2325,9 +2333,19 @@ function addSolfegeLabels(){
     // すでにあれば追加しない
     if(key.querySelector(".solfege-label")) return;
 
-    const label = document.createElement("div");
+
+
+const label = document.createElement("div");
+
+if (solfege[letter] === "ファ") {
+    label.className = "solfege-label note-fa key-fa";
+} else {
     label.className = "solfege-label";
-    label.textContent = solfege[letter];
+}
+
+label.textContent = solfege[letter];
+
+
 
     key.appendChild(label);
   });
@@ -2761,6 +2779,11 @@ setTimeout(() => {
 }, fadeTime);
 }
 
+
+
+
+const hitTimers = new WeakMap();
+
 function hitNearest() {
   const now = getTime();
 
@@ -2785,18 +2808,26 @@ function hitNearest() {
     n.hand === best.hand
   );
 
-  group.forEach(n => {
-    // 🔥 光る
-    n.keyTop.classList.add("hit");
+group.forEach(n => {
+  n.keyTop.classList.add("hit");
 
-    setTimeout(() => {
-      n.keyTop?.classList.remove("hit");
-    }, 200);
+  if (hitTimers.has(n.keyTop)) {
+    clearTimeout(hitTimers.get(n.keyTop));
+  }
 
-    // 成功処理（1回ずつ安全に）
-    success(n);
-  });
+  const timer = setTimeout(() => {
+    n.keyTop?.classList.remove("hit");
+    hitTimers.delete(n.keyTop);
+  }, 200);
+
+  hitTimers.set(n.keyTop, timer);
+
+  success(n);
+});
 }
+
+
+
 
 /* ================= ⭐ 改定：TAP用HIT処理 ================= */
 function hit(note){
@@ -2845,14 +2876,33 @@ function updateScoreDisplay() {
   }
 }
 
-let speedIndex = 1; // 1.0 に対応するインデックス
-const speedLevels = [0.75, 1.0, 1.25, 1.5]; // 段階的な速度設定
+let speedIndex = 2; // 1.0 に対応
+const speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5];
 
 function setSpeed(val) {
     speed = val;
-    document.getElementById("speedLabel").textContent = speed.toFixed(2);
-}
 
+    const label = document.getElementById("speedLabel");
+
+    if (val === 0.5) {
+        label.textContent = "🐢";
+    } else {
+        label.textContent = val.toFixed(2);
+    }
+}
+function setSpeed(val) {
+    speed = val;
+
+    const label = document.getElementById("speedLabel");
+
+    if (val === 0.5) {
+        label.textContent = "🐢";
+    } else if (val === 1.5) {
+        label.textContent = "🐇";
+    } else {
+        label.textContent = val.toFixed(2);
+    }
+}
 
 
 
@@ -2889,7 +2939,7 @@ function changeSpeed(dir) {
     active = [];
 
     // ★現在表示範囲のノーツだけ再生成
-    notes.forEach(n => {
+    /*notes.forEach(n => {
 
         if (
             !n.played &&
@@ -2899,7 +2949,7 @@ function changeSpeed(dir) {
             spawn(n);
         }
 
-    });
+    });*/
 
     // ガイド矢印・プレビューも更新
     if (melodyGuide) {
