@@ -1148,7 +1148,7 @@ play(n.note, when, velocity);
 // 🎚 音量調整（安全な処理）
 // =========================
 if (window.synth?.volume != null) {
-    window.synth.volume.rampTo(-3, 0.05);
+    window.synth.volume.rampTo(0, 0.05);
 }
 
 // =========================
@@ -1486,11 +1486,6 @@ if (!n.guideShown && remain < 0.90 && remain > 0) {
   const guideClass = n.hand === "left" ? "guide-left" : "guide-right";
   n.keyTop.classList.add(guideClass);
 }
-/*
-// ガイドを少し早めに消す
-if (n.guideShown && remain < 0.01 && remain > 0) {
-  n.keyTop?.classList.remove("guide-left", "guide-right");
-}*/
 
 // 判定処理：通り過ぎてから0.2秒経ったらミス扱い＆消滅
 if (!n.missed && remain < -0.15) {
