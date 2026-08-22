@@ -1114,39 +1114,21 @@ function play(note, when = Tone.now()) {
 
 
 function scheduleAudio() {
-const gameTime = getTime();
+    const gameTime = getTime();
+
     while (
         playIndex < notes.length &&
-        notes[playIndex].time <= getTime() + LOOKAHEAD
+        notes[playIndex].time <= gameTime + LOOKAHEAD
     ) {
 
         const n = notes[playIndex];
 
-const when =
-    Tone.now() +
-    (n.time - gameTime);
+        const when =
+            Tone.now() + (n.time - gameTime);
 
         play(n.note, when);
 
-const key = n.keyTop;
-
-/*if (key) {
-
-    const delay = Math.max(0, (when - Tone.now()) * 1000);
-
-    setTimeout(() => {
-
-        key.classList.add("hit");
-
-        setTimeout(() => {
-            key.classList.remove("hit");
-        }, 400);
-
-    }, delay);
-}*/
-
         n.played = true;
-
         playIndex++;
     }
 }
