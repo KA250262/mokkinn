@@ -1094,21 +1094,31 @@ const LOOKAHEAD = 0.15;   // 150ms先まで予約
 // =========================
 
 
-function play(note, when = Tone.now()) {
+function play(note, when = Tone.now(), velocity = 0.8) {
 
-  
     const now = Tone.now();
 
-    // ★ ノートごとにガード（和音はブロックしない）
-     if (!lastNoteTime[note]) lastNoteTime[note] = 0;
-
-
-    if (now - lastNoteTime[note] < 0.03) return; 
+    if (!lastNoteTime[note]) lastNoteTime[note] = 0;
+    if (now - lastNoteTime[note] < 0.03) return;
     lastNoteTime[note] = now;
 
+    const midi = Tone.Frequency(note).toMidi();
 
-    window.synth.triggerAttackRelease(note, 1, when);
+    let correctedVelocity = velocity;
 
+// C4〜C5を少し強く
+if (midi >= 60 && midi <= 72) {
+    correctedVelocity *= 1.20;
+}
+
+    correctedVelocity = Math.min(correctedVelocity, 1);
+
+    window.synth.triggerAttackRelease(
+        note,
+        1,
+        when,
+        correctedVelocity
+    );
 }
 
 
@@ -1126,7 +1136,8 @@ function scheduleAudio() {
         const when =
             Tone.now() + (n.time - gameTime);
 
-        play(n.note, when);
+        const velocity = n.velocity ?? 0.8;
+play(n.note, when, velocity);
 
         n.played = true;
         playIndex++;
@@ -2099,6 +2110,7 @@ const y =
  doremi: noteToSolfege(fixedName),
   midi: n.midi,
   duration: n.duration,
+  velocity: n.velocity ?? 0.8,  // ★ 強弱
   hand: (playableTrackCount === 0) ? "right" : "left",
   keyTop,
       x,
