@@ -1110,7 +1110,10 @@ function play(note, when = Tone.now(), velocity = 0.8) {
 if (midi >= 60 && midi <= 72) {
     correctedVelocity *= 1.20;
 }
-
+// C6より上は少し控える
+if (midi > 84) {
+    correctedVelocity *= 0.65;
+}   
     correctedVelocity = Math.min(correctedVelocity, 1);
 
     window.synth.triggerAttackRelease(
